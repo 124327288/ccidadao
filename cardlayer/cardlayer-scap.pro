@@ -6,7 +6,7 @@
 include(../_Builds/eidcommon.mak)
 
 TEMPLATE = lib
-TARGET = $${CARDLAYERLIB}
+TARGET = pteid-scap-cardlayer
 VERSION = $${CARDLAYERLIB_MAJ}.$${CARDLAYERLIB_MIN}.$${CARDLAYERLIB_REV}
 
 message("Compile $$TARGET")
@@ -21,6 +21,7 @@ INSTALLS += target
 CONFIG -= warn_on qt
 
 ## destination directory
+OBJECTS_DIR = scap-obj
 DESTDIR = ../lib
 DEPENDPATH += . 
 macx: LIBS += -L../lib -l$${COMMONLIB}
@@ -36,7 +37,8 @@ INCLUDEPATH += $${PCSC_INCLUDE_DIR}
 
 QMAKE_CXXFLAGS += -O2
 
-DEFINES += EIDMW_CAL_EXPORT \
+DEFINES += PTEID_SCAP \
+           EIDMW_CAL_EXPORT \
            CARDPLUGIN_IN_CAL CAL_PTEID
 unix:!macx:  DEFINES += __UNIX__
 #macx:  DEFINES += __OLD_PCSC_API__

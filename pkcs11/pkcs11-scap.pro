@@ -6,7 +6,7 @@
 include(../_Builds/eidcommon.mak)
 
 TEMPLATE = lib
-TARGET = $${PKCS11LIB}
+TARGET = pteid-scap-pkcs11
 VERSION = $${PKCS11LIB_MAJ}.$${PKCS11LIB_MIN}.$${PKCS11LIB_REV}
 
 message("Compile $$TARGET")
@@ -19,31 +19,20 @@ INSTALLS += target
 
 CONFIG -= warn_on qt
 
+
 ## destination directory
 DESTDIR = ../lib
-DEPENDPATH += . 
-LIBS += -L../lib -l$${COMMONLIB} -l$${CARDLAYERLIB} -l$${DLGLIB}
+OBJECTS_DIR = scap-obj
+DEPENDPATH += .
+LIBS += -L../lib -l$${COMMONLIB} -lpteid-scap-cardlayer -l$${DLGLIB}
 macx: LIBS += -Wl,-framework -Wl,PCSC
 
 #Support Fat binaries on Mac with both x86 and x86_64 architectures
 macx: CONFIG += x86
 
-##macx: USE_PRIVACYFB =
-
 isEmpty(EMULATE_CARDLAYER) {
 
   LIBS +=	-l$${CARDLAYERLIB} 
-
-##  isEmpty(USE_PRIVACYFB){
-##    unix:!macx: LIBS += -lpcsclite
-##    macx: LIBS += -Wl,-framework -Wl,PCSC 	
-##  } else {
-##    unix:!macx: LIBS += -l$${PRIVACYFB} 
-##    ## declare this library explicitly as prerequisite for the target
-##    ## otherwise the update of the target is not performed when 
-##    ## lib$${PRIVACYFB}.a is newer.
-##    unix:!macx: PRE_TARGETDEPS += ../lib/lib$${PRIVACYFB}.a	
-##  }
 
 } else {
   LIBS += -l$${CARDLAYEREMULIB} 
@@ -56,9 +45,8 @@ QMAKE_CXXFLAGS += -O2
 QMAKE_CXXFLAGS += -fno-strict-aliasing
 QMAKE_CFLAGS += -fno-strict-aliasing
 
-DEFINES += 
+DEFINES += PTEID_SCAP
 unix:!macx:  DEFINES += __UNIX__
-#macx:  DEFINES += __OLD_PCSC_API__
 
 # Input
 HEADERS += asn1.h \
