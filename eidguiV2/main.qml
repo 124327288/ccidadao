@@ -1,9 +1,7 @@
 import QtQuick 2.6
-import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.1
 import QtQuick.Controls.Material 2.1
 import QtQuick.Controls.Universal 2.1
-import Qt.labs.settings 1.0
 import QtQuick.Window 2.2
 
 import "scripts/Functions.js" as Functions
@@ -17,7 +15,7 @@ import "scripts/Constants.js" as Constants
 Window {
     id: mainWindow
     visible: true
-    flags: Qt.Window | Qt.CustomizeWindowHint | Qt.FramelessWindowHint
+	flags: Qt.Window | Qt.CustomizeWindowHint | Qt.FramelessWindowHint
 
     width: Constants.SCREEN_MINIMUM_WIDTH
     height: Constants.SCREEN_MINIMUM_HEIGHT
@@ -44,6 +42,12 @@ Window {
 
     Connections {
         target: controler
+        onSignalRestoreWindows: {
+            console.log("Signal onSignalRestoreWindows")
+            mainWindow.raise();
+            mainWindow.show();
+            mainWindow.activateWindow();
+        }
         onSignalLanguageChangedError: {
             mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
                     "Erro / Error"
@@ -64,6 +68,7 @@ Load language error. Please reinstall the application"
                     qsTranslate("Popup Card","STR_GENERIC_ERROR_MSG") + "\n\n" +
                     qsTranslate("Popup Card","STR_ERROR_CODE") + error_code
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
         }
         onSignalImportCertificatesFail: {
             console.log("Signal onSignalImportCertificatesFail")
@@ -72,6 +77,7 @@ Load language error. Please reinstall the application"
             mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
                     qsTranslate("Popup Card","STR_CERTIFICATES_IMPORT_ERROR_MSG")
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
         }
         onSignalRemoveCertificatesFail: {
             console.log("Signal onSignalRemoveCertificatesFail")
@@ -80,6 +86,7 @@ Load language error. Please reinstall the application"
             mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
                     qsTranslate("Popup Card","STR_CERTIFICATES_REMOVE_ERROR_MSG")
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
         }
         onSignalLanguageChangedError: {
             mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
@@ -90,11 +97,6 @@ Load language error. Please reinstall the application"
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true
         }
 
-        onSignalSetReaderComboIndex: {
-            console.log("onSignalSetReaderComboIndex index = " + selected_reader)
-            comboBoxReader.currentIndex = selected_reader
-        }
-
         onSignalReaderContext: {
             //console.log("Reader List: " + gapi.getRetReaderList())
             //console.log("Reader List Count: " + gapi.getRetReaderList().length)
@@ -103,7 +105,7 @@ Load language error. Please reinstall the application"
               //  console.log("Reader List " + "i = " + i +" : "+ gapi.getRetReaderList()[i])
                 comboBoxReader.model = gapi.getRetReaderList()
             }
-            mainFormID.opacity = 0.5
+            mainFormID.opacity = Constants.OPACITY_POPUP_FOCUS
             readerContext.open()
         }
     }
@@ -124,7 +126,7 @@ Load language error. Please reinstall the application"
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pixelSize: 16
+            font.pointSize: 16
             color: Constants.COLOR_MAIN_BLUE
         }
         Item {
@@ -139,7 +141,7 @@ Load language error. Please reinstall the application"
                 Text {
                     id: textMessageTop
                     text: "Múltiplos cartões detectados"
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -162,7 +164,7 @@ Load language error. Please reinstall the application"
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_FIELD
+                    font.pointSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     visible: true
                 }
@@ -177,7 +179,7 @@ Load language error. Please reinstall the application"
                 Text {
                     id: textNote
                     text:  "Para alterar essa opção mais tarde, vá para o menu de configuração"
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -190,10 +192,10 @@ Load language error. Please reinstall the application"
 
         standardButtons: DialogButtonBox.Ok | DialogButtonBox.Cancel
         onAccepted: {
-            console.log("propertyComboBoxReader onActivated index = " + comboBoxReader.currentIndex)
+            console.log("comboBoxReader onActivated index = " + comboBoxReader.currentIndex)
             gapi.setReaderByUser(comboBoxReader.currentIndex)
 
-            mainFormID.opacity = 1
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
             mainFormID.propertyPageLoader.source = mainFormID.propertyPageLoader.source
 
             // Force reload page loader
@@ -202,12 +204,13 @@ Load language error. Please reinstall the application"
             mainFormID.propertyPageLoader.source = temp
         }
         onRejected: {
-            mainFormID.opacity = 1
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
         }
     }
 
     MainForm {
         id: mainFormID
+        property bool isAnimationFinished: mainFormID.propertyPageLoader.propertyAnimationExtendedFinished
 
         //************************************************************************/
         //**                  states
@@ -401,10 +404,19 @@ Load language error. Please reinstall the application"
                 to: "STATE_HOME"
                 NumberAnimation
                 {
-                    target: mainFormID.propertySubMenuView
+                    target: mainFormID.propertySubMenuViewMenu
                     property: "opacity"
                     easing.type: Easing.Linear
-                    to: 0;
+                    to: 1;
+                    duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
+                }
+                ColorAnimation
+                {
+                    id: animationColorSubMenuExpanded
+                    target: mainFormID.propertySubMenuView
+                    property: "color"
+                    easing.type: Easing.Linear
+                    to: "white";
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
                 }
                 NumberAnimation
@@ -439,6 +451,12 @@ Load language error. Please reinstall the application"
                     to: 0
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_MOVE_VIEW : 0
                 }
+                onRunningChanged: {
+                    if (( mainFormID.state == "STATE_HOME") && (!running))
+                    {
+                        mainFormID.propertyPageLoader.propertyAnimationExtendedFinished = false
+                    }
+                }
             },
             Transition {
                 from: "STATE_NORMAL"
@@ -446,10 +464,19 @@ Load language error. Please reinstall the application"
                 NumberAnimation
                 {
                     id: animationHideSubMenuExpand
-                    target: mainFormID.propertySubMenuView
+                    target: mainFormID.propertySubMenuViewMenu
                     property: "opacity"
                     easing.type: Easing.Linear
                     to: 0;
+                    duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
+                }
+                ColorAnimation
+                {
+                    id: animationColorSubMenuExpand
+                    target: mainFormID.propertySubMenuView
+                    property: "color"
+                    easing.type: Easing.Linear
+                    to: Constants.COLOR_MAIN_DARK_GRAY;
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
                 }
                 NumberAnimation
@@ -459,7 +486,8 @@ Load language error. Please reinstall the application"
                     property: "width"
                     easing.type: Easing.OutQuad
                     to: mainFormID.propertyMainView.width
-                        * (Constants.CONTENT_PAGES_VIEW_RELATIVE_SIZE + Constants.SUB_MENU_VIEW_RELATIVE_SIZE)
+                        * (Constants.CONTENT_PAGES_VIEW_RELATIVE_SIZE + Constants.SUB_MENU_VIEW_RELATIVE_SIZE
+                           -Constants.SUB_MENU_EXPAND_VIEW_RELATIVE_SIZE)
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_MOVE_VIEW : 0
                 }
                 NumberAnimation
@@ -468,8 +496,14 @@ Load language error. Please reinstall the application"
                     target: mainFormID.propertySubMenuView
                     property: "width"
                     easing.type: Easing.OutQuad
-                    to: 0;
+                    to: mainFormID.propertyMainView.width * Constants.SUB_MENU_EXPAND_VIEW_RELATIVE_SIZE;
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_MOVE_VIEW : 0
+                }
+                onRunningChanged: {
+                    if (( mainFormID.state == "STATE_EXPAND") && (!running))
+                    {
+                        mainFormID.propertyPageLoader.propertyAnimationExtendedFinished = true
+                    }
                 }
             },
             Transition {
@@ -478,10 +512,19 @@ Load language error. Please reinstall the application"
                 NumberAnimation
                 {
                     id: animationShowSubMenuExpand
-                    target: mainFormID.propertySubMenuView
+                    target: mainFormID.propertySubMenuViewMenu
                     property: "opacity"
                     easing.type: Easing.Linear
                     to: 1;
+                    duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
+                }
+                ColorAnimation
+                {
+                    id: animationColorSubMenuExpandedNormal
+                    target: mainFormID.propertySubMenuView
+                    property: "color"
+                    easing.type: Easing.Linear
+                    to: "white";
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_CHANGE_OPACITY : 0
                 }
                 NumberAnimation
@@ -501,6 +544,12 @@ Load language error. Please reinstall the application"
                     easing.type: Easing.OutQuad
                     to: mainFormID.propertyMainView.width * Constants.SUB_MENU_VIEW_RELATIVE_SIZE;
                     duration: mainFormID.propertShowAnimation ? Constants.ANIMATION_MOVE_VIEW : 0
+                }
+                onRunningChanged: {
+                    if (( mainFormID.state == "STATE_NORMAL") && (!running))
+                    {
+                        mainFormID.propertyPageLoader.propertyAnimationExtendedFinished = false
+                    }
                 }
             }
         ]
@@ -549,6 +598,14 @@ Load language error. Please reinstall the application"
                 propertyMainMenuBottomListView.currentIndex = -1
             }
         }
+        propertyMouseAreaSubMenuViewReduced {
+            onClicked: {
+                mainFormID.state = "STATE_NORMAL"
+                mainFormID.propertyPageLoader.source = "contentPages/services/PageServicesSignHelp.qml"
+                // Do not select any option in sub menu
+                mainFormID.propertySubMenuListView.currentIndex = -1
+            }
+        }
     }
     Component {
         id: mainMenuDelegate
@@ -581,7 +638,7 @@ Load language error. Please reinstall the application"
                     console.log("Expand Sub Menu = " +  mainFormID.propertyMainMenuListView.model.get(index).expand)
                     if( mainFormID.propertyMainMenuListView.model.get(index).expand === true){
                         // Clean the content page
-                        mainFormID.propertyPageLoader.source = ""
+                        mainFormID.propertyPageLoader.source = "contentPages/services/PageServicesSignHelp.qml"
                         // Do not select any option in sub menu
                         mainFormID.propertySubMenuListView.currentIndex = -1
                     }else{
@@ -604,7 +661,7 @@ Load language error. Please reinstall the application"
                 font.weight: mouseAreaMainMenu.containsMouse ?
                                  Font.Bold :
                                  Font.Normal
-                font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
+                font.pointSize: Constants.SIZE_TEXT_MAIN_MENU
             }
             Image {
                 id: imageArrowMainMenu
@@ -727,7 +784,7 @@ Load language error. Please reinstall the application"
                 font.weight: mouseAreaSubMenu.containsMouse ?
                                  Font.Bold :
                                  Font.Normal
-                font.pixelSize: Constants.SIZE_TEXT_SUB_MENU
+                font.pointSize: Constants.SIZE_TEXT_SUB_MENU
                 wrapMode: Text.Wrap
                 width: parent.width - 2 * imageArrowSubMenu.width
                        - 2 * Constants.IMAGE_ARROW_SUB_MENU_MARGIN

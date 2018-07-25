@@ -50,10 +50,6 @@ PTEID_Exception PTEID_Exception::THROWException(CMWException &e)
 		throw PTEID_ExReleaseNeeded();
 	case EIDMW_ERR_UNKNOWN:
 		throw PTEID_ExUnknown();
-	case EIDMW_ERR_DOCTYPE_UNKNOWN:
-		throw PTEID_ExDocTypeUnknown();
-	case EIDMW_ERR_FILETYPE_UNKNOWN:
-		throw PTEID_ExFileTypeUnknown();
 	case EIDMW_ERR_PARAM_RANGE:
 		throw PTEID_ExParamRange();
 	case EIDMW_ERR_CMD_NOT_ALLOWED:
@@ -62,22 +58,14 @@ PTEID_Exception PTEID_Exception::THROWException(CMWException &e)
 		throw PTEID_ExCmdNotSupported();
 	case EIDMW_ERR_NO_CARD:
 		throw PTEID_ExNoCardPresent();
-	case EIDMW_ERR_CARDTYPE_BAD:
-		throw PTEID_ExCardBadType();
 	case EIDMW_ERR_CARDTYPE_UNKNOWN:
 		throw PTEID_ExCardTypeUnknown();
-	case EIDMW_ERR_CERT_NOISSUER:
-		throw PTEID_ExCertNoIssuer();
 	case EIDMW_ERR_CERT_NOROOT:
 		throw PTEID_ExCertNoRoot();
 	case EIDMW_ERR_BAD_USAGE:
 		throw PTEID_ExBadUsage();
 	case EIDMW_ERR_BAD_TRANSACTION:
 		throw PTEID_ExBadTransaction();
-	case EIDMW_ERR_CARD_CHANGED:
-		throw PTEID_ExCardChanged();
-	case EIDMW_ERR_READERSET_CHANGED:
-		throw PTEID_ExReaderSetChanged();
 	case EIDMW_ERR_NO_READER:
 		throw PTEID_ExNoReader();
 	case EIDMW_SOD_UNEXPECTED_VALUE:
@@ -121,28 +109,6 @@ PTEID_ExUnknown::PTEID_ExUnknown():PTEID_Exception(EIDMW_ERR_UNKNOWN)
 }
 
 PTEID_ExUnknown::~PTEID_ExUnknown()
-{
-}
-
-/*****************************************************************************************
----------------------------------------- PTEID_ExDocTypeUnknown --------------------------------------
-*****************************************************************************************/
-PTEID_ExDocTypeUnknown::PTEID_ExDocTypeUnknown():PTEID_Exception(EIDMW_ERR_DOCTYPE_UNKNOWN)
-{
-}
-
-PTEID_ExDocTypeUnknown::~PTEID_ExDocTypeUnknown()
-{
-}
-
-/*****************************************************************************************
----------------------------------------- PTEID_ExFileTypeUnknown --------------------------------------
-*****************************************************************************************/
-PTEID_ExFileTypeUnknown::PTEID_ExFileTypeUnknown():PTEID_Exception(EIDMW_ERR_FILETYPE_UNKNOWN)
-{
-}
-
-PTEID_ExFileTypeUnknown::~PTEID_ExFileTypeUnknown()
 {
 }
 
@@ -191,17 +157,6 @@ PTEID_ExNoCardPresent::~PTEID_ExNoCardPresent()
 }
 
 /*****************************************************************************************
----------------------------------------- PTEID_ExCardBadType --------------------------------------
-*****************************************************************************************/
-PTEID_ExCardBadType::PTEID_ExCardBadType():PTEID_Exception(EIDMW_ERR_CARDTYPE_BAD)
-{
-}
-
-PTEID_ExCardBadType::~PTEID_ExCardBadType()
-{
-}
-
-/*****************************************************************************************
 ---------------------------------------- PTEID_ExCardTypeUnknown --------------------------------------
 *****************************************************************************************/
 PTEID_ExCardTypeUnknown::PTEID_ExCardTypeUnknown():PTEID_Exception(EIDMW_ERR_CARDTYPE_UNKNOWN)
@@ -209,17 +164,6 @@ PTEID_ExCardTypeUnknown::PTEID_ExCardTypeUnknown():PTEID_Exception(EIDMW_ERR_CAR
 }
 
 PTEID_ExCardTypeUnknown::~PTEID_ExCardTypeUnknown()
-{
-}
-
-/*****************************************************************************************
----------------------------------------- PTEID_ExCertNoIssuer --------------------------------------
-*****************************************************************************************/
-PTEID_ExCertNoIssuer::PTEID_ExCertNoIssuer():PTEID_Exception(EIDMW_ERR_CERT_NOISSUER)
-{
-}
-
-PTEID_ExCertNoIssuer::~PTEID_ExCertNoIssuer()
 {
 }
 
@@ -256,27 +200,6 @@ PTEID_ExBadTransaction::~PTEID_ExBadTransaction()
 {
 }
 
-/*****************************************************************************************
----------------------------------------- PTEID_ExCardChanged --------------------------------------
-*****************************************************************************************/
-PTEID_ExCardChanged::PTEID_ExCardChanged():PTEID_Exception(EIDMW_ERR_CARD_CHANGED)
-{
-}
-
-PTEID_ExCardChanged::~PTEID_ExCardChanged()
-{
-}
-
-/*****************************************************************************************
----------------------------------------- PTEID_ExReaderSetChanged --------------------------------------
-*****************************************************************************************/
-PTEID_ExReaderSetChanged::PTEID_ExReaderSetChanged():PTEID_Exception(EIDMW_ERR_READERSET_CHANGED)
-{
-}
-
-PTEID_ExReaderSetChanged::~PTEID_ExReaderSetChanged()
-{
-}
 
 /*****************************************************************************************
 ---------------------------------------- PTEID_ExNoReader --------------------------------------
@@ -300,4 +223,77 @@ PTEID_ExSOD::PTEID_ExSOD(long lError):PTEID_Exception(lError)
 PTEID_ExSOD::~PTEID_ExSOD()
 {
 }
+
+//Deprecated Classes - we leave them here just to support old pteidlibj versions
+
+/*****************************************************************************************
+----------------------------------------- PTEID_ExCardBadType --------------------------------------
+-*****************************************************************************************/
+PTEID_ExCardBadType::PTEID_ExCardBadType() :PTEID_Exception(-1)
+{
+}
+
+PTEID_ExCardBadType::~PTEID_ExCardBadType()
+{
+}
+
+
+/*****************************************************************************************
+----------------------------------------- PTEID_ExReaderSetChanged --------------------------------------
+-*****************************************************************************************/
+PTEID_ExReaderSetChanged::PTEID_ExReaderSetChanged() :PTEID_Exception(-1)
+{
+}
+
+PTEID_ExReaderSetChanged::~PTEID_ExReaderSetChanged()
+{
+}
+
+/*****************************************************************************************
+---------------------------------------- PTEID_ExCardChanged --------------------------------------
+*****************************************************************************************/
+PTEID_ExCardChanged::PTEID_ExCardChanged():PTEID_Exception(-1)
+{
+}
+
+PTEID_ExCardChanged::~PTEID_ExCardChanged()
+{
+}
+
+/*****************************************************************************************
+---------------------------------------- PTEID_ExCertNoIssuer --------------------------------------
+*****************************************************************************************/
+PTEID_ExCertNoIssuer::PTEID_ExCertNoIssuer():PTEID_Exception(-1)
+{
+}
+
+PTEID_ExCertNoIssuer::~PTEID_ExCertNoIssuer()
+{
+}
+
+
+/*****************************************************************************************
+---------------------------------------- PTEID_ExDocTypeUnknown --------------------------------------
+*****************************************************************************************/
+PTEID_ExDocTypeUnknown::PTEID_ExDocTypeUnknown():PTEID_Exception(-1)
+{
+}
+
+PTEID_ExDocTypeUnknown::~PTEID_ExDocTypeUnknown()
+{
+}
+
+/*****************************************************************************************
+---------------------------------------- PTEID_ExFileTypeUnknown --------------------------------------
+*****************************************************************************************/
+PTEID_ExFileTypeUnknown::PTEID_ExFileTypeUnknown():PTEID_Exception(-1)
+{
+}
+
+PTEID_ExFileTypeUnknown::~PTEID_ExFileTypeUnknown()
+{
+}
+
+
+
 }

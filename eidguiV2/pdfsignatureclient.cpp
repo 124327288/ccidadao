@@ -8,18 +8,16 @@
 #include <string.h>
 
 #include "ScapSettings.h"
+#include "gapi.h"
 
 #include "eidlibdefines.h"
 //#include "PDFSignature/envStub.h"
 //#include "ASService/soapH.h"
 //#include "ACService/ACServiceH.h"
 
-#include "SCAPServices/SCAPH.h"
-#include "SCAPServices/SCAPPDFSignatureSoapBindingProxy.h"
+#include "SCAP-Services2/SCAPH.h"
+#include "SCAP-Services2/SCAPPDFSignatureWithAttachSoapBindingProxy.h"
 
-//#include "ACService/ACServiceH.h"
-
-//using namespace PDFSignature;
 
 pdf__AttributeType* convertAttributeType(ns3__AttributeType *, soap *);
 
@@ -27,25 +25,27 @@ PDFSignatureClient::PDFSignatureClient()
 {
 
 }
-const char * processId = "10001";
-const char * pdf_endpoint = "/PADES/PDFSignature";
 
-bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QString filepath, QString citizenName, QString citizenId, int ltv, PDFSignatureInfo signatureInfo, std::vector<ns3__AttributeType *> &attributeTypeList) {
+//const char * pdf_endpoint = "/PADES/PDFSignature";
+const char * pdf_endpoint = "/PADES/PDFSignatureWithAttach";
+
+int PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QString filepath, QString citizenName, QString citizenId, int ltv, PDFSignatureInfo signatureInfo, std::vector<ns3__AttributeType *> &attributeTypeList) {
     //const SOAP_ENV__Fault * fault = NULL;
 
-    soap * sp = soap_new2(SOAP_C_UTFSTRING, SOAP_C_UTFSTRING);
+    soap * sp = soap_new2(SOAP_C_UTFSTRING | SOAP_ENC_MTOM, SOAP_C_UTFSTRING | SOAP_ENC_MTOM);
+    //soap * sp = soap_new2(SOAP_ENC_MTOM, SOAP_ENC_MTOM);
 
     //Define appropriate network timeouts
-    sp->recv_timeout = 20;
-    sp->send_timeout = 20;
-    sp->connect_timeout = 20;
+    sp->recv_timeout = RECV_TIMEOUT;
+    sp->send_timeout = SEND_TIMEOUT;
+    sp->connect_timeout = CONNECT_TIMEOUT;
 
     //soap_set_namespaces(sp, SCAPnamespaces);
 
 	//TODO: this disables server certificate verification !!
 	soap_ssl_client_context(sp, SOAP_SSL_NO_AUTHENTICATION, NULL, NULL, NULL, NULL, NULL);
 
-    PDFSignatureSoapBindingProxy proxy(sp);
+    PDFSignatureWithAttachSoapBindingProxy proxy(sp);
 
     // Get endpoint from settings
     ScapSettings settings;
@@ -81,17 +81,22 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
     const char * c_endpoint = s_endpoint.c_str();
     proxy.soap_endpoint = c_endpoint;
 
-    std::cout << "PDF Signing endpoint: " << c_endpoint << std::endl;
+    std::cerr << "SCAP PDFSignatureClient:: PDF Signing endpoint: " << c_endpoint << std::endl;
 
     // Get PDF File
     QFile file(filepath);
 
     if (!file.open(QIODevice::ReadOnly))
-        return false; // Error opening file
+        return GAPI::ScapGenericError; // Error opening file
 
     // Finds signature position
     static const char needleValues[] = { 0x2F, 0x54, 0x20, 0x28 };
     static const char endNeedle = 0x29;
+    //This would need QT 5.11
+    //QString request_uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString request_uuid = QUuid::createUuid().toString();
+    QString cleanUuid = request_uuid.midRef(1, request_uuid.size()-2).toString();
+
     QByteArray needle = QByteArray::fromRawData(needleValues, sizeof(needleValues));
     QByteArray fileByteArray = file.readAll();
     char * fileBinary = fileByteArray.data();
@@ -101,7 +106,7 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
     if(indexOfNeedle < 0)
     {
         std::cout << "Could not find signature field1: " << pdfBinaryLen << std::endl;
-        return false;
+        return GAPI::ScapGenericError;
     }
     indexOfNeedle += needle.length();
 
@@ -120,13 +125,14 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
     if(endOfNeedle == 0)
     {
         std::cout << "Could not find signature field2: " << pdfBinaryLen << std::endl;
-        return false;
+        return GAPI::ScapGenericError;
     }
     QString signatureField(fileByteArray.mid(indexOfNeedle, endOfNeedle-indexOfNeedle));
 
 
     // Gets PDF Base 64
-    xsd__base64Binary * base64PDF = soap_new_set_xsd__base64Binary(sp, (unsigned char *)fileBinary, pdfBinaryLen, NULL, NULL, NULL);
+    xsd__base64Binary * base64PDF = soap_new_set_xsd__base64Binary(sp, (unsigned char *)fileBinary, pdfBinaryLen, 
+        NULL, (char *)"application/pdf", NULL);
 
 
     std::string citizenNIC = citizenId.toStdString();
@@ -155,7 +161,7 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
     // Request Sign PDF
     try
     {
-        pdf__SignRequest * signRequest = soap_new_set_pdf__SignRequest(sp, processId, personalData, attributeList,
+        pdf__SignRequestWithAttach * signRequest = soap_new_set_pdf__SignRequestWithAttach(sp, cleanUuid.toStdString(), personalData, attributeList,
                         signatureField.toStdString(), *base64PDF, &ltv, signatureInfo.getSelectedPage(), signatureInfo.getX(), signatureInfo.getY(), orientationType);
 
         pdf__SignResponse resp;
@@ -165,17 +171,41 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
         {
             if (rc == SOAP_FAULT)
             {
-                //fault = proxy.soap_fault();
-				if (proxy.soap->fault != NULL && proxy.soap->fault->faultstring != NULL)
-					eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature", "PDF Service returned SOAP Fault: %s", proxy.soap->fault->faultstring);
+                if (proxy.soap->fault != NULL && proxy.soap->fault->faultstring != NULL)
+                    eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature", "PDF Service returned SOAP Fault: %s",
+                                     proxy.soap->fault->faultstring);
+                return GAPI::ScapGenericError;
             }
-            else
+            else if(rc == SOAP_EOF)
             {
-                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature", 
-					"Error in sign(): GSoap returned Error code: %d", rc);
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in sign(): GSoap timeout Error");
+                qDebug() << "ScapSignature : Error in sign(): GSoap timeout Error";
+                return GAPI::ScapTimeOutError;
+            } //SCAP Specific errors
+            else if(rc == SCAP_ATTRIBUTES_EXPIRED){
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in sign(): GSoap returned Error code: %d", rc);
+                qDebug() << "Request Sign PDF - Error in sign(): GSoap returned Error code" << rc ;
+                return GAPI::ScapAttributesExpiredError;
+            }else if(rc == SCAP_ZERO_ATTRIBUTES){
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in sign(): GSoap returned Error code: %d", rc);
+                qDebug() << "Request Sign PDF - Error in sign(): GSoap returned Error code" << rc ;
+                return GAPI::ScapZeroAttributesError;
+            }else if(rc == SCAP_ATTRIBUTES_NOT_VALID){
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in sign(): GSoap returned Error code: %d", rc);
+                qDebug() << "Request Sign PDF - Error in sign(): GSoap returned Error code" << rc ;
+                return GAPI::ScapNotValidAttributesError;
+            }else{
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in sign(): GSoap returned Error code: %d", rc);
+                qDebug() << "Request Sign PDF - Error in sign(): GSoap returned Error code" << rc ;
+                return GAPI::ScapGenericError;
             }
-            return false;
         }
+
         std::string respCode = resp.Status->Code;
 
         if( respCode.compare("00") != 0 )
@@ -184,7 +214,7 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
             eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature", "PDF Service application-level error Code: %s Message: %S", respCode.c_str(), 
 			resp.Status->Message.c_str());
             std::cerr << "Service error code " << respCode << ". Service returned Message: " << resp.Status->Message << std::endl;
-            return false;
+            return GAPI::ScapGenericError;
         }
 
         std::cout << "Service returned Message: " << resp.Status->Message << std::endl;
@@ -196,13 +226,13 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
         if (!signedDocFile.open(QIODevice::ReadWrite))
         {
             fprintf(stderr, "Could not write on selected destination");
-            return false;
+            return GAPI::ScapGenericError;
         }
 
         signedDocFile.write( (const char *)signedDoc->__ptr, signedDoc->__size);
         signedDocFile.close();
 
-        return true;
+        return GAPI::ScapSucess;
     }
     catch(...)
     {
@@ -210,9 +240,8 @@ bool PDFSignatureClient::signPDF(ProxyInfo proxyInfo, QString finalfilepath, QSt
         fputs(error_msg, stderr);
 
         eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature", "%S", error_msg);
-        return false;
+        return GAPI::ScapGenericError;
     }
-
 }
 
 pdf__AttributeType* convertAttributeType(ns3__AttributeType * attributeType, soap * sp){

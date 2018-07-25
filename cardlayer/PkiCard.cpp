@@ -120,8 +120,6 @@ CByteArray CPkiCard::ReadUncachedFile(const std::string & csPath,
 		}
 		else if (ulSW12 == 0x6B00)
 			throw CMWEXCEPTION(EIDMW_ERR_PARAM_RANGE);
-		else if (ulSW12 == 0x6D00)
-			throw CMWEXCEPTION(EIDMW_ERR_NOT_ACTIVATED);
 		else
             throw CMWEXCEPTION(m_poContext->m_oPCSC.SW12ToErr(ulSW12));
 
@@ -185,8 +183,6 @@ void CPkiCard::WriteUncachedFile(const std::string & csPath,
             throw CNotAuthenticatedException(EIDMW_ERR_NOT_AUTHENTICATED, fileInfo.lReadPINRef);
         else if (ulSW12 == 0x6B00)
             throw CMWEXCEPTION(EIDMW_ERR_PARAM_RANGE);
-        else if (ulSW12 == 0x6D00)
-            throw CMWEXCEPTION(EIDMW_ERR_NOT_ACTIVATED);
         //EOF for Gemsafe cards
         else if (ulSW12 == 0x6282)
             bEOF = false; /* false */
@@ -209,9 +205,6 @@ unsigned char CPkiCard::PinUsage2Pinpad(const tPin & Pin, const tPrivKey *pKey)
 	return (unsigned char)Pin.ulID;
 }
 
-#define UNBLOCK_FLAG_NEW_PIN    1
-#define UNBLOCK_FLAG_PUK_MERGE  2   // Only on pinpad readers
-
 bool CPkiCard::PinCmd(tPinOperation operation, const tPin & Pin,
         const std::string & csPin1, const std::string & csPin2,
         unsigned long & ulRemaining, const tPrivKey *pKey, bool bShowDlg, void *wndGeometry, unsigned long unblockFlags)
@@ -231,19 +224,23 @@ bool CPkiCard::PinCmd(tPinOperation operation, const tPin & Pin,
 	if (operation == PIN_OP_CHANGE && !csPin1.empty())
 		bAskPIN = false;
 	//Ask for PIN in RESET also in the PUK merge case
-	if (operation == PIN_OP_RESET && !csPin1.empty() && !bPukMerge)
+	if (operation == PIN_OP_RESET && !csPin1.empty() && !csPin2.empty() && !bPukMerge)
+		bAskPIN = false;
+	if (operation == PIN_OP_RESET_NO_PUK && !defineNewPin)
 		bAskPIN = false;
 
 	bool bUsePinpad = bAskPIN ? m_poPinpad != NULL : false;
 
 bad_pin:
-	//fprintf(stderr, "DEBUG PinCmd: bUsePinpad:%d, bPukMerge: %d defineNewPin=%d\n", bUsePinpad, bPukMerge, defineNewPin);
+	MWLOG(LEV_DEBUG, MOD_CAL, L"DEBUG PinCmd: operation: %d, bUsePinpad:%d, bPukMerge: %d defineNewPin=%d",
+		(int)operation, bUsePinpad, bPukMerge, defineNewPin);
 
     // If no Pin(s) provided and it's no Pinpad reader -> ask Pins
     if (bAskPIN && !bUsePinpad)
 	{
         showPinDialog(operation, Pin, csReadPin1, csReadPin2, pKey, wndGeometry);
-		pcsPin1 = &csReadPin1;
+        if (operation != PIN_OP_RESET_NO_PUK)
+			pcsPin1 = &csReadPin1;
 		pcsPin2 = &csReadPin2;
 	}
 
@@ -255,13 +252,13 @@ bad_pin:
 		csReadPin1 += csPin1;
 	}
 
-    CByteArray oPinBuf = MakePinBuf(Pin, *pcsPin1, bUsePinpad, bPukMerge);
+    CByteArray oPinBuf = MakePinBuf(Pin, *pcsPin1, pcsPin1->size() == 0, bPukMerge);
     //There is one case for PIN_OP_RESET where we don't have a new PIN
     if (defineNewPin)
         oPinBuf.Append(MakePinBuf(Pin, *pcsPin2, bUsePinpad, false));
 
     // add CLA, INS, P1, P2 (we only need a special P1 value if Unblocking PIN without defining new PIN)
-    CByteArray oAPDU = MakePinCmd(operation, Pin, operation == PIN_OP_RESET && !defineNewPin); 
+	CByteArray oAPDU = MakePinCmd(operation, Pin, (operation == PIN_OP_RESET || operation == PIN_OP_RESET_NO_PUK) && !defineNewPin);
     // add Lc
     oAPDU.Append((unsigned char) oPinBuf.Size());
     oAPDU.Append(oPinBuf);
@@ -524,7 +521,6 @@ CByteArray CPkiCard::GetRandom(unsigned long ulLen)
 
 	CByteArray oRandom(ulLen);
 
-try_again:
     // Use a Get Challenge command to gather 8 bytes with each loop
     for (unsigned long i = 0; i < ulLen; i += 20)
     {
@@ -636,20 +632,6 @@ CByteArray CPkiCard::UpdateBinary(unsigned long ulOffset, const CByteArray & oDa
                     (unsigned char) (ulOffset % 256), oData);
 }
 
-DlgPinOperation CPkiCard::PinOperation2Dlg(tPinOperation operation)
-{
-	switch(operation)
-	{
-		case PIN_OP_CHANGE:
-		   return DLG_PIN_OP_CHANGE;
-		 //We ignore the RESET with no change case for now
-		case PIN_OP_RESET:
-		   return DLG_PIN_OP_UNBLOCK_CHANGE;
-		default:
-		   return DLG_PIN_OP_VERIFY;
-	}
-}
-
 CByteArray CPkiCard::MakePinCmd(tPinOperation operation, const tPin & Pin, bool specialP1Value)
 {
     CByteArray oCmd(5 + 32);
@@ -665,6 +647,7 @@ CByteArray CPkiCard::MakePinCmd(tPinOperation operation, const tPin & Pin, bool 
         oCmd.Append(0x24);
         break;
     case PIN_OP_RESET:
+    case PIN_OP_RESET_NO_PUK:
     	oCmd.Append(0x2C);
     	break;
     default:

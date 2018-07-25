@@ -26,12 +26,13 @@ using namespace eIDMW;
 class dlgWndAskPIN : public Win32Dialog
 {
 	void GetPinResult();
-	HBITMAP ImagePIN;
-	HBITMAP ImagePIN_Mask;
+	//HBITMAP ImagePIN;
+	//HBITMAP ImagePIN_Mask;
 
-	HBITMAP ImageKP_BTN[12];
-	HBITMAP ImageKP_BTN_Mask;
-	HFONT TextFont;
+	HWND OK_Btn;
+	HWND Cancel_Btn;
+
+	HBRUSH hbrBkgnd;
 	
 	unsigned int m_ulPinMinLen;
 	unsigned int m_ulPinMaxLen;
@@ -41,7 +42,7 @@ class dlgWndAskPIN : public Win32Dialog
 
 
 public:
-	dlgWndAskPIN( DlgPinInfo pinInfo, DlgPinUsage PinPusage, std::wstring & Header, std::wstring & PINName, bool UseKeypad, HWND Parent = NULL );
+	dlgWndAskPIN( DlgPinInfo pinInfo, DlgPinUsage PinPusage, std::wstring & Header, std::wstring & PINName, HWND Parent = NULL );
 	virtual ~dlgWndAskPIN();
 
 	wchar_t PinResult[128];

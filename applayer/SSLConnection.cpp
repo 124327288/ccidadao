@@ -275,16 +275,6 @@ static const char *SSL_ERROR_to_str(int err)
 
 
 /**
- * Print SSL error details
- */
-void print_ssl_error(char* message, FILE* out) {
-
-    fprintf(out, "DEBUG: %s", message);
-    ERR_print_errors_fp(out);
-}
-
-
-/**
  * Initialise OpenSSL
  */
 void SSLConnection::init_openssl() {
@@ -388,6 +378,10 @@ char *parseToken(char * server_response, const char * token)
 */
 void handleErrorCode(cJSON * json_obj, const char *caller_function)
 {
+	if (json_obj == NULL) {
+		MWLOG(LEV_ERROR, MOD_APL, "JSON parsing error. Invalid input to handleErrorCode()");
+		throw CMWEXCEPTION(EIDMW_SAM_UNKNOWN_ERROR);
+	}
 	cJSON *error_obj = cJSON_GetObjectItem(json_obj, "ErrorStatus");
 	if (error_obj != NULL)
 	{
@@ -609,8 +603,7 @@ StartWriteResponse *SSLConnection::do_SAM_3rdpost(char * mse_resp, char *interna
 	snprintf(post_body, buf_len, start_write_format, mse_resp, internal_auth_resp);
 
 	MWLOG(LEV_DEBUG, MOD_APL, "POSTing request: %s", post_body);
-	char *server_response = Post(this->m_session_cookie,
-	  "/changeaddress/startWrite", post_body, true);
+	char *server_response = Post(this->m_session_cookie, "/changeaddress/startWrite", post_body);
 
 	MWLOG(LEV_DEBUG, MOD_APL, "do_SAM_3rdpost server response: %s", server_response);
 
@@ -704,32 +697,34 @@ DHParamsResponse *SSLConnection::do_SAM_1stpost(DHParams *p, char *secretCode, c
 	//fprintf(stderr, "Wrote to channel: %d bytes\n", ret_channel);
 
 	//Read response
-	unsigned int ret = read_from_stream(m_ssl_connection, server_response, REPLY_BUFSIZE);
+	NetworkBuffer buffer;
+	buffer.buf = server_response;
+	buffer.buf_size = REPLY_BUFSIZE;
+	unsigned int ret = read_from_stream(m_ssl_connection, &buffer);
 	
-
 	if (ret > 0)
 	{
-		MWLOG(LEV_DEBUG, MOD_APL, "do_SAM_1stpost: Server reply: %s", server_response);
-		m_session_cookie = parseCookie(server_response);
+		MWLOG(LEV_DEBUG, MOD_APL, "do_SAM_1stpost: Server reply: %s", buffer.buf);
+		m_session_cookie = parseCookie(buffer.buf);
 		if (m_session_cookie == NULL)
 		{
 			delete server_params;
 			free(post_dhparams);
-			free(server_response);
+			free(buffer.buf);
 
 			//Catch renegotiation errors (e.g. using test cards)
 			throw CMWEXCEPTION(EIDMW_ERR_CHECK);
 		}
 	}
 
-	char *body = skipHTTPHeaders(server_response);
+	char *body = skipHTTPHeaders(buffer.buf);
 
 	json = cJSON_Parse(body);
 	cJSON *my_json = json->child;
 	if (my_json == NULL)
 	{
 		fprintf(stderr, "DEBUG: Server returned malformed JSON data: %s\n", body);
-		free(server_response);
+		free(buffer.buf);
 		free(post_dhparams);
         cJSON_Delete(json);
 		return server_params;
@@ -744,7 +739,7 @@ DHParamsResponse *SSLConnection::do_SAM_1stpost(DHParams *p, char *secretCode, c
 	if (child)
 		server_params->cv_ifd_aut = _strdup(child->valuestring);
 
-	free(server_response);
+	free(buffer.buf);
 	free(post_dhparams);
 	cJSON_Delete(json);
 
@@ -752,7 +747,7 @@ DHParamsResponse *SSLConnection::do_SAM_1stpost(DHParams *p, char *secretCode, c
 
 }
 
-char * SSLConnection::Post(char *cookie, char *url_path, char *body, bool chunked_expected)
+char * SSLConnection::Post(char *cookie, char *url_path, char *body)
 {
 	int ret_channel = 0;
 
@@ -771,23 +766,29 @@ char * SSLConnection::Post(char *cookie, char *url_path, char *body, bool chunke
 
 	ret_channel = write_to_stream(m_ssl_connection, body);
 
+	NetworkBuffer buffer;
+	buffer.buf = server_response;
+	buffer.buf_size = REPLY_BUFSIZE;
+
 	//Read response
-	read_from_stream(m_ssl_connection, server_response, REPLY_BUFSIZE);
+	read_from_stream(m_ssl_connection, &buffer);
 
 	//Hack for chunked replies
-	if (strstr(server_response, "chunked") != NULL)
+	if (strstr(server_response, "Transfer-Encoding: chunked") != NULL)
 	{
-		fprintf(stderr, "SSLConnection:POST() reply is chunked, trying read_chunked_reply()\n");
-		read_chunked_reply(m_ssl_connection, server_response, REPLY_BUFSIZE, true);
-
+		MWLOG(LEV_DEBUG, MOD_APL, "SSLConnection:Post() server response is chunked, calling read_chunked_reply()");
+		read_chunked_reply(m_ssl_connection, &buffer, true);
 	}
 
-//	if (ret == 0)
-//	   ERR_print_errors_fp(stderr); //Connection aborted by server
+	return buffer.buf;
 
-	//fprintf(stderr, "Server reply: \n%s\n", server_response);
+}
 
-	return server_response;
+bool isUnsupportedProxy(char *tmpbuf) {
+
+	return strstr(tmpbuf, "Proxy-Authenticate: Negotiate") != NULL ||
+	   strstr(tmpbuf, "Proxy-Authenticate: Kerberos") != NULL || 
+	   strstr(tmpbuf, "Proxy-Authenticate: NTLM") != NULL;
 
 }
 
@@ -830,7 +831,6 @@ BIO * SSLConnection::connectToProxyServer(const char * proxy_host, long proxy_po
         	ret = snprintf(connect_request, sizeof(connect_request), "CONNECT %s HTTP/1.1\r\n Host: %s\r\n%s%s\r\n%s\r\n%s\r\n%s\r\n%s\r\n\r\n",
         		ssl_host_andport, ssl_host, proxy_auth_header, auth_token, user_agent, no_cache, no_content, keepAlive);
 
-        	fprintf(stderr, "DEBUG: snprintf ret=%d\n", ret);
         	free(auth_token);
         }
         else
@@ -838,7 +838,6 @@ BIO * SSLConnection::connectToProxyServer(const char * proxy_host, long proxy_po
 
 	    	ret = snprintf(connect_request, sizeof(connect_request), "CONNECT %s HTTP/1.1\r\n Host: %s\r\n%s\r\n%s\r\n%s\r\n%s\r\n\r\n",
             	ssl_host_andport, ssl_host, user_agent, no_cache, no_content, keepAlive);
-	    	fprintf(stderr, "DEBUG: snprintf ret=%d\n", ret);
 		}
 
 	    BIO_puts(cbio, connect_request);
@@ -848,12 +847,21 @@ BIO * SSLConnection::connectToProxyServer(const char * proxy_host, long proxy_po
 
         MWLOG(LEV_DEBUG, MOD_APL, "SSLConnection: CONNECT reply: %s", tmpbuf);
 
-        //Add Log with the proxy response to the CONNECT request
-        //BIO_write(out, tmpbuf, len);
-        if (strstr(tmpbuf, "200 Connection established") == NULL)
-        {
-          MWLOG(LEV_DEBUG, MOD_APL, L"Error connecting to proxy!");
-          return NULL;
+        if (strstr(tmpbuf, "200 Connection established") == NULL)  {
+        	long errorCode = 0;
+        	MWLOG(LEV_DEBUG, MOD_APL, L"Error connecting to proxy!");
+          	
+          	if (strstr(tmpbuf, "407 Proxy Authentication Required")!= NULL) {
+
+				if (isUnsupportedProxy(tmpbuf))
+          			errorCode = EIDMW_SAM_PROXY_UNSUPPORTED;
+          		else 
+          			errorCode = EIDMW_SAM_PROXY_AUTH_FAILED;
+          	}
+          	else 
+          		errorCode = EIDMW_OTP_CONNECTION_ERROR;
+          
+            throw CMWEXCEPTION(errorCode);
         }
 
         return cbio;
@@ -946,15 +954,22 @@ void SSLConnection::connect_encrypted(char* host_and_port)
 
 	if (proxy_host != NULL && strlen(proxy_host) > 0)
 	{
+
 		bio = connectToProxyServer(proxy_host, proxy_port,
 			m_host, proxy_user_value, proxy_pwd_value, host_and_port);
+
+		if (!bio) {
+			throw CMWEXCEPTION(EIDMW_OTP_CONNECTION_ERROR);			
+		}
 	}
 	else
 	{
     	bio = BIO_new_connect(host_and_port);
     	if (BIO_do_connect(bio) <= 0) {
-	 	   fprintf(stderr, "Error connecting to SAM server\n");
-	    	ERR_print_errors_fp(stderr);
+    	   MWLOG(LEV_ERROR, MOD_APL, "SSLConnection: BIO_do_connect failed: %s", 
+    	   	 ERR_error_string(ERR_get_error(), NULL));
+
+	 	   throw CMWEXCEPTION(EIDMW_OTP_CONNECTION_ERROR);
     	}
 	}
 
@@ -1013,7 +1028,7 @@ long parseLong(char *str)
 	errno = 0;
 	val = strtol(str, &endptr, 16);
 
-           /* Check for various possible errors */
+    /* Check for various possible errors */
 
 	if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN))
 		|| (errno != 0 && val == 0)) {
@@ -1026,10 +1041,6 @@ long parseLong(char *str)
 		fprintf(stderr, "No digits were found\n");
 		return -1;
 	}
-
-	//Further characters after number
-	if (*endptr != '\0')
-		return -1;
 
 	return val;
 }
@@ -1056,23 +1067,131 @@ int waitForRWSocket(SSL *ssl, bool wantRead)
 	return rv;
 }
 
+typedef enum  {
+	HEX, CRLF, CHUNK_DATA, TRAILER, PARSER_ERROR
+} Chunky_State;
 
-void SSLConnection::read_chunked_reply(SSL *ssl, char *buffer, unsigned int buffer_len, bool headersAlreadyRead)
+bool isxdigit_ascii(char digit)
+{
+  return (digit >= 0x30 && digit <= 0x39) /* 0-9 */
+        || (digit >= 0x41 && digit <= 0x46) /* A-F */
+        || (digit >= 0x61 && digit <= 0x66); /* a-f */
+}
+
+void parse_http_chunked_body(NetworkBuffer *net_buffer) {
+
+	if (net_buffer->buf == NULL)
+	{	
+		MWLOG(LEV_ERROR, MOD_APL, "NULL buffer argument for parse_http_chunked_reply!");
+		return;
+	}
+
+	unsigned int buffer_len = strlen(net_buffer->buf);
+	char * out_buffer = (char *)calloc(buffer_len, sizeof(char));
+	char * in_buffer = net_buffer->buf;
+
+	char * body = skipHTTPHeaders(in_buffer);
+	unsigned int offset = (unsigned int)(body - in_buffer);
+
+	//Copy HTTP headers
+	memcpy(out_buffer, in_buffer, offset);
+	long out_offset = offset;
+
+	//State machine variables
+	Chunky_State state = HEX;
+	long chunk_len = 0;
+	int hex_len = 0;
+
+	while(offset < buffer_len) {
+
+		switch (state) {
+			case HEX:
+				hex_len = 0;
+				while(isxdigit_ascii(in_buffer[offset+hex_len]))
+					hex_len++;
+
+				chunk_len = parseLong(in_buffer+offset);
+				if (chunk_len == -1) {
+					state = PARSER_ERROR;
+					fprintf(stderr, "Error in parse_http_chunked_body, couldn't parse Chunk Length\n");
+				}
+				else
+				{
+					if (chunk_len == 0)
+						fprintf(stderr, "Terminating chunk found.\n");
+					state = CRLF;
+					offset += hex_len;
+				}
+				break;
+
+			case CRLF:
+				if (in_buffer[offset] == 0x0D)
+				{
+					state = CHUNK_DATA;
+					offset += 2;
+				}
+				else
+				{
+					fprintf(stderr, "Error in parse_http_chunked_body, expecting CRLF\n");
+					state = PARSER_ERROR;
+				}
+				break;
+
+			case CHUNK_DATA:
+				memcpy(out_buffer+out_offset, in_buffer+offset, chunk_len);
+
+				state = TRAILER;
+				offset += chunk_len;
+				out_offset += chunk_len;
+				break;
+
+			case TRAILER:
+				if (in_buffer[offset] == 0x0D)
+				{
+					state = HEX;
+					offset += 2;
+				}
+				else
+				{
+					state = PARSER_ERROR;
+					fprintf(stderr, "Error in parse_http_chunked_body, expecting CRLF\n");
+				}
+				break;
+
+			case PARSER_ERROR:
+				goto parser_error;
+		}
+	}
+
+	net_buffer->buf = out_buffer;
+	return;
+
+	parser_error:
+		MWLOG(LEV_ERROR, MOD_APL, "http_chunked parser error giving up at offset: %u", offset);
+
+}
+
+
+void SSLConnection::read_chunked_reply(SSL *ssl, NetworkBuffer *net_buffer, bool headersAlreadyRead)
 {
 	int r;
 	bool final_chunk_read = false;
+
+	char *buffer = net_buffer->buf;
+	unsigned int current_buf_length = net_buffer->buf_size;
+
 	unsigned int bytes_read = headersAlreadyRead ? strlen(buffer) : 0;
-	unsigned long chunk_bytesToRead = 0;
 	bool is_chunk_length = false;
 	do
     {
     	is_chunk_length = false;
 
 	    // We're using blocking IO so SSL_Write either succeeds completely or not...
-    	r = SSL_read(ssl, buffer+bytes_read, buffer_len-bytes_read);
+    	r = SSL_read(ssl, buffer+bytes_read, current_buf_length-bytes_read);
     	//Read the chunk length
     	if (r > 0 && bytes_read > 0)
     	{
+    		//XX: Can we assume that the final Chunk is always at the start of the last SSL packet??
     		if (memcmp(buffer+bytes_read, "\x30\x0d\x0a\x0d\x0a", 5) == 0)
     		{
     			final_chunk_read = true;
@@ -1080,28 +1199,7 @@ void SSLConnection::read_chunked_reply(SSL *ssl, char *buffer, unsigned int buff
     			//Discard the final chunk
     			*(buffer+bytes_read) = 0;
     		}
-    		else
-    		{
-    			//Search for a chunk-length token in the format Chunk-length (hex) CRLF
-    			char * buffer_tmp = (char*)calloc(r+1, 1);
-    			memcpy(buffer_tmp, buffer+bytes_read, r);
-    			buffer_tmp[r] = '\0';
 
-    			char * endline = strstr(buffer_tmp, "\r\n");
-    			if (endline)
-    				*endline = '\0';
-    			long val = parseLong(buffer_tmp);
-    			if (val != -1 && chunk_bytesToRead == 0)
-    			{
-    				//fprintf(stderr, "DEBUG: Parsed chunk length= %ld\n", val);
-    				*(buffer+bytes_read) = 0;
-    				chunk_bytesToRead = val;
-    				is_chunk_length = true;
-    			}
-
-				free(buffer_tmp);
-
-    		}
     	}
     	if (r > 0 && bytes_read == 0)
     	{
@@ -1136,37 +1234,51 @@ void SSLConnection::read_chunked_reply(SSL *ssl, char *buffer, unsigned int buff
 				}
 			}
 		}
-    	
-    	//Only include the data if this string is NOT a chunk-length token or a CRLF after the previous chunk
-    	if (!is_chunk_length && chunk_bytesToRead > 0)
-    	{
-    		chunk_bytesToRead -= r;
-    		bytes_read += r;
-    	}
+
+		bytes_read += r;
+
+    	//Check for buffer length
+		if (bytes_read >= current_buf_length) {
+			//Double the buffer length
+			current_buf_length *= 2;
+
+			net_buffer->buf = (char*)realloc(net_buffer->buf, current_buf_length);
+			net_buffer->buf_size = current_buf_length;
+			if (!net_buffer->buf) {
+				fprintf(stderr, "Critical error: out of memory!\n");
+				exit(1);
+			}
+			buffer = net_buffer->buf;
+		}
+
     }
     while(bytes_read == 0 || !final_chunk_read);
+
+    //Extract the HTTP body of the chunked message
+    parse_http_chunked_body(net_buffer);
 
 }
 
 /**
  * Read from a stream and handle restarts and buffering if necessary
  */
-unsigned int SSLConnection::read_from_stream(SSL* ssl, char* buffer, unsigned int buffer_length)
+unsigned int SSLConnection::read_from_stream(SSL* ssl, NetworkBuffer *net_buffer)
 {
 
 	int r = -1;
 	unsigned int bytes_read = 0, header_len = 0, content_length = 0;
+	unsigned int current_buf_length = net_buffer->buf_size;
 
 	do
 	{
 		// We're using blocking IO so SSL_Write either succeeds completely or not...
-		r = SSL_read(ssl, buffer + bytes_read, buffer_length - bytes_read);
+		r = SSL_read(ssl, net_buffer->buf + bytes_read, current_buf_length - bytes_read);
 		if (r > 0)
 		{
 			if (bytes_read == 0) {
 				header_len = r;
-				char * buffer_tmp = (char*)calloc(strlen(buffer) + 1, 1);
-				strcpy(buffer_tmp, buffer);
+				char * buffer_tmp = (char*)calloc(strlen(net_buffer->buf) + 1, 1);
+				strcpy(buffer_tmp, net_buffer->buf);
 				content_length = parseContentLength(buffer_tmp);
 				free(buffer_tmp);
 			}
@@ -1199,10 +1311,22 @@ unsigned int SSLConnection::read_from_stream(SSL* ssl, char* buffer, unsigned in
 				
 			}
 		}
+		//Check for buffer length
+		if (bytes_read >= current_buf_length) {
+			//Double the buffer length
+			current_buf_length *= 2;
+			net_buffer->buf = (char*)realloc(net_buffer->buf, current_buf_length);
+			net_buffer->buf_size = current_buf_length;
+
+			if (!net_buffer->buf) {
+				fprintf(stderr, "Critical error: out of memory!\n");
+				exit(1);
+			}
+		}
 	} while (bytes_read == 0 || bytes_read - header_len < content_length);
 
 	if (bytes_read > 0)
-		buffer[bytes_read] = '\0';
+		net_buffer->buf[bytes_read] = '\0';
 
 	return bytes_read;
 }

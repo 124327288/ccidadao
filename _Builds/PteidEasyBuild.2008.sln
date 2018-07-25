@@ -17,7 +17,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "applayer", "..\applayer\pte
 		{5AA075F8-394E-4C6E-824A-39096E21869F} = {5AA075F8-394E-4C6E-824A-39096E21869F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libCpp", "..\eidlib\pteidlib.2008.vcxproj", "{3A09DD63-945E-40EB-9053-5FE50F74B7C1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pteidlib", "..\eidlib\pteidlib.2008.vcxproj", "{3A09DD63-945E-40EB-9053-5FE50F74B7C1}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gui", "..\eidgui\pteidgui.2008.vcxproj", "{8D2DFD77-6396-4507-9CBC-97D91C7CFDD5}"
 EndProject
@@ -92,6 +92,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FreeImage", "..\FreeImagePTEiD\FreeImage.2013.vcxproj", "{9CF14E97-F045-4A1F-951A-445CA1316338}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScapSignature", "..\scap-client-v2\scap-client.vcxproj", "{B3A05E82-1921-3FC3-9B2A-EF964405796D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3A09DD63-945E-40EB-9053-5FE50F74B7C1} = {3A09DD63-945E-40EB-9053-5FE50F74B7C1}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -288,6 +291,7 @@ Global
 		{13BA0068-A852-4123-84D8-ED786D196991}.Debug|x64.ActiveCfg = Debug|x64
 		{13BA0068-A852-4123-84D8-ED786D196991}.Release|Mixed Platforms.ActiveCfg = Release|x64
 		{13BA0068-A852-4123-84D8-ED786D196991}.Release|Mixed Platforms.Build.0 = Release|x64
+		{13BA0068-A852-4123-84D8-ED786D196991}.Release|Win32.ActiveCfg = Release|x64
 		{13BA0068-A852-4123-84D8-ED786D196991}.Release|x64.ActiveCfg = Release|x64
 		{13BA0068-A852-4123-84D8-ED786D196991}.Release|x64.Build.0 = Release|x64
 		{E3536C28-A7F1-4B53-8E52-7D2232F9E098}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32

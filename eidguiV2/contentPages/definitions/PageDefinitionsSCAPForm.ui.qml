@@ -8,6 +8,9 @@ Item {
 
     property alias propertyButtonLoadCompanyAttributes: buttonLoadCompanyAttributes
     property alias propertyButtonLoadEntityAttributes: buttonLoadEntityAttributes
+    property alias propertyButtonRemoveCompanyAttributes: buttonRemoveCompanyAttributes
+    property alias propertyButtonRemoveEntityAttributes: buttonRemoveEntityAttributes
+
     property alias propertyBusyIndicator: busyIndicator
     property alias propertyBusyIndicatorAttributes: busyIndicatorAttributes
     property alias propertyBar: bar
@@ -76,7 +79,7 @@ Item {
                     height: 5 * Constants.SIZE_TEXT_BODY
 
                     Text {
-                        font.pixelSize: Constants.SIZE_TEXT_BODY
+                        font.pointSize: Constants.SIZE_TEXT_BODY
                         font.family: lato.name
                         text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_MSG")
                         wrapMode: Text.Wrap
@@ -90,6 +93,7 @@ Item {
                     id: rectangleEntities
                     width: parent.width
                     height: stackLayout.height - rowProfessional.height - rawButtonLoadEntityAttributes.height
+                        - Constants. SIZE_ROW_V_SPACE
                     anchors.top: rowProfessional.bottom
 
                     ListView {
@@ -115,17 +119,30 @@ Item {
                 Item {
                     id: rawButtonLoadEntityAttributes
                     anchors.top: rectangleEntities.bottom
-                    width: parent.width
+                    anchors.margins: Constants. SIZE_ROW_V_SPACE
+                    width: parent.width - entitiesListViewScroll.width - listViewEntities.spacing
                     height: Constants.HEIGHT_BOTTOM_COMPONENT
+
                     Button {
-                        id: buttonLoadEntityAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_BUTTON")
-                        width: 2 * Constants.WIDTH_BUTTON
+                        id: buttonRemoveEntityAttributes
+                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
+                        width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.left: parent.left
+                        enabled: true
+                    }
+                    Button {
+                        id: buttonLoadEntityAttributes
+                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_BUTTON_LOAD")
+                        width: 1.4 * Constants.WIDTH_BUTTON
+                        height: parent.height
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.family: lato.name
+                        font.capitalization: Font.MixedCase
+                        anchors.right: parent.right
                         enabled: false
                     }
                 }
@@ -138,7 +155,7 @@ Item {
                     width: parent.width
                     height: 5 * Constants.SIZE_TEXT_BODY
                     Text {
-                        font.pixelSize: Constants.SIZE_TEXT_BODY
+                        font.pointSize: Constants.SIZE_TEXT_BODY
                         font.family: lato.name
                         text: qsTranslate("PageDifinitionsSCAP",
                                           "STR_SCAP_ATTRIBUTES_COMPANY_MSG")
@@ -152,8 +169,8 @@ Item {
                 Item {
                     id: rectangleCompanies
                     width: parent.width
-                    height: stackLayout.height - rowCompanies.height
-                            - rawButtonLoadCompanyAttributes.height
+                    height: stackLayout.height - rowCompanies.height - rawButtonLoadCompanyAttributes.height
+                        - Constants. SIZE_ROW_V_SPACE
                     anchors.top: rowCompanies.bottom
 
                     ListView {
@@ -179,17 +196,29 @@ Item {
                 Item {
                     id: rawButtonLoadCompanyAttributes
                     anchors.top: rectangleCompanies.bottom
-                    width: parent.width
+                    anchors.topMargin: Constants. SIZE_ROW_V_SPACE
+                    width: parent.width - companiesListViewScroll.width - listViewCompanies.spacing
                     height: Constants.HEIGHT_BOTTOM_COMPONENT
                     Button {
-                        id: buttonLoadCompanyAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY_BUTTON")
-                        width: 2 * Constants.WIDTH_BUTTON
+                        id: buttonRemoveCompanyAttributes
+                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
+                        width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.left: parent.left
+                        enabled: true
+                    }
+                    Button {
+                        id: buttonLoadCompanyAttributes
+                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY_BUTTON_LOAD")
+                        width: 1.4 * Constants.WIDTH_BUTTON
+                        height: parent.height
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.family: lato.name
+                        font.capitalization: Font.MixedCase
+                        anchors.right: parent.right
                     }
                 }
             }

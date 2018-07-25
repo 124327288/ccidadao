@@ -100,7 +100,7 @@ Item {
                 contentItem: Text {
                     text: radioButtonDefault.text
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     color: Constants.COLOR_TEXT_LABEL
                     horizontalAlignment: Text.AlignRight
                     verticalAlignment: Text.AlignVCenter
@@ -120,7 +120,7 @@ Item {
                     opacity: radioButtonDefault.checked ? 1 : Constants.OPACITY_SIGNATURE_IMAGE_DISABLED
                     Text {
                         id: sigReasonText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         font.italic: true
                         height: propertySigLineHeight
                         width: parent.width - 4
@@ -143,7 +143,7 @@ Item {
                     }
                     Text {
                         id: sigSignedByText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         font.family: lato.name
                         color: Constants.COLOR_TEXT_BODY
@@ -154,7 +154,7 @@ Item {
                     }
                     Text {
                         id: sigSignedByNameText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - sigSignedByText.paintedWidth - 6
                         clip: true
@@ -169,7 +169,7 @@ Item {
                     }
                     Text {
                         id: sigNumIdText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -182,7 +182,7 @@ Item {
                     }
                     Text {
                         id: sigDateText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -194,7 +194,7 @@ Item {
                     }
                     Text {
                         id: sigLocationText
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -234,7 +234,7 @@ Item {
                 folder: shortcuts.home
                 modality: Qt.WindowModal
                 selectMultiple: false
-                nameFilters: ["Image files (*.jpg *.png)", "All files (*)"]
+                nameFilters: ["Image files (*.bmp *.jpeg *.jpg *.png)", "All files (*)"]
                 Component.onCompleted: visible = false
             }
             DropShadow {
@@ -262,14 +262,14 @@ Item {
                 text: qsTranslate("PageDefinitionsSignature",
                                   "STR_CUSTOM_SIGN_CUSTOM_TITLE")
                 T.ButtonGroup.group: radioGroup
-                font.pixelSize: Constants.SIZE_TEXT_LABEL
+                font.pointSize: Constants.SIZE_TEXT_LABEL
                 enabled: fileLoaded
                 opacity: enabled ? 1.0 : Constants.OPACITY_SIGNATURE_TEXT_DISABLED
 
                 contentItem: Text {
                     text: radioButtonCustom.text
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     color: Constants.COLOR_TEXT_LABEL
                     horizontalAlignment: Text.AlignRight
                     verticalAlignment: Text.AlignVCenter
@@ -298,7 +298,7 @@ Item {
 
                     Text {
                         id: sigReasonTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         font.italic: true
                         height: propertySigLineHeight
                         width: parent.width - 4
@@ -323,7 +323,7 @@ Item {
                     }
                     Text {
                         id: sigSignedByTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         font.family: lato.name
                         color: Constants.COLOR_TEXT_BODY
@@ -334,7 +334,7 @@ Item {
                     }
                     Text {
                         id: sigSignedByNameTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - sigSignedByTextCustom.paintedWidth - 6
                         clip: true
@@ -349,7 +349,7 @@ Item {
                     }
                     Text {
                         id: sigNumIdTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -362,7 +362,7 @@ Item {
                     }
                     Text {
                         id: sigDateTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -375,7 +375,7 @@ Item {
                     }
                     Text {
                         id: sigLocationTextCustom
-                        font.pixelSize: propertySigLineHeight * 0.8
+                        font.pointSize: propertySigLineHeight * 0.8
                         height: propertySigLineHeight
                         width: parent.width - 4
                         clip: true
@@ -388,13 +388,14 @@ Item {
                     }
                     Rectangle {
                         id: rectPreCustomImage
-                        width: 185
-                        height: 41
+                        width: 189
+                        height: 45
                         anchors.top: sigLocationTextCustom.bottom
                         anchors.topMargin: parent.height * 0.1
                         x: 2
                         visible: true
-                        color: Constants.COLOR_MAIN_SOFT_GRAY
+                        border.width : 2
+                        border.color : Constants.COLOR_MAIN_SOFT_GRAY
 
                         Image {
                             id: imagePreCustom
@@ -419,7 +420,7 @@ Item {
                         anchors.top: sigLocationTextCustom.bottom
                         anchors.topMargin: parent.height * 0.1
                         anchors.left: rectPreCustomImage.right
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         color: Constants.COLOR_TEXT_LABEL
                         visible: !fileLoaded
                         font.family: lato.name
@@ -439,7 +440,7 @@ Item {
                         width: Constants.WIDTH_BUTTON
                         height: Constants.HEIGHT_BOTTOM_COMPONENT
                         anchors.right: parent.right
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -461,7 +462,7 @@ Item {
                         width: Constants.WIDTH_BUTTON
                         height: Constants.HEIGHT_BOTTOM_COMPONENT
                         anchors.right: parent.right
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.horizontalCenter: parent.horizontalCenter

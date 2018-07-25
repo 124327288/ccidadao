@@ -10,10 +10,6 @@ import eidguiV2 1.0
 PageDefinitionsAppForm {
     Connections {
         target: gapi
-        onSignalSetReaderComboIndex: {
-            console.log("onSignalSetReaderComboIndex index = " + selected_reader)
-            propertyComboBoxReader.currentIndex = selected_reader
-        }
         onSignalCardAccessError:{
             propertyComboBoxReader.model = gapi.getRetReaderList()
         }
@@ -33,6 +29,14 @@ PageDefinitionsAppForm {
                     + propertyComboBoxReader.currentIndex)
         gapi.setReaderByUser(propertyComboBoxReader.currentIndex)
     }
+    propertyComboBoxReader.onModelChanged: {
+        console.log("propertyComboBoxReader onModelChanged index = "
+                    + propertyComboBoxReader.currentIndex)
+        propertyComboBoxReader.currentIndex = gapi.getReaderIndex()
+        console.log("propertyComboBoxReader onModelChanged index = "
+                    + propertyComboBoxReader.currentIndex)
+    }
+
     propertyCheckboxAutoStart{
         onCheckedChanged: propertyCheckboxAutoStart.checked ? controler.setStartAutoValue(true) :
                                                               controler.setStartAutoValue(false)
@@ -40,7 +44,7 @@ PageDefinitionsAppForm {
     propertyRadioButtonUK{
         onCheckedChanged: {
             if (propertyRadioButtonUK.checked)
-                controler.setGuiLanguageCodeValue(GAPI.LANG_EN)
+                controler.setGuiLanguageString("en")
             // Update submenu
             mainFormID.state = "STATE_NORMAL"
             mainFormID.propertySubMenuListView.model.clear()
@@ -63,7 +67,7 @@ PageDefinitionsAppForm {
     propertyRadioButtonPT{
         onCheckedChanged: {
             if (propertyRadioButtonPT.checked)
-                controler.setGuiLanguageCodeValue(GAPI.LANG_NL)
+                controler.setGuiLanguageString("nl")
             // Update submenu
             mainFormID.state = "STATE_NORMAL"
             mainFormID.propertySubMenuListView.model.clear()
@@ -94,12 +98,12 @@ PageDefinitionsAppForm {
                           }
     }
     propertyCheckboxRegister{
-        onCheckedChanged: propertyCheckboxRegister.checked ? controler.setRegCertValue(true) :
-                                                             controler.setRegCertValue(false)
+        onCheckedChanged: propertyCheckboxRegister.checked ? gapi.setRegCertValue(true) :
+                                                             gapi.setRegCertValue(false)
     }
     propertyCheckboxRemove{
-        onCheckedChanged: propertyCheckboxRemove.checked ? controler.setRemoveCertValue(true) :
-                                                           controler.setRemoveCertValue(false)
+        onCheckedChanged: propertyCheckboxRemove.checked ? gapi.setRemoveCertValue(true) :
+                                                           gapi.setRemoveCertValue(false)
     }
     Connections {
         target: propertyTextFieldTimeStamp
@@ -110,13 +114,22 @@ PageDefinitionsAppForm {
     }
     propertyCheckboxTimeStamp{
         onCheckedChanged: if (!propertyCheckboxTimeStamp.checked ){
-                              controler.setTimeStampHostValue("")
+                              controler.setTimeStampHostValue("http://ts.cartaodecidadao.pt/tsa/server")
                               propertyTextFieldTimeStamp.text = ""
                           }
     }
-
+    propertyCheckboxSystemProxy{
+        onCheckedChanged: if (propertyCheckboxSystemProxy.checked ){
+                              propertyCheckboxProxy.checked = false
+                              controler.setProxySystemValue(true)
+                          }else{
+                              controler.setProxySystemValue(false)
+                          }
+    }
     propertyCheckboxProxy{
-        onCheckedChanged: if (!propertyCheckboxProxy.checked ){
+        onCheckedChanged: if (propertyCheckboxProxy.checked ){
+                              propertyCheckboxSystemProxy.checked = false
+                          }else{
                               controler.setProxyHostValue("")
                               controler.setProxyPortValue(0)
                               propertyTextFieldAdress.text = ""
@@ -173,28 +186,47 @@ PageDefinitionsAppForm {
             propertyRectAppLanguage.anchors.top = propertyRectReader.bottom
         }
 
-        if(controler.getGuiLanguageCodeValue() === GAPI.LANG_EN){
-            propertyRadioButtonUK.checked = true
-            propertyRadioButtonPT.checked = false
-        }else{
+        if(controler.getGuiLanguageString() === "nl"){
             propertyRadioButtonUK.checked = false
             propertyRadioButtonPT.checked = true
+        }else{
+            propertyRadioButtonUK.checked = true
+            propertyRadioButtonPT.checked = false
         }
 
         propertyCheckboxShowAnime.checked = controler.getShowAnimationsValue()
 
         if (Qt.platform.os === "windows") {
-            propertyCheckboxRegister.checked = controler.getRegCertValue()
-            propertyCheckboxRemove.checked = controler.getRemoveCertValue()
+            propertyCheckboxRegister.checked = gapi.getRegCertValue()
+            propertyCheckboxRemove.checked = gapi.getRemoveCertValue()
         }else{
             propertyRectAppCertificates.visible = false
             propertyRectAppTimeStamp.anchors.top = propertyRectAppLook.bottom
         }
 
-        propertyCheckboxTimeStamp.checked = controler.getTimeStampHostValue().length > 0 ? true : false
-        propertyTextFieldTimeStamp.text = controler.getTimeStampHostValue()
+        if (controler.getTimeStampHostValue().length > 0
+                && controler.getTimeStampHostValue() !== "http://ts.cartaodecidadao.pt/tsa/server"){
+            propertyCheckboxTimeStamp.checked = true
+            propertyTextFieldTimeStamp.text = controler.getTimeStampHostValue()
+        }else{
+            propertyCheckboxTimeStamp.checked = false
+        }
 
-        propertyCheckboxProxy.checked = controler.getProxyHostValue().length > 0 ? true : false
+        if (Qt.platform.os === "linux") {
+            propertyCheckboxSystemProxy.visible = false
+            propertyCheckboxProxy.anchors.top = propertyRectAppNetworkCheckBox.top
+            propertyCheckboxAutProxy.anchors.top = propertyRectAppNetworkCheckBox.top
+            propertyRectAppNetworkCheckBox.height = propertyCheckboxProxy.height
+                                                    + propertyTextFieldAdress.height
+                                                    + Constants.SIZE_TEXT_V_SPACE
+        }else{
+            propertyCheckboxSystemProxy.checked = controler.getProxySystemValue()
+        }
+
+        if(!propertyCheckboxSystemProxy.checked || Qt.platform.os === "linux"){
+            propertyCheckboxProxy.checked = controler.getProxyHostValue().length > 0 ? true : false
+        }
+
         propertyTextFieldAdress.text = controler.getProxyHostValue()
         propertyTextFieldPort.text = controler.getProxyPortValue() > 0 ?
                     controler.getProxyPortValue().toString() :

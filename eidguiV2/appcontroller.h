@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QVariant>
 #include "Settings.h"
-#include "genpur.h"
 
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
@@ -32,6 +31,7 @@ public:
     }
 
 public slots:
+    void restoreScreen(void);
     Q_INVOKABLE QVariant getCursorPos();
     QString getAppVersion(void);
     bool isAnimationsEnabled(void);
@@ -58,24 +58,22 @@ public slots:
     bool getStartMinimizedValue(void);
     void setStartMinimizedValue(bool bStartMinimized );
 
-    int getGuiLanguageCodeValue(void);
-    void setGuiLanguageCodeValue (int language);
+    QString getGuiLanguageString(void);
+    void setGuiLanguageString (QString language);
 
     bool getShowNotificationValue(void);
     bool getShowPictureValue(void);
     bool getShowAnimationsValue(void);
-    bool getRegCertValue(void);
-    bool getRemoveCertValue(void);
 
     void setShowNotificationValue(bool bShowNotification);
     void setShowPictureValue(bool bShowPicture);
     void setShowAnimationsValue(bool bShowAnimations);
-    void setRegCertValue(bool bRegCert);
-    void setRemoveCertValue(bool bRemoveCert);
 
     QString getTimeStampHostValue (void);
     void setTimeStampHostValue (QString const& timeStamp_host);
 
+    bool getProxySystemValue (void);
+    void setProxySystemValue (bool bProxySystem);
     QString getProxyHostValue (void);
     void setProxyHostValue (QString const& proxy_host);
     long getProxyPortValue (void);
@@ -96,8 +94,7 @@ public slots:
 
 private:
     GUISettings&    m_Settings;
-    bool LoadTranslationFile( GenPur::UI_LANGUAGE NewLanguage );
-    void setLanguage(GenPur::UI_LANGUAGE language);
+    bool LoadTranslationFile(QString NewLanguage );
 
     QUrl url;
     QNetworkProxy proxy;
@@ -116,6 +113,7 @@ protected:
     QTranslator m_translator;
 
 signals:
+    void signalRestoreWindows();
     void languageChanged();
     void signalLanguageChangedError();
     void signalAutoUpdateFail(int error_code);

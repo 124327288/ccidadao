@@ -20,6 +20,7 @@
 **************************************************************************** */
 #include "GenericPinpad.h"
 #include "Context.h"
+#include "CardLayer.h"
 #include "pinpad2.h"
 #include "../dialogs/dialogs.h"
 #include "../common/Log.h"
@@ -30,15 +31,17 @@ namespace eIDMW
 {
 
 
-	GenericPinpad::GenericPinpad(CContext *poContext, SCARDHANDLE hCard,
+GenericPinpad::GenericPinpad(CContext *poContext, SCARDHANDLE hCard,
 			const std::string & csReader): m_poContext(poContext), m_csReader(csReader), m_hCard(hCard)
-	{
-		m_ulLangCode = 0x0813;
-		GetFeatureList();
-	};
-	// See par 4.1.11.3 bmFormatString description
+{
+	//USB LANGID for English (US): it should work for all readers
+	//TODO: we should query the reader for supported languages and then select PT_pt or PT_br
+	m_ulLangCode = 0x0409;
+	GetFeatureList();
+};
+// See par 4.1.11.3 bmFormatString description
 
-	unsigned char GenericPinpad::ToFormatString(const tPin & pin)
+unsigned char GenericPinpad::ToFormatString(const tPin & pin)
 {
 	switch(pin.encoding)
 	{
@@ -255,7 +258,7 @@ CByteArray GenericPinpad::PinCmd2(tPinOperation operation,
 	}
 }
 
-bool GenericPinpad::ShowDlg(unsigned char pinpadOperation, unsigned char ucPintype,
+bool GenericPinpad::ShowDlg(tPinOperation operation, unsigned char ucPintype,
 	const std::string & csPinLabel, const std::string & csReader,
 	unsigned long *pulDlgHandle, void *wndGeometry)
 {
@@ -269,14 +272,7 @@ bool GenericPinpad::ShowDlg(unsigned char pinpadOperation, unsigned char ucPinty
 		case EIDMW_PP_TYPE_ADDR: dlgUsage = DLG_PIN_ADDRESS; break;
 	}
 
-	DlgPinOperation dlgOperation;
-	switch(pinpadOperation)
-	{
-		case EIDMW_PP_OP_VERIFY: dlgOperation = DLG_PIN_OP_VERIFY; break;
-		case EIDMW_PP_OP_CHANGE: dlgOperation = DLG_PIN_OP_CHANGE; break;
-		case EIDMW_PP_OP_UNBLOCK_CHANGE: dlgOperation = DLG_PIN_OP_UNBLOCK_CHANGE; break;
-		default: throw CMWEXCEPTION(EIDMW_ERR_CHECK);
-	}
+	DlgPinOperation dlgOperation = PinOperation2Dlg(operation);
 	std::wstring wideReader = utilStringWiden(csReader);
 	std::wstring widePinLabel = utilStringWiden(csPinLabel);
 	std::wstring wideMesg = utilStringWiden(csMesg);
@@ -293,12 +289,11 @@ CByteArray GenericPinpad::PinpadControl(unsigned long ulControl, const CByteArra
 	tPinOperation operation, unsigned char ucPintype,
 	const std::string & csPinLabel,	void *wndGeometry )
 {
-	unsigned char pinpadOperation = PinOperation2Lib(operation);
 	bool showDlg = ulControl != CCID_IOCTL_GET_FEATURE_REQUEST;
 	unsigned long ulDlgHandle;
 	
 	if (showDlg)
-		ShowDlg(pinpadOperation, ucPintype, csPinLabel, m_csReader, &ulDlgHandle, wndGeometry);
+		ShowDlg(operation, ucPintype, csPinLabel, m_csReader, &ulDlgHandle, wndGeometry);
 
 	CByteArray oResp;
 	try
@@ -370,18 +365,6 @@ void GenericPinpad::GetFeatureList()
 		e.GetError();
 	}
 
-}
-
-unsigned char GenericPinpad::PinOperation2Lib(tPinOperation operation)
-{
-	switch(operation)
-	{
-	case PIN_OP_VERIFY: return EIDMW_PP_OP_VERIFY;
-	case PIN_OP_CHANGE: return EIDMW_PP_OP_CHANGE;
-	case PIN_OP_RESET:	return EIDMW_PP_OP_UNBLOCK_CHANGE;
-	// Add others when needed
-	default: throw CMWEXCEPTION(EIDMW_ERR_CHECK);
-	}
 }
 
 }

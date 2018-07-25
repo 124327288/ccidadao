@@ -2,6 +2,7 @@
 
  * eID Middleware Project.
  * Copyright (C) 2008-2009 FedICT.
+ * Copyright (C) 2012-2017 Andre Guerreiro <andre.guerreiro@caixamagica.pt>
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License version
@@ -133,14 +134,13 @@ try
    }
 catch (CMWException e)
    {
-     printf ("nReaders = oReadersInfo->ReaderCount");
-   return(cal_translate_error(WHERE, e.GetError()));
+      return(cal_translate_error(WHERE, e.GetError()));
    }
 catch (...)
    {
-	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
-   return (CKR_FUNCTION_FAILED);
+   	lRet = -1;
+   	log_trace(WHERE, "E: unknown exception thrown");
+      return (CKR_FUNCTION_FAILED);
 	}
 
 return (ret);
@@ -153,7 +153,7 @@ int cal_token_present(CK_SLOT_ID hSlot)
 {
 int status;
 status = cal_update_token(hSlot);
-//printf("UP WUTS\n");
+
 switch (status)
    {
    case P11_CARD_INSERTED:
@@ -201,7 +201,7 @@ if ((status == P11_CARD_REMOVED) || (status == P11_CARD_NOT_PRESENT) )
 try
    {
    // Take the last 16 hex chars of the serialnr.
-   // For BE eID cards, the serial nr. is 32 hex chars long,
+   // For PTeID cards, the serial nr. is 32 hex chars long,
    // and the first one are the same for all cards
    CReader &oReader = oCardLayer->getReader(reader);
    std::string oSerialNr = oReader.GetSerialNr();
@@ -216,24 +216,18 @@ try
    }
 catch (CMWException e)
    {
-     printf ("oCardLayer->getReader");
-   return(cal_translate_error(WHERE, e.GetError()));
+      return(cal_translate_error(WHERE, e.GetError()));
    }
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_FUNCTION_FAILED);
 	}
 
 strcpy_n(pInfo->manufacturerID, "Portuguese Government", 32, ' ');
 strcpy_n(pInfo->model, "Portuguese eID NG", 16, ' ');
-/* Take the last 16 chars of the serial number (if the are more then 16).
-   _Assuming_ that the serial number is a Big Endian counter, this will
-   assure that the serial within each type of card will be unique in pkcs11
-   (at least for the first 16^16 cards :-) */
-//if (sn_start < 0)
-//   sn_start = 0;
+
 
 pInfo->ulMaxSessionCount = MAX_SESSIONS; //CK_EFFECTIVELY_INFINITE;
 pInfo->ulSessionCount = pSlot->nsessions;
@@ -295,13 +289,12 @@ try
    }
 catch (CMWException e)
    {
-     printf ("oCardLayer->getReader\n");
-   return(cal_translate_error(WHERE, e.GetError()));
+      return(cal_translate_error(WHERE, e.GetError()));
    }
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_FUNCTION_FAILED);
 	}
 
@@ -640,14 +633,13 @@ try
    }
 catch (CMWException e)
    {
-     printf ("cal.cpp\n");
-   return(cal_translate_error(WHERE, e.GetError()));
+      return(cal_translate_error(WHERE, e.GetError()));
    }
 catch (...)
    {
-	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
-   return (CKR_FUNCTION_FAILED);
+   	lRet = -1;
+   	log_trace(WHERE, "E: unknown exception thrown");
+      return (CKR_FUNCTION_FAILED);
 	}
 
 cleanup:
@@ -705,7 +697,7 @@ catch (CMWException e)
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_FUNCTION_FAILED);
 	}
 return (ret);
@@ -914,7 +906,7 @@ catch (CMWException e)
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_FUNCTION_FAILED);
 	}
 
@@ -1071,7 +1063,7 @@ catch (CMWException e)
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_GENERAL_ERROR);
 	}
 return (ret);
@@ -1141,7 +1133,7 @@ catch (CMWException e)
 catch (...)
    {
 	lRet = -1;
-	log_trace(WHERE, "E: unkown exception thrown");
+	log_trace(WHERE, "E: unknown exception thrown");
    return (CKR_SESSION_HANDLE_INVALID);
 	}
 return ((int)status);
@@ -1213,7 +1205,7 @@ catch (CMWException e)
 catch (...)
    {
    lRet = -1;
-   log_trace(WHERE, "E: unkown exception thrown");
+   log_trace(WHERE, "E: unknown exception thrown");
    CLEANUP(CKR_FUNCTION_FAILED);
    }
 cleanup:
@@ -1245,7 +1237,7 @@ switch (calstatus)
 int cal_translate_error(const char *WHERE, long err)
 {
 log_trace(WHERE, "E: MiddlewareException thrown: 0x%0x", err);
-printf("Translate error....\n");
+
 switch(err)
    {
    case EIDMW_OK:                            return(0);                    break;
@@ -1283,8 +1275,6 @@ switch(err)
    case EIDMW_ERR_FILE_NOT_FOUND:            return(CKR_DEVICE_ERROR);     break;
    /** Unable to read applet version from the card */
    case EIDMW_ERR_APPLET_VERSION_NOT_FOUND:  return(CKR_DEVICE_ERROR);     break;
-   /** Card not activated */
-   case EIDMW_ERR_NOT_ACTIVATED:             return(CKR_DEVICE_ERROR);     break;
 
    // Reader errors
    /** Error communicating with the card */
@@ -1301,10 +1291,6 @@ switch(err)
    case EIDMW_ERR_LIMIT:                     return(CKR_DEVICE_ERROR);     break;
    /** An internal check failed */
    case EIDMW_ERR_CHECK:                     return(CKR_DEVICE_ERROR);     break;
-   /** The PCSC library could not be located */
-   case EIDMW_ERR_PCSC_LIB:                  return(CKR_DEVICE_ERROR);     break;
-   /** An attempt to resolve a Z-lib address failed */
-   case EIDMW_ERR_ZLIB_RESOLVE:              return(CKR_GENERAL_ERROR);    break;
    /** And unknown error occurred */
    case EIDMW_ERR_UNKNOWN:                   return(CKR_GENERAL_ERROR);    break;
    /** The pinpad reader received a wrong/unknown value */
@@ -1347,34 +1333,13 @@ switch(err)
    /** {OPEN_MAX} file descriptors are currently open in the calling process. */
    /** Too many files are currently open in the system.*/
    case EIDMW_TOO_MANY_OPENED_FILES:         return(CKR_FUNCTION_FAILED);  break;
-   /** The argument of closedir or readdir does not refer to an open directory stream. */
-   case EIDMW_DIR_NOT_OPENED:                return(CKR_FUNCTION_FAILED);  break;
-   /** Interrupted by a signal */
-   case EIDMW_INTERRUPTION:                  return(CKR_FUNCTION_FAILED);  break;
-   /** One of the values in the structure to be returned cannot be represented correctly. */
-   case EIDMW_OVERFLOW:                      return(CKR_FUNCTION_FAILED);  break;
-   /** An I/O error occurred while reading from the file system.*/
-   case EIDMW_ERROR_IO:                      return(CKR_FUNCTION_FAILED);  break;
    /** Call of the Logger after destruct time */
    case EIDMW_ERR_LOGGER_APPLEAVING:         return(CKR_FUNCTION_FAILED);  break;
 
-   // SDK error
-   /** The document type is unknown for this card */
-   case EIDMW_ERR_DOCTYPE_UNKNOWN:           return(CKR_FUNCTION_FAILED);  break;
-   /** The card type asked doesn't correspond with the real card type */
-   case EIDMW_ERR_CARDTYPE_BAD:              return(CKR_FUNCTION_FAILED);  break;
    /** This card type is unknown */
    case EIDMW_ERR_CARDTYPE_UNKNOWN:          return(CKR_TOKEN_NOT_RECOGNIZED); break;
-   /** This Certificate has no issuer (=root) */
-   case EIDMW_ERR_CERT_NOISSUER:             return(CKR_FUNCTION_FAILED);  break;
    /** No release of SDK object has been done before closing the application */
    case EIDMW_ERR_RELEASE_NEEDED:            return(CKR_FUNCTION_FAILED);  break;
-
-   // Errors in system calls
-   /** a system call returned an error */
-   case EIDMW_ERR_SYSTEM:                    return(CKR_GENERAL_ERROR);  break;
-   /** a signal function returned an error */
-   case EIDMW_ERR_SIGNAL:                    return(CKR_FUNCTION_FAILED);  break;
 
    default:
       return(CKR_GENERAL_ERROR);

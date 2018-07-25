@@ -20,54 +20,6 @@
   SCAPSignature implementation for eidguiV2
 */
 
-ProxyInfo::ProxyInfo()
-{
-	eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_HOST);
-	eIDMW::PTEID_Config config2(eIDMW::PTEID_PARAM_PROXY_PORT);
-	eIDMW::PTEID_Config config_username(eIDMW::PTEID_PARAM_PROXY_USERNAME);
-	eIDMW::PTEID_Config config_pwd(eIDMW::PTEID_PARAM_PROXY_PWD);
-	eIDMW::PTEID_Config pacfile(eIDMW::PTEID_PARAM_PROXY_PACFILE);
-
-	std::string proxy_host = config.getString();
-	std::string proxy_username = config_username.getString();
-	std::string proxy_pwd = config_pwd.getString();
-	long proxy_port = config2.getLong();
-	const char * pacfile_url = pacfile.getString();
-
-	if (pacfile_url != NULL && strlen(pacfile_url) > 0)
-	{
-		system_proxy = true;
-		m_pac_url = QString(pacfile_url);
-	}
-
-	if (!proxy_host.empty() && proxy_port != 0)
-	{
-
-		m_proxy_host = QString::fromStdString(proxy_host);
-		m_proxy_port = QString::number(proxy_port);
-
-		if (!proxy_username.empty())
-		{
-			m_proxy_user = QString::fromStdString(proxy_username);
-			m_proxy_pwd = QString::fromStdString(proxy_pwd);
-		}
-
-	}
-}
-
-void ProxyInfo::getProxyForHost(std::string urlToFetch, std::string * proxy_host, long *proxy_port)
-{
-	if (!system_proxy)
-		return;
-	std::string proxy_port_str;
-
-	eIDMW::PTEID_GetProxyFromPac(m_pac_url.toUtf8().constData(), urlToFetch.c_str(), proxy_host, &proxy_port_str);
-
-	if (proxy_host->size() > 0 && proxy_port_str.size() > 0)
-		*proxy_port = atol(proxy_port_str.c_str());
-
-}
-
 /*
 QString ScapServices::getConnErrStr() {
     QString error_msg( tr( "Error loading entities" ) );
@@ -97,38 +49,79 @@ std::vector<ns3__AttributeType*> ScapServices::getSelectedAttributes(std::vector
 
     std::vector<ns3__AttributeType*> parsedAttributes;
     ns2__AttributesType * parent = NULL;
+    int index = 0;
 
     for (int i=0; i!=attributes_index.size(); i++) {
-        try {
-            parent = m_attributesList.at(attributes_index[i]);    
-        }
-        catch (std::out_of_range &e)
-        {
-            qDebug() << "Invalid attribute index: "
-                     << attributes_index[i] << "This shouldn't happen!";
-            continue;
-        }
+        index = 0;
 
-        std::vector<ns5__SignatureType *> childs = parent->SignedAttributes->ns3__SignatureAttribute;
-        for(uint childPos = 0;  childPos < childs.size(); childPos++)
-        {
-            ns5__SignatureType * child = childs.at(childPos);
-            if ( child->ns5__Object.size() > 0 )
+        for (int j=0; j < m_attributesList.size(); j++) {
+
+            try {
+                parent = m_attributesList.at(j);
+            }
+            catch (std::out_of_range &e)
             {
-                ns5__ObjectType * objType = child->ns5__Object.at(0);
-                ns3__AttributeType * attr = objType->union_ObjectType.ns3__Attribute;
-                //"Fix" the AttributeSupplier (ID and Name): they can have different values in SCAP and the actual entity Attribute
-                attr->AttributeSupplier->Id = parent->ATTRSupplier->Id;
-                attr->AttributeSupplier->Name = parent->ATTRSupplier->Name;
-                parsedAttributes.push_back(attr);
-                qDebug() << "Selected attribute from supplier: " << attr->AttributeSupplier->Name.c_str();
-               
-           }
-       }
+                qDebug() << "Invalid attribute index: "
+                         << attributes_index[j] << "This shouldn't happen!";
+                continue;
+            }
 
+            std::vector<ns5__SignatureType *> childs = parent->SignedAttributes->ns3__SignatureAttribute;
+            for(uint childPos = 0;  childPos < childs.size(); childPos++)
+            {
+                ns5__SignatureType * child = childs.at(childPos);
+                if ( child->ns5__Object.size() > 0 && index == attributes_index[i] )
+                {
+                    ns5__ObjectType * objType = child->ns5__Object.at(0);
+                    ns3__AttributeType * attr = objType->union_ObjectType.ns3__Attribute;
+                    //"Fix" the AttributeSupplier (ID and Name): they can have different values in SCAP and the actual entity Attribute
+                    attr->AttributeSupplier->Id = parent->ATTRSupplier->Id;
+                    attr->AttributeSupplier->Name = parent->ATTRSupplier->Name;
+                    parsedAttributes.push_back(attr);
+                    qDebug() << "Selected attribute from supplier: " << attr->AttributeSupplier->Name.c_str();
+                }
+                index++;
+            }
+        }
     }
 
     return parsedAttributes;
+}
+
+/*
+*  SCAP signature with citizen signature using CMD
+*/
+void ScapServices::executeSCAPWithCMDSignature(GAPI *parent, QString &savefilepath, int selected_page,
+   double location_x, double location_y, int ltv_years, std::vector<int> attributes_index, CmdSignedFileDetails cmd_details) {
+
+    std::vector<ns3__AttributeType*> selected_attributes = getSelectedAttributes(attributes_index);
+
+    if (selected_attributes.size() == 0)
+    {
+        qDebug() << "Couldn't find any index in m_attributesList!";
+        return;
+    }
+
+    int successful = PDFSignatureClient::signPDF(m_proxyInfo, savefilepath, cmd_details.signedCMDFile, cmd_details.citizenName,
+        cmd_details.citizenId, ltv_years, PDFSignatureInfo(selected_page, location_x, location_y, false), selected_attributes);
+
+    if (successful == GAPI::ScapSucess) {
+        parent->signalPdfSignSucess(parent->SignMessageOK);
+        parent->signCMDFinished(0);
+    }
+    else if (successful == GAPI::ScapTimeOutError) {
+        qDebug() << "Error in SCAP service Timeout!";
+        parent->signalSCAPServiceTimeout();
+        parent->signCMDFinished(SCAP_SERVICE_ERROR_CODE);
+    }
+    else {
+        qDebug() << "Error in SCAP Signature with CMD service!";
+        parent->signalSCAPServiceFail(successful);
+        parent->signCMDFinished(SCAP_SERVICE_ERROR_CODE);
+    }
+
+    parent->signalUpdateProgressBar(100);
+
 }
 
 void ScapServices::executeSCAPSignature(GAPI *parent, QString &inputPath, QString &savefilepath, int selected_page,
@@ -183,22 +176,23 @@ void ScapServices::executeSCAPSignature(GAPI *parent, QString &inputPath, QStrin
 
             if (sign_rc == 0)
             {
-                //this->success = SIG_ERROR;
-                bool successful = PDFSignatureClient::signPDF(m_proxyInfo, savefilepath, QString(temp_save_path), QString(citizenName),
+                int successful = PDFSignatureClient::signPDF(m_proxyInfo, savefilepath, QString(temp_save_path), QString(citizenName),
                     QString(citizenId), ltv_years, PDFSignatureInfo(selected_page, location_x, location_y, false), selected_attributes);
 
-                if (successful) {
+                if (successful == GAPI::ScapSucess) {
                     parent->signalPdfSignSucess(parent->SignMessageOK);
-                	
+                }
+                else if (successful == GAPI::ScapTimeOutError) {
+                    qDebug() << "Error in SCAP service Timeout!";
+                    parent->signalSCAPServiceTimeout();
                 }
                 else {
-                    qDebug() << "Error in PADES/PDFSignature service!";
-                    parent->signalPdfSignFail();
+                    qDebug() << "Error in SCAP Signature service!";
+                    parent->signalSCAPServiceFail(successful);
                 }
             }
             else {
-
-            	//TODO: Handle error in the local signature
+                parent->signalSCAPServiceFail(GAPI::ScapGenericError);
             }
                 
         }
@@ -208,7 +202,6 @@ void ScapServices::executeSCAPSignature(GAPI *parent, QString &inputPath, QStrin
             std::cerr << "Caught exception getting EID Card. Error code: " << hex << e.GetError() << std::endl;
             //this->success = SIG_ERROR;
         }
-
     free(temp_save_path);
 }
 
@@ -231,9 +224,9 @@ std::vector<ns3__AttributeSupplierType *> ScapServices::getAttributeSuppliers()
 	std::string sup_endpoint = std::string("https://") + settings.getScapServerHost().toStdString() + ":" + port + as_endpoint;
 
     //Define appropriate network timeouts
-    sp->recv_timeout = 20;
-    sp->send_timeout = 20;
-    sp->connect_timeout = 20;
+    sp->recv_timeout = RECV_TIMEOUT;
+    sp->send_timeout = SEND_TIMEOUT;
+    sp->connect_timeout = CONNECT_TIMEOUT;
 
 	std::string proxy_host;
     long proxy_port = 0;

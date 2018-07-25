@@ -13,7 +13,6 @@
 #include <QPrinter>
 #include <QPrintDialog>
 #include "Settings.h"
-#include "genpur.h"
 #include "certificates.h"
 
 //MW libraries
@@ -25,6 +24,14 @@
 #include "cmdErrors.h"
 
 #include "scapsignature.h"
+
+/* For filenames we need to maintain latin-1 or UTF-8 native encoding */
+//This macro's argument is a QString
+
+//#define getPlatformNativeString(s) s.toLatin1().constData()
+
+#define getPlatformNativeString(s) s.toUtf8().constData()
+
 
 /*
     GAPI - Graphic Application Programming Interface
@@ -131,6 +138,13 @@ public:
     double isSmallSignature;
 };
 
+struct CmdSignedFileDetails {
+public:
+    QString signedCMDFile;
+    QString citizenName;
+    QString citizenId;
+};
+
 struct SignBatchParams {
 public:
     QList<QString> loadedFileBatchPath; QString outputFile;
@@ -174,6 +188,7 @@ private:
 
 class GAPI : public QObject
 {
+    #define SCAP_SERVICE_ERROR_CODE -10
     #define TIMERREADERLIST 5000
     Q_OBJECT
     Q_PROPERTY(QMap<IDInfoKey, QString> m_data
@@ -195,25 +210,18 @@ public:
     enum AddressInfoKey { District, Municipality, Parish, Streettype, Streetname, Buildingtype, Doorno, Floor, Side, Locality, Place, Zip4, Zip3, PostalLocality,
                           Foreigncountry, Foreignaddress, Foreigncity, Foreignregion, Foreignlocality, Foreignpostalcode};
 
-    enum CardAccessError { NoReaderFound, NoCardFound, CardReadError, SodCardReadError, CardUserPinCancel, CardUnknownError };
+    enum CardAccessError { NoReaderFound, NoCardFound, PinBlocked, CardReadError, SodCardReadError, CardUserPinCancel, CardUnknownError };
 
     enum SignMessage { SignMessageOK, SignMessageTimestampFailed };
 
     enum eCustomEventType { ET_UNKNOWN, ET_CARD_CHANGED, ET_CARD_REMOVED };
 
-    enum UI_LANGUAGE
-    {
-        LANG_XX
-        , LANG_EN
-        , LANG_DEF = LANG_EN
-        , LANG_NL
-        , LANG_FR
-        , LANG_DE
-        , LANG_LAST
-    };
-
     enum AutoUpdateMessage { GenericError, NoUpdatesAvailable, DownloadFailed, LinuxNotSupported,UpdatesAvailable,
                            UnableSaveFile};
+
+    enum ScapPdfSignResult { ScapTimeOutError, ScapGenericError, ScapAttributesExpiredError, ScapZeroAttributesError,
+                             ScapNotValidAttributesError, ScapSucess };
+    Q_ENUMS(ScapPdfSignResult)
     Q_ENUMS(CardAccessError)
     Q_ENUMS(eCustomEventType)
     Q_ENUMS(IDInfoKey)
@@ -230,10 +238,6 @@ public:
 
     PDFPreviewImageProvider * image_provider_pdf;
 
-    // Public Method to Test GAPI
-    //void fillDataCardIdentifyDummy();
-    void testUpdateCardIdentify(int timerValue);
-
     //This flag is used to start the application in specific subpage
     void setShortcutFlag(int value) { m_shortcutFlag = value; }
     void setShortcutPDFPath(QString &inputPdf) { m_shortcutInputPDF = inputPdf ;}
@@ -248,6 +252,7 @@ public:
 public slots:
     // Slots to Gui request values
     QVariantList getRetReaderList(void);
+    int getReaderIndex(void);
     void setReaderByUser(unsigned long setReaderIndex);
     void resetReaderSelected(void) {selectedReaderIndex =  -1; }
     signed int returnReaderSelected(void) {return selectedReaderIndex; }
@@ -272,12 +277,15 @@ public slots:
     int getPDFpageCount(QString loadedFilePath);
 
     void startSigningXADES(QString loadedFilePath, QString outputFile, double isTimestamp);
+    void startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, double isTimestamp);
 
     /* SCAP Methods  */
     void startGettingEntities();
     void startGettingCompanyAttributes();
     void startLoadingAttributesFromCache(int isCompanies, bool isShortDescription);
+    void startRemovingAttributesFromCache(int isCompanies);
     void startGettingEntityAttributes(QList<int> entity_index);
+    void startPingSCAP();
 
     void startSigningSCAP(QString inputPdf, QString outputPDF, int page, int location_x, int location_y, 
                           int ltv, QList<int> attribute_index);
@@ -300,9 +308,13 @@ public slots:
     void signOpenCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
                   QString outputFile, int page, double coord_x, double coord_y, QString reason, QString location,
                  double isTimestamp, double isSmall);
-    void signCloseCMD(QString sms_token);
+    void signCloseCMD(QString sms_token, QList<int> attribute_list);
     void doOpenSignCMD(CMDSignature *cmd_signature, CmdSignParams &params);
     void doCloseSignCMD(CMDSignature *cmd_signature, QString sms_token);
+    void doCloseSignCMDWithSCAP(CMDSignature *cmd_signature, QString sms_token, QList<int> attribute_list);
+    void signOpenScapWithCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
+                   QString outputFile, int page, double coord_x, double coord_y);
+
     static void addressChangeCallback(void *, int);
     void showChangeAddressDialog(long code);
     void showSignCMDDialog(long code);
@@ -313,6 +325,7 @@ public slots:
 
     void setEventCallbacks( void );
     void startfillCertificateList ( void );
+    void startGetCardActivation ( void );
 
     void initTranslation();
 
@@ -321,6 +334,15 @@ public slots:
     void customSignRemove(void);
 
     void updateReaderList( void );
+    void setUseCustomSignature (bool UseCustomSignature);
+    bool getUseCustomSignature(void);
+    void setRegCertValue(bool bRegCert);
+    void setRemoveCertValue(bool bRemoveCert);
+    bool getRegCertValue(void);
+    bool getRemoveCertValue(void);
+
+    void cancelDownload();
+    void httpFinished();
 
 signals:
     // Signal from GAPI to Gui
@@ -344,32 +366,45 @@ signals:
     void signalCardChanged(const int error_code);
     void signalSetPersoDataFile(const QString titleMessage, const QString statusMessage);
     void signalCertificatesChanged(const QVariantMap certificatesMap);
-
+    void signalShowCardActivation(QString statusMessage);
+        
     //SCAP signals
     void signalSCAPEntitiesLoaded(const QList<QString> entitiesList);
+    void signalSCAPServiceFail(int pdfsignresult);
+    void signalSCAPDifinitionsServiceFail(int pdfsignresult, bool isCompany);
+    void signalSCAPServiceTimeout();
+    void signalSCAPPingFail();
+    void signalSCAPPingSuccess();
     void signalCompanyAttributesLoaded(const QList<QString> attribute_list);
     void signalEntityAttributesLoaded(const QList<QString> attribute_list);
     void signalAttributesLoaded(const QList<QString> attribute_list);
     void signalCompanyAttributesLoadedError();
     void signalEntityAttributesLoadedError();
     void signalPdfPrintSucess();
+    void signalPrinterPrintSucess();
     void signalPdfPrintSignSucess();
     void signalPdfPrintFail();
+    void signalPrinterPrintFail();
     void signalLanguageChangedError();
+    void signalRemoveSCAPAttributesSucess(int isCompanies);
+    void signalRemoveSCAPAttributesFail(int isCompanies);
 
     // Import Certificates
     void signalImportCertificatesFail();
     void signalRemoveCertificatesFail();
 
 private:
-    bool LoadTranslationFile( GenPur::UI_LANGUAGE NewLanguage );
+    bool LoadTranslationFile( QString NewLanguage );
     void setDataCardIdentify(QMap<GAPI::IDInfoKey, QString> m_data);
     void connectToCard();
     void getSCAPEntities();
     void getSCAPCompanyAttributes();
+    QString translateCMDErrorCode(int errorCode);
 
     //querytype - 0 = Entities, 1 = Companies, 2 = All Attributes 
     void getSCAPAttributesFromCache(int queryType, bool isShortDescription);
+    //querytype - 0 = Entities, 1 = Companies
+    void removeSCAPAttributesFromCache(int queryType);
     void getSCAPEntityAttributes(QList<int> entityIDs);
     void doSignSCAP(SCAPSignParams params);
     void getPersoDataFile();
@@ -382,12 +417,15 @@ private:
     bool drawpdf(QPrinter &printer, PrintParams params);
     void doSignBatchPDF(SignBatchParams &params);
     void doSignXADES(QString loadedFilePath, QString outputFile, double isTimestamp);
+    void doSignBatchXADES(SignBatchParams &params);
     void buildTree(eIDMW::PTEID_Certificate &cert, bool &bEx, QVariantMap &certificatesMap);
     void fillCertificateList (void );
+    void getCertificateAuthStatus(void );
     void getCardInstance(PTEID_EIDCard *&new_card);
     bool useCustomSignature(void);
     void stopAllEventCallbacks(void);
     void cleanupCallbackData(void);
+    CMDProxyInfo buildProxyInfo();
 
     // Data Card Identify map
     QMap<GAPI::IDInfoKey, QString> m_data;
@@ -398,6 +436,8 @@ private:
     CMDSignature *cmd_signature;
     PTEID_PDFSignature *cmd_pdfSignature;
     ScapServices scapServices;
+    SCAPSignParams m_scap_params;
+
     QString m_persoData;
     bool m_addressLoaded;
     int m_shortcutFlag;
@@ -412,10 +452,15 @@ private:
 
     QTimer* m_timerReaderList;
 
+    QUrl url;
+    QNetworkProxy proxy;
+    QNetworkAccessManager qnam;
+    QNetworkReply *reply;
+    QString m_pac_url;
+    bool httpRequestAborted;
+    bool httpRequestSuccess;
+
 protected:
     QTranslator m_translator;
-private slots:
-    // Test functions
-    void triggerTestUpdateCardIdentify();
 };
 #endif // GAPI_H

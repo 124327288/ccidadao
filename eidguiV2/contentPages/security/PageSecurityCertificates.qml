@@ -41,6 +41,7 @@ PageSecurityCertificatesForm {
                         qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
             }
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
             propertyBusyIndicator.running = false
         }
         onSignalCertificatesChanged: {
@@ -187,29 +188,36 @@ PageSecurityCertificatesForm {
     }
     function getCertStatus(certStatus){
 
-        var networkError = qsTr("STR_STATUS_NETWORK_ERROR")
-        var strCertStatus
+        var strCertStatus = qsTr("STR_STATUS_UNKNOWN");
 
         switch(certStatus)
         {
+        case Constants.PTEID_CERTIF_STATUS_UNKNOWN:
+            strCertStatus = qsTr("STR_STATUS_UNKNOWN")
+            break;
         case Constants.PTEID_CERTIF_STATUS_REVOKED:
             strCertStatus = qsTr("STR_STATUS_REVOKED")
             break;
         case Constants.PTEID_CERTIF_STATUS_SUSPENDED:
             strCertStatus = qsTr("STR_STATUS_SUSPENDED")
             break;
+        case Constants.PTEID_CERTIF_STATUS_CONNECT:
+            strCertStatus = qsTr("STR_STATUS_NETWORK_ERROR")
+            break;
+        case Constants.PTEID_CERTIF_STATUS_ISSUER:
+            strCertStatus = qsTr("STR_STATUS_ISSUER")
+            break;
+        case Constants.PTEID_CERTIF_STATUS_ERROR:
+            strCertStatus = qsTr("STR_STATUS_ERROR")
+            break;
         case Constants.PTEID_CERTIF_STATUS_VALID:
             strCertStatus = qsTr("STR_STATUS_VALID")
             break;
-        //TODO: Handle the network error with a different string such as "cant validate certificate status"
-        case Constants.PTEID_CERTIF_STATUS_CONNECT:
-            strCertStatus = networkError
-            break;
-        case Constants.PTEID_CERTIF_STATUS_UNKNOWN:
-            strCertStatus = qsTr("STR_STATUS_UNKNOWN")
+        case Constants.PTEID_CERTIF_STATUS_EXPIRED:
+            strCertStatus = qsTr("STR_STATUS_EXPIRED")
             break;
         default:
-            strCertStatus = networkError;
+            strCertStatus = qsTr("STR_STATUS_UNKNOWN");
             break;
         }
 

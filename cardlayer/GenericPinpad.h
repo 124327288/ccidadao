@@ -49,7 +49,7 @@ public:
    //Warning: This ctor shouldn't be used, it's just a workaround for a convoluted Pinpad detection process
    GenericPinpad()
    {
-	   m_ulLangCode = 0x0813;
+	   m_ulLangCode = 0x0409;
    }
 
    GenericPinpad(CContext *poContext, SCARDHANDLE hCard,
@@ -70,14 +70,13 @@ protected:
 
 	bool IsGemsafe(CByteArray &atr);
 
-	bool ShowDlg(unsigned char pinpadOperation, unsigned char ucPintype,
+	bool ShowDlg(tPinOperation operation, unsigned char ucPintype,
 		const std::string & csPinLabel, const std::string & csReader,
 		unsigned long *pulDlgHandle, void *wndGeometry = 0);
 	/** To close the dialog opened by PinCmd() */
 	void CloseDlg(unsigned long ulDlgHandle);
 
 	unsigned long GetLanguage();
-	unsigned char PinOperation2Lib(tPinOperation operation);
 
 	unsigned char ToFormatString(const tPin & pin);
 	unsigned char ToPinBlockString(const tPin & pin);

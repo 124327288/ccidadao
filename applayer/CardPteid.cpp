@@ -34,6 +34,10 @@
 #include "Log.h"
 #include "SODParser.h"
 
+//C++ 11 header used for date parsing
+#include <regex>
+#include <ctime>
+
 #include <openssl/err.h>
 #include <iostream>
 #include <fstream>
@@ -137,7 +141,7 @@ APL_EidFile_ID::~APL_EidFile_ID()
 }
 
 
-void APL_EidFile_ID::PackIdData(CByteArray &cb){
+void APL_EidFile_ID::PackIdData(CByteArray &cb) {
 	cb.Append((unsigned char*)m_IssuingEntity.c_str(),m_IssuingEntity.length());
 	cb.Append((unsigned char*)m_Country.c_str(),m_Country.length());
 	cb.Append((unsigned char*)m_DocumentType.c_str(),m_DocumentType.length());
@@ -750,9 +754,10 @@ void APL_EidFile_Address::PackAddressData(CByteArray &cb, bool isNational){
 }
 
 
-void APL_EidFile_Address::MapFieldsInternal(){
+void APL_EidFile_Address::MapFieldsInternal()
+{
 
-	if (m_mappedFields) // MARTINHO: have we mapped the fields yet?
+	if (m_mappedFields) // have we mapped the fields yet?
 		return;
 
 	CByteArray pteidngAddressBuffer;
@@ -772,8 +777,61 @@ void APL_EidFile_Address::MapFieldsInternal(){
 	else
 		AddressFields();
 
-	// MARTINHO: so we've mapped the fields no need to map them again
+	// So we've mapped the fields no need to map them again
 	m_mappedFields = true;
+}
+
+
+//Check for issuing date in "buggy" period of card production
+bool addressSODShouldBeChecked(const char * issuing_date) 
+{
+
+	// create tm with 01/01/2017:
+	std::tm timeinfo = std::tm();
+	timeinfo.tm_year = 2017 - 1900;
+	timeinfo.tm_mon = 0;          // month: january
+	timeinfo.tm_mday = 1;        // day: 1st
+	std::time_t beginBuggyPeriod = std::mktime (&timeinfo);
+	
+	timeinfo.tm_year = 2018 - 1900;
+	timeinfo.tm_mon = 1;          // month: february
+	timeinfo.tm_mday = 20;        // day: 20th
+
+	std::time_t endBuggyPeriod = std::mktime (&timeinfo);
+
+	std::cmatch cm;
+	std::regex expression("(\\d{2}) (\\d{2}) (\\d{4})"); 
+
+    std::regex_match (issuing_date, cm, expression);
+
+    int day = 0, month = 0, year = 0;
+
+    for (unsigned i=0; i < cm.size(); i++) {
+    	switch (i)
+    	{
+    		//case 0 is ignored as it matches the full regex pattern
+    		case 1:
+    			day = std::stoi(cm[i].str());
+    			break;
+    		case 2:
+    			month = std::stoi(cm[i].str());
+    			break;
+    		case 3:
+    			year = std::stoi(cm[i].str());
+    			break;
+    	}
+    }
+
+    if (day == 0 || month == 0 || year == 0)
+    	return true;
+
+    timeinfo.tm_year = year - 1900;
+	timeinfo.tm_mon = month - 1;      // month: february
+	timeinfo.tm_mday = day;           // day: 20th
+
+	std::time_t issuingTime = std::mktime (&timeinfo);
+
+    return issuingTime > endBuggyPeriod || issuingTime < beginBuggyPeriod;
 }
 
 tCardFileStatus APL_EidFile_Address::VerifyFile()
@@ -782,21 +840,32 @@ tCardFileStatus APL_EidFile_Address::VerifyFile()
 		return CARDFILESTATUS_ERROR;
 
 	if (m_isVerified)
-			return CARDFILESTATUS_OK;
+		return CARDFILESTATUS_OK;
 
-		APL_EIDCard *pcard=dynamic_cast<APL_EIDCard *>(m_card);
+	APL_EIDCard *pcard=dynamic_cast<APL_EIDCard *>(m_card);
 
-		MapFieldsInternal();
+	MapFieldsInternal();
 
-		if (m_SODCheck){
+	if (m_SODCheck) {
+		
+		APL_EidFile_ID * idFile = pcard->getFileID();
+
+		const char * issuing_date = idFile->getValidityBeginDate();
+
+		if (!addressSODShouldBeChecked(issuing_date)) {
+			MWLOG(LEV_DEBUG, MOD_APL, 
+				"Skipping Address SOD check because this card was issued between 01/01/2017 and 20/02/2018");
+		}
+		else {
 			CByteArray addrData;
 			PackAddressData(addrData, m_AddressType != m_FOREIGN);
 
 			if (!m_cryptoFwk->VerifyHashSha256(addrData,pcard->getFileSod()->getAddressHash()))
 				throw CMWEXCEPTION(EIDMW_SOD_ERR_HASH_NO_MATCH_ADDRESS);
 		}
-		m_isVerified = true;
+	}
 
+	m_isVerified = true;
 	return CARDFILESTATUS_OK;
 }
 
@@ -1282,7 +1351,7 @@ tCardFileStatus APL_EidFile_Sod::VerifyFile()
 
 	const unsigned char *temp = m_data.GetBytes();
 	long int len = m_data.Size();
-	temp+=4; //martinho: jump the response message template format 2" (DER type 77)
+	temp+=4; //jump the response message template format 2" (DER type 77)
 
 	p7 = d2i_PKCS7(NULL, (const unsigned char **)&temp, len);
 
@@ -1292,7 +1361,7 @@ tCardFileStatus APL_EidFile_Sod::VerifyFile()
 
 	// Load only the SOD relevant root certificates
 
-	// martinho: load all certificates, let openssl do the job and find the needed ones...
+	// load all certificates, let openssl do the job and find the needed ones...
 	for (unsigned long i = 0; i < pcard->getCertificates()->countSODCAs(); i++){
 		APL_Certif * sod_ca = pcard->getCertificates()->getSODCA(i);
 		X509 *pX509 = NULL;

@@ -130,8 +130,6 @@ void PTEID_Object::checkContextStillOk() const
 	{
 		if(contextid==0)
 			throw PTEID_ExNoReader();
-		else
-			throw PTEID_ExReaderSetChanged();
 	}
 
 	if(!m_context->reader)
@@ -662,8 +660,9 @@ PTEID_EIDCard &PTEID_ReaderContext::getEIDCard()
 
 	APL_ReaderContext *pimpl=static_cast<APL_ReaderContext *>(m_impl);
 	PTEID_CardType type=ConvertCardType(pimpl->getCardType());
-	if(type!=PTEID_CARDTYPE_IAS07 && type!=PTEID_CARDTYPE_IAS101){
-		throw PTEID_ExCardBadType();
+
+	if (type!=PTEID_CARDTYPE_IAS07 && type!=PTEID_CARDTYPE_IAS101) {
+		throw PTEID_ExCardTypeUnknown();
 	}
 
 	END_TRY_CATCH
@@ -794,7 +793,8 @@ PTEID_Config::PTEID_Config(PTEID_Param Param):PTEID_Object(NULL,NULL)
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_PROXY_USERNAME);		break;
 	case PTEID_PARAM_PROXY_PWD:
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_PROXY_PWD);		    break;
-
+	case PTEID_PARAM_PROXY_USE_SYSTEM:
+		m_impl = new APL_Config(CConfig::EIDMW_CONFIG_PARAM_PROXY_USE_SYSTEM);  break;
 	case PTEID_PARAM_PROXY_PACFILE:
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_PROXY_PACFILE);		break;
 	case PTEID_PARAM_PROXY_CONNECT_TIMEOUT:
@@ -809,12 +809,12 @@ PTEID_Config::PTEID_Config(PTEID_Param Param):PTEID_Object(NULL,NULL)
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWPIC);			break;
 	case PTEID_PARAM_GUITOOL_SHOWNOTIFICATION:
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWNOTIFICATION);break;
-        case PTEID_PARAM_GUITOOL_USECUSTOMSIGN:
-                m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_USECUSTOMSIGN);break;
-        case PTEID_PARAM_GUITOOL_SHOWANIMATIONS:
-                m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWANIMATIONS);    break;
-        case PTEID_PARAM_GUITOOL_SHOWSTARTUPHELP:
-                m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWSTARTUPHELP);     break;
+	case PTEID_PARAM_GUITOOL_USECUSTOMSIGN:
+		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_USECUSTOMSIGN);break;
+	case PTEID_PARAM_GUITOOL_SHOWANIMATIONS:
+		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWANIMATIONS);    break;
+	case PTEID_PARAM_GUITOOL_SHOWSTARTUPHELP:
+		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWSTARTUPHELP);     break;
 	case PTEID_PARAM_GUITOOL_SHOWTBAR:
 		m_impl=new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GUITOOL_SHOWTBAR);		break;
 	case PTEID_PARAM_GUITOOL_VIRTUALKBD:

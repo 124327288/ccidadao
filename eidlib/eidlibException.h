@@ -66,18 +66,6 @@ public:
 	PTEIDSDK_API virtual ~PTEID_ExUnknown();		/**< Destructor */
 };
 
-/******************************************************************************//**
-  * Exception class Document Type Unknown (error code = EIDMW_ERR_DOCTYPE_UNKNOWN)
-  *
-  *	Throw when the document type doesn't exist for this card
-  * Used in : - PTEID_Card::getDocument(PTEID_DocumentType type)
-  *********************************************************************************/
-class PTEID_ExDocTypeUnknown: public PTEID_Exception
-{
-public:
-	PTEIDSDK_API PTEID_ExDocTypeUnknown();			/**< Constructor */
-	PTEIDSDK_API virtual ~PTEID_ExDocTypeUnknown();	/**< Destructor */
-};
 
 /******************************************************************************//**
   * Exception class File Type Unknown (error code = EIDMW_ERR_FILETYPE_UNKNOWN)
@@ -150,19 +138,6 @@ public:
 };
 
 /******************************************************************************//**
-  * Exception class Bad Card Type (error code = EIDMW_ERR_CARDTYPE_BAD)
-  *
-  *	Throw when the card type doesn't correspond to what is asked
-  * Used in : - PTEID_ReaderContext::getEIDCard()
-  *********************************************************************************/
-class PTEID_ExCardBadType: public PTEID_Exception
-{
-public:
-	PTEIDSDK_API PTEID_ExCardBadType();				/**< Constructor */
-	PTEIDSDK_API virtual ~PTEID_ExCardBadType();		/**< Destructor */
-};
-
-/******************************************************************************//**
   * Exception class Card Type Unknown (error code = EIDMW_ERR_CARDTYPE_UNKNOWN)
   *
   *	Throw when the card type is not supported
@@ -175,18 +150,6 @@ public:
 	PTEIDSDK_API virtual ~PTEID_ExCardTypeUnknown();	/**< Destructor */
 };
 
-/******************************************************************************//**
-  * Exception class Certificate No Issuer (error code = EIDMW_ERR_CERT_NOISSUER)
-  *
-  *	Throw when ask for the issuer of a root certificate
-  * Used in : - PTEID_Certificate::getIssuer()
-  *********************************************************************************/
-class PTEID_ExCertNoIssuer: public PTEID_Exception
-{
-public:
-	PTEIDSDK_API PTEID_ExCertNoIssuer();				/**< Constructor */
-	PTEIDSDK_API virtual ~PTEID_ExCertNoIssuer();		/**< Destructor */
-};
 
 /******************************************************************************//**
   * Exception class Certificate No OCSP responder (error code = EIDMW_ERR_CERT_NOROOT)
@@ -228,31 +191,6 @@ public:
 	PTEIDSDK_API virtual ~PTEID_ExBadTransaction();		/**< Destructor */
 };
 
-/******************************************************************************//**
-  * Exception class Card changed (error code = EIDMW_ERR_CARD_CHANGED)
-  *
-  *	Throw when accessing to a card object but the card has been changed
-  * Used in : - PTEID_Object::checkContextStillOk()
-  *********************************************************************************/
-class PTEID_ExCardChanged: public PTEID_Exception
-{
-public:
-	PTEIDSDK_API PTEID_ExCardChanged();				/**< Constructor */
-	PTEIDSDK_API virtual ~PTEID_ExCardChanged();		/**< Destructor */
-};
-
-/******************************************************************************//**
-  * Exception class Readerset changed (error code = EIDMW_ERR_READERSET_CHANGED)
-  *
-  *	Throw when accessing to a card object but the readerset has been changed
-  * Used in : - PTEID_Object::checkContextStillOk()
-  *********************************************************************************/
-class PTEID_ExReaderSetChanged: public PTEID_Exception
-{
-public:
-	PTEIDSDK_API PTEID_ExReaderSetChanged();				/**< Constructor */
-	PTEIDSDK_API virtual ~PTEID_ExReaderSetChanged();		/**< Destructor */
-};
 
 /******************************************************************************//**
   * Exception class No reader (error code = EIDMW_ERR_NO_READER)
@@ -286,6 +224,43 @@ public:
 	PTEIDSDK_API PTEID_ExSOD(long lError);				/**< Constructor */
 	PTEIDSDK_API virtual ~PTEID_ExSOD();				/**< Destructor */
 };
+
+//DEPRECATED EXCEPTION Classes: not currently used
+class PTEID_ExCardBadType : public PTEID_Exception
+{
+	public:
+		PTEIDSDK_API PTEID_ExCardBadType();				/**< Constructor */
+		PTEIDSDK_API virtual ~PTEID_ExCardBadType();		/**< Destructor */
+};
+
+class PTEID_ExReaderSetChanged : public PTEID_Exception
+{
+	public:
+		PTEIDSDK_API PTEID_ExReaderSetChanged();				/**< Constructor */
+		PTEIDSDK_API virtual ~PTEID_ExReaderSetChanged();		/**< Destructor */
+};
+
+class PTEID_ExCardChanged: public PTEID_Exception
+{
+public:
+  PTEIDSDK_API PTEID_ExCardChanged();       /**< Constructor */
+  PTEIDSDK_API virtual ~PTEID_ExCardChanged();    /**< Destructor */
+};
+
+class PTEID_ExCertNoIssuer: public PTEID_Exception
+{
+public:
+  PTEIDSDK_API PTEID_ExCertNoIssuer();        /**< Constructor */
+  PTEIDSDK_API virtual ~PTEID_ExCertNoIssuer();   /**< Destructor */
+};
+
+class PTEID_ExDocTypeUnknown: public PTEID_Exception
+{
+public:
+  PTEIDSDK_API PTEID_ExDocTypeUnknown();      /**< Constructor */
+  PTEIDSDK_API virtual ~PTEID_ExDocTypeUnknown(); /**< Destructor */
+};
+
 }
 
 #endif //__EIDLIB_EXCEPTION_H__

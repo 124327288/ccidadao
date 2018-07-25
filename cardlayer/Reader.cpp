@@ -125,7 +125,7 @@ static const inline wchar_t * Status2String(tCardStatus status)
 	{
 	case CARD_INSERTED: return L"card inserted";
 	case CARD_NOT_PRESENT: return L"no card present";
-	case CARD_STILL_PRESENT: return L"card stil present";
+	case CARD_STILL_PRESENT: return L"card still present";
 	case CARD_REMOVED: return L"card removed";
 	case CARD_OTHER: return L"card removed and (another) card inserted";
 	default: return L"unknown state?!?";
@@ -188,7 +188,7 @@ bool CReader::Connect()
 	if (m_poCard != NULL)
 		Disconnect(DISCONNECT_LEAVE_CARD);
 
-	m_poCard = CardConnect(m_csReader, m_poContext, NULL, m_oCardPluginLib);
+	m_poCard = CardConnect(m_csReader, m_poContext, NULL);
 	if (m_poCard != NULL)
 	{
 		m_oPKCS15.SetCard(m_poCard);

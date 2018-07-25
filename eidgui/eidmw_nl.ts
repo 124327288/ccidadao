@@ -96,6 +96,15 @@
         <translation>Por favor tente novamente e, caso o erro persista, contacte a Linha Cartão de Cidadão através do número 211 950 500 ou do e-mail cartaodecidadao@irn.mj.pt.</translation>
     </message>
     <message>
+        <source>If this error persists, please contact the Citizen Card support line at telephone number +351 211 950 500 or e-mail cartaodecidadao@irn.mj.pt.</source>
+        <translation>Caso o erro persista, contacte a Linha Cartão de Cidadão através do número 211 950 500 ou do e-mail cartaodecidadao@irn.mj.pt.</translation>
+    </message>
+
+    <message>
+        <source>Please update your software at </source>
+        <translation>Por favor atualize o software em </translation>
+    </message>
+    <message>
         <source>Changing Address in card...</source>
         <translation>Mudando a morada no Cartão...</translation>
     </message>
@@ -881,6 +890,10 @@ Please specify .xml, .csv or .eid</source>
         <translation>Revogado</translation>
     </message>
     <message>
+        <source>Expired</source>
+        <translation>Expirado</translation>
+    </message>
+    <message>
         <source>Inactive or Suspended</source>
         <translation>Inativo ou Suspenso</translation>
     </message>
@@ -1267,6 +1280,10 @@ Please specify .xml, .csv or .eid</source>
     <message>
         <source>The Citizen Card is not active</source>
         <translation>O Cartão de Cidadão não se encontra ativo</translation>
+    </message>
+    <message>
+        <source>The Citizen Card is expired</source>
+        <translation>O Cartão de Cidadão encontra-se expirado</translation>
     </message>
     <message>
         <source>Cancel</source>

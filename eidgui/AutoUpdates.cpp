@@ -56,8 +56,9 @@
 
 using namespace eIDMW;
 
-std::string serverurl = "https://svn.gov.pt/projects/ccidadao/repository/middleware-offline/tags/builds/lastversion/";
+
 std::string remoteversion = "https://svn.gov.pt/projects/ccidadao/repository/middleware-offline/tags/builds/lastversion/version.txt";
+std::string serverurl = "https://svn.gov.pt/projects/ccidadao/repository/middleware-offline/tags/builds/lastversion/";
 
 std::string WINDOWS32 = "PteidMW-Basic.msi";
 std::string WINDOWS64 = "PteidMW-Basic-x64.msi";
@@ -72,13 +73,6 @@ std::string FEDORA32 = "pteid-mw-fedora.i386.rpm";
 std::string FEDORA64 = "pteid-mw-fedora.x86_64.rpm";
 std::string SUSE32 = "pteid-mw-suse.i586.rpm";
 std::string SUSE64 = "pteid-mw-suse.x86_64.rpm";
-
-struct PteidVersion
-{
-	int major;
-	int minor;
-	int release;
-};
 
 
 AutoUpdates::AutoUpdates(QWidget *parent)
@@ -118,19 +112,6 @@ AutoUpdates::AutoUpdates(QWidget *parent)
 	setWindowIcon(app_icon);
 	setWindowTitle(ddtitle);
 
-	//Before trying any request configure the proxy autoconfig
-	/* XX: it should only require this to use the system proxy but it does not fallback to 
-	//the configured PAC script if there is WPAD config but it is somewhat broken
-	 QNetworkProxyFactory::setUseSystemConfiguration(true); */
-
-	eIDMW::PTEID_Config config_pacfile(eIDMW::PTEID_PARAM_PROXY_PACFILE);
-	const char * pacfile_url = config_pacfile.getString();
-
-	if (pacfile_url != NULL && strlen(pacfile_url) > 0)
-	{
-		m_pac_url = QString(pacfile_url);
-	}
-
 }
 
 AutoUpdates::~AutoUpdates()
@@ -154,46 +135,9 @@ void AutoUpdates::cancelDownload()
 
 void AutoUpdates::startRequest(QUrl url)
 {
-	eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_HOST);
-	eIDMW::PTEID_Config config2(eIDMW::PTEID_PARAM_PROXY_PORT);
-	eIDMW::PTEID_Config config_username(eIDMW::PTEID_PARAM_PROXY_USERNAME);
-	eIDMW::PTEID_Config config_pwd(eIDMW::PTEID_PARAM_PROXY_PWD);
-
-    std::string proxy_host = config.getString();
-    std::string proxy_username = config_username.getString();
-    std::string proxy_pwd = config_pwd.getString();
-    long proxy_port = config2.getLong();
-    
+	
     //10 second timeout
     int network_timeout = 10000;
-
-	if (!proxy_host.empty() && proxy_port != 0)
-	{
-		PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "Autoupdates: using manual proxy config");
-		proxy.setType(QNetworkProxy::HttpProxy);
-		proxy.setHostName(QString::fromStdString(proxy_host));
-		proxy.setPort(proxy_port);
-
-		if (!proxy_username.empty())
-		{
-			proxy.setUser(QString::fromStdString(proxy_username));
-			proxy.setPassword(QString::fromStdString(proxy_pwd));
-		}
-
-		QNetworkProxy::setApplicationProxy(proxy);
-	}
-	else if (!m_pac_url.isEmpty())
-	{
-		std::string proxy_port_str;
-		PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "Autoupdates: using system proxy config");
-
-		PTEID_GetProxyFromPac(m_pac_url.toUtf8().constData(), url.toString().toUtf8().constData(), &proxy_host, &proxy_port_str);
-
-		proxy.setType(QNetworkProxy::HttpProxy);
-		proxy.setHostName(QString::fromStdString(proxy_host));
-		proxy.setPort(atol(proxy_port_str.c_str()));
-		QNetworkProxy::setApplicationProxy(proxy);
-	}
 
 	reply = qnam.get(QNetworkRequest(url));
 
@@ -507,15 +451,7 @@ done:
 
 void AutoUpdates::ChooseVersion(std::string distro, std::string arch)
 {
-	std::string downloadurl;
-
-    eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_AUTOUPDATES_URL);
-    std::string configurl = config.getString();
-
-    if (configurl.empty())
-        downloadurl.append(serverurl);
-    else
-        downloadurl.append(configurl);
+	std::string downloadurl(serverurl);  
 
 #ifdef WIN32
 	if (arch == "i386") {
@@ -528,7 +464,7 @@ void AutoUpdates::ChooseVersion(std::string distro, std::string arch)
 
     downloadurl.append(MAC_OS);
 #else
-	if (distro == "unsupported")
+	if (distro == "unsupported" || (distro == "suse" && arch != "x86_64"))
 	{
 	  	QMessageBox msgBoxp(QMessageBox::Warning, tr("Warning"),
 			tr("Your Linux distribution is not supported by Software Updates"), 0, this);
@@ -538,11 +474,7 @@ void AutoUpdates::ChooseVersion(std::string distro, std::string arch)
     //Name of the deb/rpm will be distro specific
 	if (arch == "x86_64")
 	{
-		if (distro == "debian")
-		{
-            downloadurl.append(DEBIAN64);
-		}
-        else if (distro == "Ubuntu14" || distro == "CaixaMagica")
+        if (distro == "Ubuntu14" || distro == "CaixaMagica")
         {
             downloadurl.append(UBUNTU_14_64);
         }
@@ -562,11 +494,7 @@ void AutoUpdates::ChooseVersion(std::string distro, std::string arch)
 	else 
 	{
 		//32bits
-		if (distro == "debian")
-		{
-            downloadurl.append(DEBIAN32);
-		}
-        else if (distro == "Ubuntu14" || distro == "CaixaMagica")
+        if (distro == "Ubuntu14" || distro == "CaixaMagica")
         {
             downloadurl.append(UBUNTU_14_32);
         }
@@ -577,10 +505,6 @@ void AutoUpdates::ChooseVersion(std::string distro, std::string arch)
 		else if (distro == "fedora")
 		{
             downloadurl.append(FEDORA32);
-		}
-		else if (distro == "suse")
-		{
-            downloadurl.append(SUSE32);
 		}
 	}
 #endif	

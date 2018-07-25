@@ -1,4 +1,4 @@
-import QtQuick 2.0
+import QtQuick 2.6
 import QtQuick.Window 2.2
 
 /* Constants imports */
@@ -82,7 +82,7 @@ Rectangle {
 
                 Text {
                     id: sigReasonText
-                    font.pixelSize: propertySigLineHeight
+                    font.pointSize: propertySigLineHeight * 0.75
                     font.italic: true
                     height: propertySigLineHeight
                     width: parent.width - 4
@@ -90,10 +90,12 @@ Rectangle {
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     text: ""
-                    anchors.topMargin: 2
+                    anchors.top: dragSigRect.top
+                    anchors.topMargin: propertySigLineHeight * 0.60
                     x: 2
                     visible: false
                 }
+
                 Image {
                     id: dragSigWaterImage
                     height: dragSigRect.height * 0.4
@@ -105,7 +107,7 @@ Rectangle {
                 }
                 Text {
                     id: sigSignedByText
-                    font.pixelSize:propertySigLineHeight
+                    font.pointSize:propertySigLineHeight * 0.75
                     height: propertySigLineHeight
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
@@ -116,7 +118,7 @@ Rectangle {
                 }
                 Text {
                     id: sigSignedByNameText
-                    font.pixelSize: propertySigLineHeight
+                    font.pointSize: propertySigLineHeight * 0.75
                     height: propertySigLineHeight
                     width: parent.width - sigSignedByText.paintedWidth - 6
                     clip: true
@@ -131,7 +133,7 @@ Rectangle {
                 }
                 Text {
                     id: sigNumIdText
-                    font.pixelSize: propertySigLineHeight
+                    font.pointSize: propertySigLineHeight * 0.75
                     height: propertySigLineHeight
                     width: parent.width - 4
                     clip: true
@@ -144,7 +146,7 @@ Rectangle {
                 }
                 Text {
                     id: sigDateText
-                    font.pixelSize: propertySigLineHeight
+                    font.pointSize: propertySigLineHeight * 0.75
                     height: propertySigLineHeight
                     width: parent.width - 4
                     clip: true
@@ -157,7 +159,7 @@ Rectangle {
                 }
                 Text {
                     id: sigLocationText
-                    font.pixelSize: propertySigLineHeight
+                    font.pointSize: propertySigLineHeight * 0.75
                     height: propertySigLineHeight
                     width: parent.width - 4
                     clip: true
@@ -239,12 +241,17 @@ Rectangle {
     }
     function updateSignPreview(droped_x,droped_y){
 
-        dragTarget.coord_x = (droped_x - background_image.x) / background_image.width
-        dragTarget.coord_y = (droped_y + dragSigRect.height - background_image.y) / background_image.height
+        dragTarget.coord_x = (dragSigRect.x) / background_image.width
+        dragTarget.coord_y = (dragSigRect.y + dragSigRect.height) / background_image.height
         dragTarget.lastCoord_x = dragSigRect.x
         dragTarget.lastCoord_y = dragSigRect.y
         dragTarget.lastScreenWidth = background_image.width
         dragTarget.lastScreenHeight = background_image.height
+    }
+    function setSignPreview(droped_x,droped_y){
+
+        dragSigRect.x = droped_x
+        dragSigRect.y = droped_y
     }
 
     function getData(){

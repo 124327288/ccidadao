@@ -33,10 +33,11 @@ dlgWndAskPINs::dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, QString 
 
 	setFixedSize(this->width(), this->height());
 
-    if(PINName.contains("Assinatura", Qt::CaseInsensitive))
+    /*if(PINName.contains("Assinatura", Qt::CaseInsensitive))
         this->setStyleSheet("background-image: url(:/Resources/bg_SignaturePin_2.png);");
     else if (!PINName.contains("PUK"))
         this->setStyleSheet("background-image: url(:/Resources/bg_AuthenticationPin_2.png);");
+        */
 
 	//this->resize( 350, 280 );
 	m_UK_InputField = 0;
@@ -86,27 +87,36 @@ dlgWndAskPINs::dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, QString 
 
 
     this->setWindowTitle( Title );
+    this->setWindowTitle( Title );
+    this->setWindowFlags(Qt::Window | Qt::FramelessWindowHint );
 
     ui.lblHeader->setText( QString::fromWCharArray(GETSTRING_DLG(EnterYourPin)) );
     ui.lblHeader->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(EnterYourPin)) );
+    ui.lblHeader->setStyleSheet("QLabel { color : #3C5DBC; font-size:16pt; font-weight:600 }");
 
     ui.lblPINName_2->setText( QString::fromWCharArray(GETSTRING_DLG(Pin)) );
     ui.lblPINName_2->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(Pin)) );
+    ui.lblPINName_2->setStyleSheet("QLabel { color : #3C5DBC; font-size:12pt; }");
 
     if (PINName.contains("PUK"))
         ui.lblOldPINName->setText( QString::fromWCharArray(GETSTRING_DLG(Puk)) );
     else
         ui.lblOldPINName->setText( QString::fromWCharArray(GETSTRING_DLG(CurrentPin)) );
     ui.lblOldPINName->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(CurrentPin)) );
+    ui.lblOldPINName->setStyleSheet("QLabel { color : #3C5DBC; font-size:12pt; }");
     ui.lblNewPIN1->setText( QString::fromWCharArray(GETSTRING_DLG(NewPin)) );
     ui.lblNewPIN1->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(NewPin)) );
+    ui.lblNewPIN1->setStyleSheet("QLabel { color : #3C5DBC; font-size:12pt; }");
     ui.lblNewPIN2->setText( QString::fromWCharArray(GETSTRING_DLG(ConfirmNewPin)) );
     ui.lblNewPIN2->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(ConfirmNewPin)) );
+    ui.lblNewPIN2->setStyleSheet("QLabel { color : #3C5DBC; font-size:12pt; }");
 
     ui.btnOk->setText( QString::fromWCharArray(GETSTRING_DLG(Ok)) );
     ui.btnOk->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(Ok)) );
+    ui.btnOk->setStyleSheet("QPushButton {background-color: #D6D7D7; color: #333333;}");
     ui.btnCancel->setText( QString::fromWCharArray(GETSTRING_DLG(Cancel)) );
     ui.btnCancel->setAccessibleName( QString::fromWCharArray(GETSTRING_DLG(Cancel)) );
+    ui.btnCancel->setStyleSheet("QPushButton {background-color: #D6D7D7; color: #333333;}");
 
     ui.fraPIN_Keypad->setVisible( false );
     connect( ui.btnOk, SIGNAL( clicked() ), this, SLOT( FinalCheck() ) );

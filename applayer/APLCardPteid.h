@@ -94,11 +94,6 @@ public:
 
 	EIDMW_APL_API void ChangeAddress(char *secret_code, char *process, t_callback_addr, void *);
 
-	/** 
-	 * Return a document from the card
-	 */
-	EIDMW_APL_API virtual APL_XMLDoc& getDocument(APL_DocumentType type);
-
 	EIDMW_APL_API APL_CCXML_Doc& getXmlCCDoc(APL_XmlUserRequestedInfo& userRequestedInfo);
 
 
@@ -141,7 +136,7 @@ public:
  	/** 
 	 * Return rawdata from the card
 	 */
-	EIDMW_APL_API virtual const CByteArray& getRawData(APL_RawDataType type);
+	EIDMW_APL_API virtual const CByteArray& getRawData(APL_RawDataType type);	
 
  	EIDMW_APL_API const CByteArray& getRawData_Id();			/**< Get the id RawData */
 	EIDMW_APL_API const CByteArray& getRawData_IdSig();			/**< Get the IdSig RawData */
@@ -155,7 +150,6 @@ public:
 
  	APL_EidFile_Trace *getFileTrace();					/**< Return a pointer to the file Trace (NOT EXPORTED) */
 	APL_EidFile_ID *getFileID();					/**< Return a pointer to the file ID (NOT EXPORTED) */
-	APL_EidFile_IDSign *getFileIDSign();			/**< Return a pointer to the file ID signature (NOT EXPORTED) */
 	APL_EidFile_Address *getFileAddress();			/**< Return a pointer to the file Address (NOT EXPORTED) */
 	APL_EidFile_Sod *getFileSod();				/**< Return a pointer to the file Photo (NOT EXPORTED) */
 	EIDMW_APL_API APL_EidFile_PersoData *getFilePersoData();				/**< Return a pointer to the file PersoData (NOT EXPORTED) */
@@ -171,7 +165,6 @@ protected:
 	  * Constructor
 	  *		Used only in APL_ReaderContext::connectCard
 	  */    
-	//MARTINHO: APL_EIDCard(APL_ReaderContext *reader);
 	APL_EIDCard(APL_ReaderContext *reader, APL_CardType cardType);
 
 
@@ -192,7 +185,6 @@ private:
 
 	APL_EidFile_Trace *m_FileTrace;						/**< Pointer to the file Trace */
 	APL_EidFile_ID *m_FileID;							/**< Pointer to the file ID */
-	APL_EidFile_IDSign *m_FileIDSign;					/**< Pointer to the file ID signature */
 	APL_EidFile_Address *m_FileAddress;					/**< Pointer to the file Address */
 	APL_EidFile_Sod *m_FileSod;							/**< Pointer to the file Sod */
 	APL_EidFile_TokenInfo *m_FileTokenInfo;				/**< Pointer to the file Token Info */

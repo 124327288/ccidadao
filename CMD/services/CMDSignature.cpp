@@ -8,7 +8,8 @@
 static char logBuf[512];
 
 namespace eIDMW {
-    bool isDBG = true;
+
+    bool isDBG = false;
 
     void printData(char *msg, unsigned char *data, unsigned int dataLen) {
         if ( NULL == msg ) {
@@ -30,7 +31,7 @@ namespace eIDMW {
         cmdService = new CMDServices();
     }
 
-    CMDSignature::CMDSignature(PTEID_PDFSignature *in_pdf_handler ) {
+    CMDSignature::CMDSignature(PTEID_PDFSignature *in_pdf_handler) {
         m_pdf_handler = in_pdf_handler;
         cmdService = new CMDServices();
     }
@@ -44,21 +45,30 @@ namespace eIDMW {
         m_pdf_handler = in_pdf_handler;
     }
 
+    char * CMDSignature::getCertificateCitizenName() {
+        PDFSignature *pdf = m_pdf_handler->getPdfSignature();
+
+        return pdf->getCitizenCertificateName();
+    }
+
+    char * CMDSignature::getCertificateCitizenID() {
+        PDFSignature *pdf = m_pdf_handler->getPdfSignature();
+        
+        return pdf->getCitizenCertificateID();
+    }
+
     int CMDSignature::cli_getCertificate( std::string in_userId) {
-        if ( NULL == m_pdf_handler ){
+        if ( NULL == m_pdf_handler ) {
             MWLOG_ERR( logBuf, "NULL pdf_handler" );
             return ERR_NULL_PDF_HANDLER;
         }
 
-        /* printData */
         if ( isDBG ) {
-            printData( (char *)"\nUserId: "
-                        , (unsigned char *)in_userId.c_str()
-                        , in_userId.size() );
+            printData( (char *)"\nUserId: ", (unsigned char *)in_userId.c_str(), in_userId.size());
         }
 
         std::vector<CByteArray> certificates;
-        int ret = cmdService->getCertificate( in_userId, certificates);
+        int ret = cmdService->getCertificate(m_proxyInfo, in_userId, certificates);
 
         if ( ret != ERR_NONE ) return ret;
 
@@ -67,20 +77,13 @@ namespace eIDMW {
             return ERR_GET_CERTIFICATE;
         }
 
-        /* printData */
-        if ( isDBG ) {
-            /*
-            printData( (char *)"Certificate: "
-                        , certificate.GetBytes()
-                        , certificate.Size() );
-            */                        
-        }
-
         PDFSignature *pdf = m_pdf_handler->getPdfSignature();
-        if ( NULL == pdf ){
+        if ( NULL == pdf ) {
             MWLOG_ERR( logBuf, "NULL Pdf\n" );
             return ERR_NULL_PDF;
         }
+
+        CByteArray cert_ba = certificates.at(0);
 
         /* TODO: At the moment, it is only possible to sign one document. */
         pdf->setBatch_mode(false);
@@ -112,18 +115,6 @@ namespace eIDMW {
 
         std::string userPin = in_pin;
 
-        if ( 0 == userPin.size() ){
-            MWLOG_ERR( logBuf, "Invalid converted PIN\n" );
-            return ERR_INV_USERPIN;
-        }
-
-        /* printData */
-        if ( isDBG ) {
-            printData( (char *)"\nUser Pin: "
-                        , (unsigned char *)userPin.c_str()
-                        , userPin.size() );
-        }
-
         PDFSignature *pdf = m_pdf_handler->getPdfSignature();
         if ( NULL == pdf ) {
             MWLOG_ERR( logBuf, "NULL Pdf\n" );
@@ -144,11 +135,30 @@ namespace eIDMW {
                         , hashByteArray.Size() );
         }
 
-        std::string in_hash((const char *)hashByteArray.GetBytes(), hashByteArray.Size());
+        /*
+          The actual signature input for RSA is a DigestInfo ASN.1 structure according to PKCS #1
+          and we are always using SHA-256 digest so it should work like this
+          For reference
+          DigestInfo ::= SEQUENCE {
+                  digestAlgorithm AlgorithmIdentifier,
+                  digest OCTET STRING
+               }
+        */
+        unsigned char sha256SigPrefix[] = {
+            0x30, 0x31, 0x30, 0x0d, 0x06, 0x09,
+        0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01,
+        0x05, 0x00, 0x04, 0x20 };
 
-        int ret = cmdService->sendDataToSign(in_hash, userPin);
-        if ( ret != ERR_NONE ){
-            MWLOG_ERR( logBuf, "main() - Error @ sendDataToSign()\n" );
+        CByteArray signatureInput(sha256SigPrefix, sizeof(sha256SigPrefix));
+        signatureInput.Append(hashByteArray);
+
+		std::string pdfDocName = pdf->getDocName();
+
+		MWLOG_DEBUG(logBuf, "DocName is %s", pdfDocName.c_str());
+
+		int ret = cmdService->ccMovelSign(m_proxyInfo, signatureInput.GetBytes(), pdfDocName, userPin);
+        if ( ret != ERR_NONE ) {
+            MWLOG_ERR( logBuf, "CMDSignature - Error @ sendDataToSign()" );
             return ret;
         }
 
@@ -156,22 +166,26 @@ namespace eIDMW {
     }
 
 /*  *********************************************************
-    ***    CMDSignature::signOpen()                    ***
+    ***    CMDSignature::signOpen()                       ***
     ********************************************************* */
-    int CMDSignature::signOpen( std::string in_userId, std::string in_pin
+    int CMDSignature::signOpen(CMDProxyInfo proxyinfo, std::string in_userId, std::string in_pin
                                     , int page
                                     , double coord_x, double coord_y
                                     , const char *location
                                     , const char *reason
                                     , const char *outfile_path) {
 
+        m_proxyInfo = proxyinfo;
         int ret = cli_getCertificate( in_userId );
         if (ret != ERR_NONE)
            return ret;
 
         PDFSignature *pdf = m_pdf_handler->getPdfSignature();
 
-        pdf->setVisibleCoordinates(page, coord_x, coord_y);
+        if (coord_x >= 0 && coord_y >= 0){
+            pdf->setVisibleCoordinates(page, coord_x, coord_y);
+        }
+
         ret = pdf->signFiles(location, reason, outfile_path);
 
         if ( ret != ERR_NONE ) {
@@ -199,7 +213,7 @@ namespace eIDMW {
         }
 
         CByteArray cb;
-        int ret = cmdService->getSignature( in_code, cb );
+        int ret = cmdService->getSignature(m_proxyInfo, in_code, cb);
         if ( ret != ERR_NONE )
             return ret;
 

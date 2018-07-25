@@ -19,7 +19,9 @@ PageDefinitionsSignatureForm {
             text: qsTranslate("Popup File","STR_POPUP_FILE_UNIQUE_TEXT")
         }
     }
-
+    Connections {
+        target: controler
+    }
     Connections {
         target: gapi
         onSignalGenericError: {
@@ -71,6 +73,7 @@ PageDefinitionsSignatureForm {
                         qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR") + controler.autoTr
             }
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
 
             propertySigReasonText.text = propertySigReasonTextCustom.text = "{" + qsTr("STR_CUSTOM_SIGN_REASON") + "}"
             propertySigSignedByText.text = propertySigSignedByTextCustom.text = qsTr("STR_CUSTOM_SIGN_BY") + ": "
@@ -113,6 +116,7 @@ PageDefinitionsSignatureForm {
             }
 
             mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
         }
     }
 
@@ -134,7 +138,7 @@ PageDefinitionsSignatureForm {
                 filesModel.append({
                                       "fileUrl": path
                                   })
-                var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.jpeg"
+                var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.png"
                 propertyImagePreCustom.grabToImage(function(result){
                     if (!result.saveToFile(urlCustomImage)){
                         console.error('Unknown error saving to',urlCustomImage);
@@ -159,7 +163,7 @@ PageDefinitionsSignatureForm {
                                   "fileUrl": path
                               })
 
-            var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.jpeg"
+            var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.png"
             propertyImagePreCustom.grabToImage(function(result){
                 if (!result.saveToFile(urlCustomImage)){
                     console.error('Unknown error saving to',urlCustomImage);
@@ -210,26 +214,40 @@ PageDefinitionsSignatureForm {
         }
     }
 
+    propertyRadioButtonDefault {
+        onCheckedChanged: {
+            if (propertyRadioButtonDefault.checked){
+                gapi.setUseCustomSignature(false)
+            }else{
+                gapi.setUseCustomSignature(true)
+            }
+        }
+    }
+
     Component.onCompleted: {
 
         console.log("Page Difinitions Signature mainWindowCompleted")
         propertyBusyIndicator.running = true
         gapi.startCardReading()
         propertySigDateText.text = propertySigDateTextCustom.text =getData()
-        var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.jpeg"
-        if(gapi.customSignImageExist()){
 
+        if(gapi.getUseCustomSignature()){
+            propertyRadioButtonDefault.checked = false
+            propertyRadioButtonCustom.checked = true
+        }else{
+            propertyRadioButtonDefault.checked = true
+            propertyRadioButtonCustom.checked = false
+        }
+        if(gapi.customSignImageExist()){
+            var urlCustomImage = gapi.getCachePath()+"/CustomSignPicture.png"
             if (Qt.platform.os === "windows") {
                 urlCustomImage = "file:///"+urlCustomImage
             }else{
                 urlCustomImage = "file://"+urlCustomImage
             }
             fileLoaded = true
-            propertyRadioButtonDefault.checked = false
-            propertyRadioButtonCustom.checked = true
             propertyImagePreCustom.source = urlCustomImage
         }
-
     }
     function getData(){
         var time = Qt.formatDateTime(new Date(), "yy.MM.dd hh:mm:ss")

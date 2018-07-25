@@ -1,5 +1,4 @@
 import QtQuick 2.6
-import QtQuick.Layouts 1.3
 
 /* Constants imports */
 import "scripts/Constants.js" as Constants
@@ -15,6 +14,8 @@ Rectangle {
 
     property alias propertyMainMenuBottomListView: mainMenuBottomListView
     property alias propertySubMenuView: subMenuView
+    property alias propertySubMenuViewMenu: subMenuViewMenu
+    property alias propertyMouseAreaSubMenuViewReduced : mouseAreaSubMenuViewReduced
     property alias propertySubMenuListView: subMenuListView
 
     property alias propertyContentPagesView: contentPagesView
@@ -25,7 +26,7 @@ Rectangle {
 
     property bool propertShowAnimation: true
 
-    border.width: 1
+    border.width: Constants.APP_BORDER
     border.color : Constants.COLOR_MAIN_BLUE
 
     /* Title bar */
@@ -127,13 +128,15 @@ Rectangle {
         }
 
         /* Sub Menu View */
-        Item {
+        Rectangle {
             id: subMenuView
             width: parent.width * Constants.SUB_MENU_VIEW_RELATIVE_SIZE
-            height: parent.height
+            height: parent.height - Constants.APP_BORDER
             anchors.left: mainMenuView.right
+            color: "white"
             z: 0
             Item {
+                id: subMenuViewMenu
                 width: parent.width - 2 * Constants.SIZE_ROW_H_SPACE
                        - subMenuViewVerticalLine.width
                 height: subMenuListView.count *
@@ -165,6 +168,28 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     color: Constants.COLOR_LINE_SUB_MENU
                     anchors.verticalCenterOffset: 0
+                }
+            }
+            Item {
+                id: subMenuViewReduced
+                anchors.fill: parent
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: 1 - subMenuViewMenu.opacity
+
+                MouseArea {
+                    id: mouseAreaSubMenuViewReduced
+                    anchors.fill: parent
+                     enabled: subMenuViewReduced.opacity == 1 ? true : false
+                }
+                Image {
+                    id: imageReduced
+                    width: Constants.SIZE_TEXT_SUB_MENU
+                    height: Constants.SIZE_TEXT_SUB_MENU
+                    fillMode: Image.PreserveAspectFit
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: parent.height / 2 - Constants.SIZE_TEXT_SUB_MENU / 2 + Constants.APP_BORDER
+                    source: "images/arrow-right_white_AMA.png"
                 }
             }
         }

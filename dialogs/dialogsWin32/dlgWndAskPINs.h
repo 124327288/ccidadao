@@ -27,15 +27,14 @@ class dlgWndAskPINs : public Win32Dialog
 {
 	void GetPinResult();
 	bool CheckPin2Result();
-	void SetHeaderText(const wchar_t * txt);
-	HBITMAP ImagePIN;
-	HBITMAP ImagePIN_Mask;
+	//void SetHeaderText(const wchar_t * txt);
+	HWND OK_Btn;
+	HWND Cancel_Btn;
+	HBRUSH hbrBkgnd;
 
-	HFONT TextFont;
-	HBITMAP ImageKP_BTN[12];
-	HBITMAP ImageKP_BTN_Mask;
+
 	bool DrawError;
-	bool m_UseKeypad;
+	bool m_dontAskPIN1;
 	unsigned int m_ulPinMaxLen;
 	unsigned char m_UK_InputField;
 
@@ -48,7 +47,7 @@ class dlgWndAskPINs : public Win32Dialog
 	const wchar_t * szPIN;
 
 public:
-	dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wstring & Header, std::wstring & PINName, bool UseKeypad, HWND Parent = NULL );
+	dlgWndAskPINs(DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wstring & Header, std::wstring & PINName, bool isUnlock, bool dontAskPUK, HWND Parent = NULL);
 	virtual ~dlgWndAskPINs();
 
 	wchar_t Pin1Result[128];

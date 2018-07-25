@@ -76,9 +76,6 @@
 /** Unable to read applet version from the card */
 #define EIDMW_ERR_APPLET_VERSION_NOT_FOUND 0xe1d00209
 
-/** Card not activated */
-#define EIDMW_ERR_NOT_ACTIVATED        0xe1d0020A
-
 #define EIDMW_ERR_PINREF_NOT_FOUND	   0xe1d0020B
 
 
@@ -117,12 +114,6 @@
 /** An internal check failed */
 #define EIDMW_ERR_CHECK	               0xe1d00401
 
-/** The PCSC library could not be located */
-#define EIDMW_ERR_PCSC_LIB            0xe1d00402
-
-/** An attempt to resolve a Z-lib address failed */
-#define EIDMW_ERR_ZLIB_RESOLVE         0xe1d00403
-
 /** And unknown error occurred */
 #define EIDMW_ERR_UNKNOWN              0xe1d00404
 
@@ -143,34 +134,6 @@
 
 /** The cached files have been tampered with */
 #define EIDMW_CACHE_TAMPERED           0xe1d0040A
-
-
-// Socket related errors
-
-/** Creation of a socket failed */
-#define EIDMW_ERR_SOCKET_CREATE		   0xe1d00500
-
-/** Socket 'send()' failed */
-#define EIDMW_ERR_SOCKET_SEND		   0xe1d00501
-
-/** Socket 'recv()' failed */
-#define EIDMW_ERR_SOCKET_RECV		   0xe1d00502
-
-/** Call to 'gethostbyname()' in SocketClient failed */
-#define EIDMW_ERR_SOCKET_GETHOST	   0xe1d00503
-
-/** Call to 'connect()' in SocketClient failed */
-#define EIDMW_ERR_SOCKET_CONNECT	   0xe1d00504
-
-/** Invalid in SocketServer, call to 'socket()' failed */
-#define EIDMW_ERR_SOCKET_SOCKET		   0xe1d00510
-
-/** Call to 'bind()' in SocketServer failed */
-#define EIDMW_ERR_SOCKET_BIND		   0xe1d00511
-
-/** Call to 'Accept()' in SocketServer failed */
-#define EIDMW_ERR_SOCKET_ACCEPT		   0xe1d00512
-
 
 // User errors/events
 
@@ -214,34 +177,11 @@
 /** Too many files are currently open in the system.*/
 #define EIDMW_TOO_MANY_OPENED_FILES    0xe1d00803
 
-/** The argument of closedir or readdir does not refer to an open directory stream. */
-#define EIDMW_DIR_NOT_OPENED           0xe1d00804
-
-/** Interrupted by a signal */
-#define EIDMW_INTERRUPTION             0xe1d00805
-
-/** One of the values in the structure to be returned cannot be represented correctly. */
-#define EIDMW_OVERFLOW                 0xe1d00806
-
-/** An I/O error occurred while reading from the file system.*/
-#define EIDMW_ERROR_IO                 0xe1d00807
-
 /** Call of the Logger after destruct time */
 #define EIDMW_ERR_LOGGER_APPLEAVING		0xe1d00900
 
-
-// SDK error
-/** The document type is unknown for this card */
-#define EIDMW_ERR_DOCTYPE_UNKNOWN		0xe1d00b00
-
-/** The card type asked doesn't correspond with the real card type */
-#define EIDMW_ERR_CARDTYPE_BAD			0xe1d00b01
-
 /** This card type is unknown */
 #define EIDMW_ERR_CARDTYPE_UNKNOWN		0xe1d00b02
-
-/** This Certificate has no issuer (=root) */
-#define EIDMW_ERR_CERT_NOISSUER			0xe1d00b03
 
 /** No release of SDK object has been done before closing the application */
 #define EIDMW_ERR_RELEASE_NEEDED		0xe1d00b04
@@ -249,14 +189,6 @@
 /** Bad transaction commande (Unlock without Lock OR Lock without Unlock) */
 #define EIDMW_ERR_BAD_TRANSACTION		0xe1d00b05
 
-/** The file type is unknown for this card */
-#define EIDMW_ERR_FILETYPE_UNKNOWN		0xe1d00b06
-
-/** The card has been changed */
-#define EIDMW_ERR_CARD_CHANGED			0xe1d00b07
-
-/** The reader set has been changed */
-#define EIDMW_ERR_READERSET_CHANGED		0xe1d00b08
 
 /** This Certificate has no CDP */
 #define EIDMW_ERR_CERT_NOCRL			0xe1d00b0A
@@ -290,9 +222,12 @@
 #define EIDMW_SAM_CONNECTION_ERROR      0xe1d00d05
 #define EIDMW_SAM_PROTOCOL_ERROR        0xe1d00d06
 #define EIDMW_SAM_UNKNOWN_ERROR         0xe1d00d07
+#define EIDMW_SSL_PROTOCOL_ERROR        0xe1d00d08
 #define EIDMW_SAM_UNSUPPORTED_CARD      0xe1d00d10
 #define EIDMW_SAM_UNCONFIRMED_CHANGE    0xe1d00d11
-#define EIDMW_SSL_PROTOCOL_ERROR        0xe1d00d08
+#define EIDMW_SAM_PROXY_AUTH_FAILED     0xe1d00d12
+#define EIDMW_SAM_PROXY_UNSUPPORTED     0xe1d00d13
+
 
 //Errors related to CVC authentication and Secure Messaging
 #define EIDMW_ERR_CVC_GENERIC_ERROR       0xe1d00f01
@@ -305,12 +240,3 @@
 #define EIDMW_PDF_INVALID_ERROR           0xe1d00e05
 #define EIDMW_PDF_UNSUPPORTED_ERROR       0xe1d00e06
 #define EIDMW_PDF_INVALID_PAGE_ERROR      0xe1d00e07
-
-
-// Errors in system calls
-
-/** a system call returned an error */
-#define EIDMW_ERR_SYSTEM                   0xe1d00f01
-
-/** a signal function returned an error */
-#define EIDMW_ERR_SIGNAL                   0xe1d00f12

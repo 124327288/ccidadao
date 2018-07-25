@@ -57,7 +57,6 @@ APL_EIDCard::APL_EIDCard(APL_ReaderContext *reader, APL_CardType cardType):APL_S
 
 	m_FileTrace=NULL;
 	m_FileID=NULL;
-	m_FileIDSign=NULL;
 	m_FileAddress=NULL;
 	m_FileSod=NULL;
 	m_FilePersoData=NULL;
@@ -121,13 +120,7 @@ APL_EIDCard::~APL_EIDCard()
 		delete m_FileID;
 		m_FileID=NULL;
 	}
-
-	if(m_FileIDSign)
-	{
-		delete m_FileIDSign;
-		m_FileIDSign=NULL;
-	}
-
+	
 	if(m_FileAddress)
 	{
 		delete m_FileAddress;
@@ -204,14 +197,9 @@ APL_EIDCard::~APL_EIDCard()
 
 APL_EidFile_Trace *APL_EIDCard::getFileTrace()
 {
-	if(!m_FileTrace)
-	{
 		CAutoMutex autoMutex(&m_Mutex);		//We lock for only one instanciation
-		if(!m_FileTrace)
-		{
-			m_FileTrace=new APL_EidFile_Trace(this);
-		}
-	}
+		m_FileTrace=new APL_EidFile_Trace(this);
+
 
 	return m_FileTrace;
 }
@@ -519,27 +507,6 @@ unsigned long APL_EIDCard::certificateCount()
 	return m_certificateCount;
 }
 
-APL_XMLDoc& APL_EIDCard::getDocument(APL_DocumentType type)
-{
-	switch(type)
-	{
-	case APL_DOCTYPE_ID:
-		return getID();
-	case APL_DOCTYPE_ADDRESS:
-		return getAddr();
-	case APL_DOCTYPE_SOD:
-		return getSod();
-	case APL_DOCTYPE_INFO:
-		return getDocInfo();
-	case APL_DOCTYPE_PINS:
-		return *getPins();
-	case APL_DOCTYPE_CERTIFICATES:
-		return *getCertificates();
-	default:
-		throw CMWEXCEPTION(EIDMW_ERR_DOCTYPE_UNKNOWN);
-	}
-}
-
 
 APL_CCXML_Doc& APL_EIDCard::getXmlCCDoc(APL_XmlUserRequestedInfo& userRequestedInfo){
 	if (m_CCcustomDoc)
@@ -643,7 +610,7 @@ const CByteArray& APL_EIDCard::getRawData(APL_RawDataType type)
 	case APL_RAWDATA_PERSO_DATA:
 		return getRawData_PersoData();
 	default:
-		throw CMWEXCEPTION(EIDMW_ERR_FILETYPE_UNKNOWN);
+		throw CMWEXCEPTION(EIDMW_ERR_CHECK);
 	}
 }
 
@@ -1722,14 +1689,6 @@ APL_SodEid::~APL_SodEid()
 
 CByteArray APL_SodEid::getXML(bool bNoHeader)
 {
-/*
-	<biometric>
-		<picture type=�jpg�>
-			<data encoding=�base64�></data>
-			<hash encoding=�base64� method=�md5�></hash>
-		</picture>
-	</biometric>
-*/
 
 	CByteArray xml;
 	CByteArray baB64;
@@ -1744,8 +1703,6 @@ CByteArray APL_SodEid::getXML(bool bNoHeader)
 		xml+=		baB64;
 	xml+="		</data>\n";
 	xml+="		<hash encoding=\"base64\" method=\"md5\">\n";
-	/*if(m_cryptoFwk->b64Encode(getHash(),baB64))
-		xml+=		baB64;*/
 	xml+="		</hash>\n";
 	xml+="	</picture>\n";
 	xml+="</biometric>\n";
@@ -1755,18 +1712,12 @@ CByteArray APL_SodEid::getXML(bool bNoHeader)
 
 CByteArray APL_SodEid::getCSV()
 {
-/*
-data;hash;
-*/
-
 	CByteArray csv;
 	CByteArray baB64;
 
 	if(m_cryptoFwk->b64Encode(getData(),baB64,false))
 		csv+=		baB64;
 	csv+=CSV_SEPARATOR;
-	/*if(m_cryptoFwk->b64Encode(getHash(),baB64,false))
-		csv+=		baB64;*/
 	csv+=CSV_SEPARATOR;
 
 	return csv;

@@ -1,8 +1,5 @@
 import QtQuick 2.6
 import QtQuick.Controls 2.1
-import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
-import QtQuick.Dialogs 1.0
 import QtGraphicalEffects 1.0
 import eidguiV2 1.0
 
@@ -76,7 +73,7 @@ Item {
         Text {
             id: titleSelectData
             x: Constants.SIZE_TEXT_FIELD_H_SPACE
-            font.pixelSize: Constants.SIZE_TEXT_LABEL
+            font.pointSize: Constants.SIZE_TEXT_LABEL
             font.family: lato.name
             color: Constants.COLOR_TEXT_LABEL
             height: Constants.SIZE_TEXT_LABEL
@@ -96,7 +93,7 @@ Item {
                 text: qsTranslate("GAPI","STR_BASIC_INFORMATION_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchAdditional
@@ -105,7 +102,7 @@ Item {
                 text: qsTranslate("GAPI","STR_ADDITIONAL_INFORMATION_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchAddress
@@ -114,7 +111,7 @@ Item {
                 text: qsTranslate("GAPI","STR_ADDRESS_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchNotes
@@ -123,7 +120,7 @@ Item {
                 text: qsTranslate("GAPI","STR_PERSONAL_NOTES_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
             }
         }
     }
@@ -158,7 +155,7 @@ Item {
         Text {
             id: titleOptions
             x: Constants.SIZE_TEXT_FIELD_H_SPACE
-            font.pixelSize: Constants.SIZE_TEXT_LABEL
+            font.pointSize: Constants.SIZE_TEXT_LABEL
             font.family: lato.name
             color: Constants.COLOR_TEXT_LABEL
             height: Constants.SIZE_TEXT_LABEL
@@ -178,7 +175,7 @@ Item {
                 text: qsTranslate("PageCardPrint","STR_PRINT_SIGN_PDF")
                 enabled: true
                 font.family: lato.name
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
                 font.capitalization: Font.MixedCase
             }
         }
@@ -200,7 +197,7 @@ Item {
                 enabled: false
                 width: Constants.WIDTH_BUTTON
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -218,7 +215,7 @@ Item {
                 enabled: false
                 width: Constants.WIDTH_BUTTON
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.horizontalCenter: parent.horizontalCenter

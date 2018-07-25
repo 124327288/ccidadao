@@ -1,5 +1,4 @@
 import QtQuick 2.6
-import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.1
 
 /* Constants imports */
@@ -169,33 +168,11 @@ Item {
         anchors.top: rowLocalOfRequest.bottom
         anchors.topMargin: 40
 
-        Item{
-            id: rectCardStatus
-            width: (parent.width )
             Components.LabelTextBoxForm{
                 id: textBoxCardState
                 propertyDateText.text: qsTranslate("GAPI","STR_CARD_STATE")
-                propertyDateField.text: ""
+                propertyRectField.height: parent.height
+                propertyDateField.wrapMode: Text.WordWrap
             }
-        }
-    }
-
-    Item {
-        id: rowCardStatusText
-        width: parent.width
-        anchors.top: rowCardStatus.bottom
-        anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
-
-        Text {
-            id: dateField
-            text: qsTranslate("PageCardOther","STR_CARD_OTHER_STATE")
-            width: parent.width
-            anchors.horizontalCenter: parent.horizontalCenter
-            font.capitalization: Font.MixedCase
-            font.pixelSize: Constants.SIZE_TEXT_FIELD
-            font.family: lato.name
-            color: Constants.COLOR_TEXT_LABEL
-            wrapMode: Text.WordWrap
-        }
     }
 }

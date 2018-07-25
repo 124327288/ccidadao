@@ -1,5 +1,4 @@
 import QtQuick 2.6
-import QtQuick 2.0
 import QtQuick.Window 2.2
 import QtGraphicalEffects 1.0
 import QtQuick.Controls 2.1
@@ -66,7 +65,7 @@ Item {
         Text {
             id: titleCertificatesTitle
             x: Constants.SIZE_TEXT_FIELD_H_SPACE
-            font.pixelSize: Constants.SIZE_TEXT_LABEL
+            font.pointSize: Constants.SIZE_TEXT_LABEL
             font.family: lato.name
             color: Constants.COLOR_TEXT_LABEL
             height: Constants.SIZE_TEXT_LABEL

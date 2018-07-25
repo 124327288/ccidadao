@@ -1,7 +1,5 @@
 import QtQuick 2.6
-import QtQuick.Controls 1.5
-import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
+import QtQuick.Controls 2.1
 import QtGraphicalEffects 1.0
 
 import "../scripts/Constants.js" as Constants
@@ -16,7 +14,7 @@ Item {
     Text {
         id: dateText
         x: Constants.SIZE_TEXT_FIELD_H_SPACE
-        font.pixelSize: Constants.SIZE_TEXT_LABEL
+        font.pointSize: Constants.SIZE_TEXT_LABEL
         font.family: lato.name
         color: Constants.COLOR_TEXT_LABEL
         height: Constants.SIZE_TEXT_LABEL
@@ -54,7 +52,7 @@ Item {
             height: parent.height - 2 * Constants.SIZE_TEXT_FIELD_V_SPACE
             anchors.horizontalCenter: rectField.horizontalCenter
             font.capitalization: Font.AllUppercase
-            font.pixelSize: Constants.SIZE_TEXT_FIELD
+            font.pointSize: Constants.SIZE_TEXT_FIELD
             font.family: lato.name
             color: Constants.COLOR_TEXT_BODY
             selectByMouse :true

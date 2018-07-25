@@ -31,7 +31,7 @@ std::string remoteversion = "https://svn.gov.pt/projects/ccidadao/repository/mid
 
 std::string WINDOWS32 = "PteidMW-Basic.msi";
 std::string WINDOWS64 = "PteidMW-Basic-x64.msi";
-std::string MAC_OS = "pteidgui.dmg";
+std::string MAC_OS = "pteid-mw.pkg";
 std::string DEBIAN32 = "pteid-mw_debian_i386.deb";
 std::string DEBIAN64 = "pteid-mw_debian_amd64.deb";
 std::string UBUNTU32 = "pteid-mw_ubuntu_i386.deb";
@@ -57,6 +57,14 @@ AppController::AppController(GUISettings& settings,QObject *parent) :
     QString strVersion (PTEID_PRODUCT_VERSION);
     m_Settings.setGuiVersion(strVersion);
     qDebug() << "C++: AppController started. App version: " << m_Settings.getGuiVersion() +" - "+ SVN_REVISION_STR;
+    QByteArray ba = m_Settings.getGuiVersion().toLatin1();
+     const char *c_str2 = ba.data();
+    PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_CRITICAL, "eidgui",
+              "Application started. App version: %s - %s\n",c_str2, SVN_REVISION_STR);
+}
+
+void AppController::restoreScreen(void){
+    emit signalRestoreWindows();
 }
 
 bool AppController::getTestMode(void){
@@ -84,25 +92,34 @@ void AppController::initTranslation(){
 
     QString     appPath = QCoreApplication::applicationDirPath();
     m_Settings.setExePath(appPath);
-    GenPur::UI_LANGUAGE CurrLng   = m_Settings.getGuiLanguageCode();
+    QString CurrLng   = m_Settings.getGuiLanguageString();
+
     if (LoadTranslationFile(CurrLng)==false){
         emit signalLanguageChangedError();
     }
 }
 
-bool AppController::LoadTranslationFile(GenPur::UI_LANGUAGE NewLanguage)
+bool AppController::LoadTranslationFile(QString NewLanguage)
 {
 
     QString strTranslationFile;
-    strTranslationFile = QString("eidmw_") + GenPur::getLanguage(NewLanguage);
+    strTranslationFile = QString("eidmw_") + NewLanguage;
 
     qDebug() << "C++: AppController LoadTranslationFile" << strTranslationFile << m_Settings.getExePath();
 
     if (!m_translator.load(strTranslationFile,m_Settings.getExePath()+"/"))
     {
         // this should not happen, since we've built the menu with the translation filenames
-        qDebug() << "C++: AppController LoadTranslationFile Error";
-        return false;
+        strTranslationFile = QString("eidmw_") + STR_DEF_GUILANGUAGE;
+        //try load default translation file
+        qDebug() << "C++: AppController LoadTranslationFile" << strTranslationFile << m_Settings.getExePath();
+        if (!m_translator.load(strTranslationFile,m_Settings.getExePath()+"/"))
+        {
+            // this should not happen too, since we've built the menu with the translation filenames
+            qDebug() << "C++: AppController Load Default Translation File Error";
+            return false;
+        }
+        qDebug() << "C++: AppController Loaded Default Translation File";
     }
     //------------------------------------
     // install the translator object and load the .qm file for
@@ -328,13 +345,14 @@ void AppController::RunPackage(std::string pkg, std::string distro){
     winpath.append(QDir::tempPath().toStdString());
     winpath.append("\\Pteid-MSI.log");
     CreateProcess(NULL, LPTSTR(winpath.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+	
+	PTEID_ReleaseSDK();
+	
     exit(0);
 
 #elif __APPLE__
-    // This doesn't actually start the package installation it just mounts the dmg
-    // and then the user has to install the .pkg and copy the pteidgui.app
-    execl("/usr/bin/hdiutil", "hdiutil", "attach", pkgpath.c_str(), NULL);
-
+    // This launches the GUI installation process, the user has to follow the wizard to actually perform the installation
+    execl("/usr/bin/open", pkgpath.c_str(), NULL);
 #else
 
     //Normalize distro string to lowercase
@@ -467,10 +485,13 @@ bool AppController::VerifyUpdates(std::string filedata)
 
     QString ver (WIN_GUI_VERSION_STRING);
 
+    //Only consider the first line of version.txt
+    QString remote_data(filedata.c_str());
+    remote_data = remote_data.left(remote_data.indexOf('\n'));
 
     QStringList list1 = ver.split(",");
 
-    QStringList list2 = QString(filedata.c_str()).split(",");
+    QStringList list2 = remote_data.split(",");
 
     if (list2.size() < 3)
     {
@@ -703,6 +724,19 @@ void AppController::setStartAutoValue (bool bAutoStartup ){
 
     m_Settings.setAutoStartup(bAutoStartup);
 }
+QString AppController::getGuiLanguageString (void){
+
+    return m_Settings.getGuiLanguageString();
+}
+void AppController::setGuiLanguageString (QString language){
+
+    if (LoadTranslationFile(language)){
+        m_Settings.setLanguage(language);
+        emit languageChanged();
+    }else{
+        emit signalLanguageChangedError();
+    }
+}
 bool AppController::getStartMinimizedValue (void){
 
     return m_Settings.getStartMinimized();
@@ -710,19 +744,6 @@ bool AppController::getStartMinimizedValue (void){
 void AppController::setStartMinimizedValue (bool bStartMinimized ){
 
     m_Settings.setStartMinimized(bStartMinimized);
-}
-int AppController::getGuiLanguageCodeValue (void){
-
-    return m_Settings.getGuiLanguageCode();
-}
-void AppController::setGuiLanguageCodeValue (int language){
-
-    if (LoadTranslationFile((GenPur::UI_LANGUAGE)language)){
-        m_Settings.setGuiLanguage((GenPur::UI_LANGUAGE)language);
-        emit languageChanged();
-    }else{
-        emit signalLanguageChangedError();
-    }
 }
 bool AppController::getShowNotificationValue (void){
 
@@ -735,14 +756,6 @@ bool AppController::getShowPictureValue (void){
 bool AppController::getShowAnimationsValue(void){
     return m_Settings.getShowAnimations();
 }
-bool AppController::getRegCertValue (void){
-
-    return m_Settings.getRegCert();
-}
-bool AppController::getRemoveCertValue (void){
-
-    return m_Settings.getRemoveCert();
-}
 void AppController::setShowNotificationValue (bool bShowNotification){
 
     m_Settings.setShowNotification(bShowNotification);
@@ -754,19 +767,19 @@ void AppController::setShowPictureValue (bool bShowPicture){
 void AppController::setShowAnimationsValue(bool bShowAnimations){
     m_Settings.setShowAnimations(bShowAnimations);
 }
-void AppController::setRegCertValue (bool bRegCert){
-
-    m_Settings.setRegCert(bRegCert);
-}
-void AppController::setRemoveCertValue (bool bRemoveCert){
-
-    m_Settings.setRemoveCert(bRemoveCert);
-}
 QString AppController::getTimeStampHostValue (void){
     return m_Settings.getTimeStampHost();
 }
 void AppController::setTimeStampHostValue (QString const& timeStamp_host){
     m_Settings.setTimeStampHost(timeStamp_host);
+}
+bool AppController::getProxySystemValue (void){
+
+    return m_Settings.getProxySystem();
+}
+void AppController::setProxySystemValue (bool bProxySystem){
+
+    m_Settings.setProxySystem(bProxySystem);
 }
 QString AppController::getProxyHostValue (void){
 

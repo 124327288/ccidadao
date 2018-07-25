@@ -1,12 +1,12 @@
 #include "gapi.h"
 #include <QString>
+#include <QVector>
 #include <QDate>
 #include <QtConcurrent>
 #include <cstdio>
 #include <QQuickImageProvider>
 #include <QPrinter>
 #include "qpainter.h"
-
 
 #include "CMDSignature.h"
 #include "cmdErrors.h"
@@ -17,12 +17,13 @@
 //#include "ASService/ASServiceH.h"   
 //#include "PDFSignature/envStub.h"
 
+#include "ScapSettings.h"
 
 using namespace eIDMW;
 
 #define TRIES_LEFT_ERROR    1000
 
-static  bool    g_cleaningCallback=false;
+static  bool g_cleaningCallback=false;
 static  int g_runningCallback=0;
 
 /*
@@ -33,6 +34,8 @@ GAPI::GAPI(QObject *parent) :
     QObject(parent) {
     image_provider = new PhotoImageProvider();
     image_provider_pdf = new PDFPreviewImageProvider();
+
+
     cmd_signature = new eIDMW::CMDSignature();
     cmd_pdfSignature = new eIDMW::PTEID_PDFSignature();
     m_addressLoaded = false;
@@ -46,16 +49,36 @@ GAPI::GAPI(QObject *parent) :
     m_timerReaderList->start(TIMERREADERLIST);
 }
 
+
+CMDProxyInfo GAPI::buildProxyInfo() {
+    ProxyInfo proxyinfo;
+
+    CMDProxyInfo cmd_proxyinfo;
+
+    if (proxyinfo.getProxyHost().size() > 0) {
+        cmd_proxyinfo.host = proxyinfo.getProxyHost().toStdString();
+        cmd_proxyinfo.port = proxyinfo.getProxyPort().toLong();
+
+        if (proxyinfo.getProxyUser().size() > 0) {
+            cmd_proxyinfo.user = proxyinfo.getProxyUser().toStdString();
+            cmd_proxyinfo.pwd = proxyinfo.getProxyPwd().toStdString();
+        }
+    }
+
+    qDebug() << "buildProxyInfo is returning host= " << QString::fromStdString(cmd_proxyinfo.host) << " port= " << cmd_proxyinfo.port;
+    qDebug() << "buildProxyInfo proxy authentication: " <<  (cmd_proxyinfo.user.size() > 0 ? "YES" : "NO" );
+    return cmd_proxyinfo;
+}
+
 void GAPI::initTranslation() {
 
     QString     appPath = QCoreApplication::applicationDirPath();
     m_Settings.setExePath(appPath);
-    GenPur::UI_LANGUAGE CurrLng   = m_Settings.getGuiLanguageCode();
+    QString CurrLng   = m_Settings.getGuiLanguageString();
     if (LoadTranslationFile(CurrLng)==false){
         emit signalLanguageChangedError();
     }
 }
-
 
 long GAPI::getFileSize(QString filePath) {
     QFile file(filePath);
@@ -66,18 +89,27 @@ long GAPI::getFileSize(QString filePath) {
       return file.size();
 }
 
-bool GAPI::LoadTranslationFile(GenPur::UI_LANGUAGE NewLanguage)
+bool GAPI::LoadTranslationFile(QString NewLanguage)
 {
-
     QString strTranslationFile;
-    strTranslationFile = QString("eidmw_") + GenPur::getLanguage(NewLanguage);
+    strTranslationFile = QString("eidmw_") + NewLanguage;
 
     qDebug() << "C++: GAPI LoadTranslationFile" << strTranslationFile << m_Settings.getExePath();
 
     if (!m_translator.load(strTranslationFile,m_Settings.getExePath()+"/"))
     {
         // this should not happen, since we've built the menu with the translation filenames
-        qDebug() << "C++: GAPI LoadTranslationFile Error";
+        strTranslationFile = QString("eidmw_") + STR_DEF_GUILANGUAGE;
+        //try load default translation file
+        qDebug() << "C++: AppController GAPI" << strTranslationFile << m_Settings.getExePath();
+        if (!m_translator.load(strTranslationFile,m_Settings.getExePath()+"/"))
+        {
+            // this should not happen too, since we've built the menu with the translation filenames
+            qDebug() << "C++: AppController Load Default Translation File Error";
+            return false;
+        }
+        qDebug() << "C++: AppController Loaded Default Translation File";
+        qApp->installTranslator(&m_translator);
         return false;
     }
     //------------------------------------
@@ -101,25 +133,6 @@ void GAPI::setDataCardIdentify(QMap<IDInfoKey, QString> data) {
 
     m_data = data;
     emit signalCardDataChanged();
-}
-
-void GAPI::testUpdateCardIdentify(int timerValue) {
-
-    qDebug() << "C++: testUpdateCardIdentify";
-
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this,
-            SLOT(triggerTestUpdateCardIdentify()));
-    timer->start(timerValue);
-}
-
-void GAPI::triggerTestUpdateCardIdentify() {
-
-    static char i = 0;
-
-    m_data[Givenname] = "Joana Ovilia " + QString::number(i++);
-
-    setDataCardIdentify(m_data);
 }
 
 bool isExpiredDate(const char * strDate) {
@@ -160,7 +173,7 @@ QString GAPI::getAddressField(AddressInfoKey key) {
     if (errorCode >= EIDMW_SOD_UNEXPECTED_VALUE && \
     errorCode <= EIDMW_SOD_ERR_VERIFY_SOD_SIGN) \
 { \
-    fprintf(stderr, "SOD exception! Error code (see strings in eidErrors.h): %08lx\n", e.GetError()); \
+    PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", "SOD exception! Error code (see strings in eidErrors.h): %08lx\n", e.GetError()); \
     emit signalCardAccessError(SodCardReadError); \
     } else if (errorCode == EIDMW_TIMESTAMP_ERROR) \
 { \
@@ -169,10 +182,14 @@ QString GAPI::getAddressField(AddressInfoKey key) {
 { \
     emit signalCardAccessError(CardUserPinCancel); \
     } \
+    else if (errorCode == EIDMW_ERR_PIN_BLOCKED) \
+{ \
+    emit signalCardAccessError(PinBlocked); \
+    } \
     else \
 { \
-    fprintf(stderr, "Generic eidlib exception! Error code (see strings in eidErrors.h): %08lx\n", e.GetError()); \
-    QString msgError = QString("%08\n").arg(e.GetError()); \
+    PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", "Generic eidlib exception! Error code (see strings in eidErrors.h): %08lx\n", e.GetError()); \
+    QString msgError = QString("0x%1\n").arg(e.GetError(), 8, 16); \
     emit signalGenericError(msgError); \
     } \
     }
@@ -318,8 +335,8 @@ unsigned int GAPI::getTriesLeftAuthPin() {
 
     END_TRY_CATCH
 
-            //QML default types don't include long
-            return (unsigned int)tries_left;
+    //QML default types don't include long
+    return (unsigned int)tries_left;
 }
 
 unsigned int GAPI::verifySignPin(QString pin_value) {
@@ -450,8 +467,8 @@ unsigned int GAPI::changeSignPin(QString currentPin, QString newPin) {
 
     END_TRY_CATCH
 
-            //QML default types don't include long
-            return (unsigned int)tries_left;
+    //QML default types don't include long
+    return (unsigned int)tries_left;
 }
 void GAPI::showChangeAddressDialog(long code)
 {
@@ -468,8 +485,17 @@ void GAPI::showChangeAddressDialog(long code)
         break;
         //The error code for connection error is common between SAM and OTP
     case EIDMW_OTP_CONNECTION_ERROR:
-        error_msg = tr("STR_CONNECTION ERROR") + "\n\n" +
+        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
                 tr("STR_VERIFY_INTERNET");
+        break;
+
+    case EIDMW_SAM_PROXY_AUTH_FAILED:
+        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+                    tr("STR_PROXY_AUTH_FAILED");
+        break;
+    case EIDMW_SAM_PROXY_UNSUPPORTED:
+        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+                    tr("STR_PROXY_UNSUPPORTED");
         break;
 
     case 1121:
@@ -502,33 +528,34 @@ void GAPI::showChangeAddressDialog(long code)
     qDebug() << error_msg;
     signalUpdateProgressStatus(error_msg);
 
-    //TO-DO: Reload card information in case of successful address change
+    //TODO: Reload card information in case of successful address change
 }
 
 void GAPI::showSignCMDDialog(long code)
 {
     QString error_msg;
-    long sam_error_code = 0;
     QString support_string = tr("STR_CMD_ERROR_MSG");
 
     PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", "CMD signature op finished with error code 0x%08x", code);
 
     switch(code)
     {
-    case 0:
-        error_msg = tr("STR_CMD_SUCESS");
-        break;
-        //The error code for connection error is common between SAM and OTP
-    default:
-        //Make sure we only show the user error codes from the SAM service and not some weird pteid exception error code
-        sam_error_code = code;
-        error_msg = tr("STR_CMD_LOGIN_ERROR");
-        break;
-    }
-
-    if (sam_error_code != 0)
-    {
-        error_msg += "\n\n" + tr("STR_ERROR_CODE") + QString::number(sam_error_code);
+        case 0:
+            error_msg = tr("STR_CMD_SUCESS");
+            break;
+        case SCAP_SERVICE_ERROR_CODE:
+            error_msg = tr("STR_SCAP_SIGNATURE_ERROR");
+            break;
+        case -1:
+            error_msg = tr("STR_CMD_TIMEOUT_ERROR");
+            break;
+        case SOAP_TCP_ERROR:
+            error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+                    tr("STR_VERIFY_INTERNET");
+            break;
+        default:
+            error_msg = tr("STR_CMD_LOGIN_ERROR");
+            break;
     }
 
     if (code != 0)
@@ -609,6 +636,19 @@ void GAPI::changeAddress(QString process, QString secret_code)
     QtConcurrent::run(this, &GAPI::doChangeAddress, processUtf8, secret_codeUtf8);
 }
 
+QString GAPI::translateCMDErrorCode(int errorCode) {
+   QString errorMsg;
+
+   switch (errorCode) {
+     case SOAP_TCP_ERROR:
+       errorMsg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+                tr("STR_VERIFY_INTERNET");
+       break;
+   }
+
+   return errorMsg;
+}
+
 void GAPI::doOpenSignCMD(CMDSignature *cmd_signature, CmdSignParams &params)
 {
     qDebug() << "doOpenSignCMD! MobileNumber = " << params.mobileNumber << " secret_code = " << params.secret_code <<
@@ -620,14 +660,16 @@ void GAPI::doOpenSignCMD(CMDSignature *cmd_signature, CmdSignParams &params)
 
     try {
         signalUpdateProgressBar(25);
-        ret = cmd_signature->signOpen( params.mobileNumber.toStdString(), params.secret_code.toStdString(),
+        CMDProxyInfo proxyInfo = buildProxyInfo();
+        ret = cmd_signature->signOpen(proxyInfo, params.mobileNumber.toStdString(), params.secret_code.toStdString(),
                                       params.page,
                                       params.coord_x, params.coord_y,
                                       params.location.toUtf8().data(), params.reason.toUtf8().data(),
-                                      params.outputFile.toUtf8().data());
+									  getPlatformNativeString(params.outputFile));
 
         if ( ret != 0 ) {
             qDebug() << "signOpen failed! - ret: " << ret << endl;
+     
             signCMDFinished(ret);
             signalUpdateProgressBar(100);
             return;
@@ -653,7 +695,7 @@ void GAPI::doCloseSignCMD(CMDSignature *cmd_signature, QString sms_token)
 
     try {
         signalUpdateProgressBar(75);
-        ret = cmd_signature->signClose( local_sms_token );
+        ret = cmd_signature->signClose(local_sms_token);
         if ( ret != 0 ) {
             qDebug() << "signClose failed!" << endl;
             signCMDFinished(ret);
@@ -668,6 +710,114 @@ void GAPI::doCloseSignCMD(CMDSignature *cmd_signature, QString sms_token)
     signCMDFinished(ret);
     signalUpdateProgressBar(100);
     emit signalCloseCMDSucess();
+}
+
+void GAPI::doCloseSignCMDWithSCAP(CMDSignature *cmd_signature, QString sms_token, QList<int> attribute_list) {
+        qDebug() << "doCloseSignCMDWithSCAP! " << "sms_token = " << sms_token
+          <<"attribute_list size: " << attribute_list.size();
+
+    int ret = 0;
+    std::string local_sms_token = sms_token.toUtf8().data();
+
+    try {
+        signalUpdateProgressBar(65);
+        ret = cmd_signature->signClose(local_sms_token );
+        if ( ret != 0 ) {
+            qDebug() << "signClose failed!" << endl;
+            signCMDFinished(ret);
+            signalUpdateProgressBar(100);
+            return;
+        }
+
+    } catch (PTEID_Exception &e) {
+        qDebug() << "Caught exception in some SDK method. Error code: " << hex << e.GetError() << endl;
+    }
+
+    signalUpdateProgressStatus(tr("STR_CMD_SIGNING_SCAP"));
+
+    signalUpdateProgressBar(80);
+
+    //Do SCAP Signature
+    std::vector<int> attrs;
+    for (unsigned int i = 0; i!= attribute_list.size(); i++) {
+        attrs.push_back(attribute_list.at(i));
+    }
+
+    //See details of this
+    CmdSignedFileDetails cmd_details;
+    cmd_details.signedCMDFile = m_scap_params.inputPDF;
+
+    cmd_details.citizenName = cmd_signature->getCertificateCitizenName();
+    //The method returns something like "BI124559972";
+    cmd_details.citizenId = QString(cmd_signature->getCertificateCitizenID()+2);
+
+    scapServices.executeSCAPWithCMDSignature(this, m_scap_params.outputPDF, m_scap_params.page,
+                m_scap_params.location_x, m_scap_params.location_y, 0, attrs, cmd_details);
+
+    //TODO: reset the m_scap_params struct
+
+    //scapServices.executeSCAPSignature(this, params.inputPDF, params.outputPDF, params.page,
+    //            params.location_x, params.location_y, params.ltv, attrs);
+
+    //signCMDFinished(ret);
+    //signalUpdateProgressBar(100);
+    //emit signalCloseCMDSucess();
+}
+
+
+QString generateTempFile() {
+    QTemporaryFile tempFile;
+
+    if (!tempFile.open()) {
+        PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_DEBUG, "generateTempFile", "SCAP Signature error: Error creating temporary file");
+        return "";
+    }
+
+    return tempFile.fileName();
+}
+
+//TODO: call this instead of signOpenCMD when there attributes
+void GAPI::signOpenScapWithCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
+                   QString outputFile, int page, double coord_x, double coord_y) {
+
+    qDebug() << "signOpenScapWithCMD! MobileNumber = " + mobileNumber + " secret_code = " + secret_code +
+                " loadedFilePath = " + loadedFilePath + " outputFile = " + outputFile +
+                "page = " + page + "coord_x" + coord_x + "coord_y" + coord_y;
+
+    signalUpdateProgressStatus(tr("STR_CMD_CONNECTING"));
+
+    connect(this, SIGNAL(signCMDFinished(long)),
+            this, SLOT(showSignCMDDialog(long)), Qt::UniqueConnection);
+
+    //Final params for the SCAP signature (visible PDF signature params)  
+    m_scap_params.outputPDF = outputFile;
+    m_scap_params.inputPDF = generateTempFile();
+    m_scap_params.page = page;
+    m_scap_params.location_x = coord_x;
+    m_scap_params.location_y = coord_y;
+
+    CmdSignParams params;
+
+    //Invisible CMD signature
+    params.secret_code = secret_code;
+    params.mobileNumber = mobileNumber;
+    params.loadedFilePath = loadedFilePath;
+    params.outputFile = m_scap_params.inputPDF;
+    params.page = 0;
+    params.coord_x = -1;
+    params.coord_y = -1;
+    params.location = "";
+    params.reason = "";
+    params.isTimestamp = 0;
+    params.isSmallSignature = 0;
+
+    QString fullInputPath = params.loadedFilePath;
+
+    cmd_pdfSignature->setFileSigning((char *)getPlatformNativeString(fullInputPath));
+
+    cmd_signature->set_pdf_handler(cmd_pdfSignature);
+    QtConcurrent::run(this, &GAPI::doOpenSignCMD, cmd_signature, params);            
+
 }
 
 void GAPI::signOpenCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
@@ -690,28 +840,31 @@ void GAPI::signOpenCMD(QString mobileNumber, QString secret_code, QString loaded
 
     QString fullInputPath = params.loadedFilePath;
 
-    cmd_pdfSignature->setFileSigning(fullInputPath.toUtf8().data());
-
+	cmd_pdfSignature->setFileSigning((char *)getPlatformNativeString(fullInputPath));
 
     if (params.isTimestamp > 0)
         cmd_pdfSignature->enableTimestamp();
     if (params.isSmallSignature > 0)
         cmd_pdfSignature->enableSmallSignatureFormat();
 
+    if(useCustomSignature())
+        cmd_pdfSignature->setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
+
     cmd_signature->set_pdf_handler(cmd_pdfSignature);
     QtConcurrent::run(this, &GAPI::doOpenSignCMD, cmd_signature, params);
 }
 
-void GAPI::signCloseCMD(QString sms_token)
+void GAPI::signCloseCMD(QString sms_token, QList<int> attribute_list)
 {
     qDebug() << "signCloseCMD! sms_token = " + sms_token;
 
     signalUpdateProgressStatus(tr("STR_CMD_SENDING_CODE"));
 
-    connect(this, SIGNAL(signCMDFinished(long)),
-            this, SLOT(showSignCMDDialog(long)), Qt::UniqueConnection);
+    if (attribute_list.size() > 0)
+        QtConcurrent::run(this, &GAPI::doCloseSignCMDWithSCAP, cmd_signature, sms_token, attribute_list);
 
-    QtConcurrent::run(this, &GAPI::doCloseSignCMD, cmd_signature, sms_token);
+    else
+        QtConcurrent::run(this, &GAPI::doCloseSignCMD, cmd_signature, sms_token);
 }
 
 QString GAPI::getCardActivation() {
@@ -723,19 +876,42 @@ QString GAPI::getCardActivation() {
 
     PTEID_EId &eid_file = card->getID();
 
-    if (isExpiredDate(eid_file.getValidityEndDate())) {
+    PTEID_Certificates&	 certificates	= card->getCertificates();
+
+    int certificateStatus = PTEID_CERTIF_STATUS_UNKNOWN;
+
+    certificateStatus = certificates.getCert(PTEID_Certificate::CITIZEN_AUTH).getStatus();
+
+    // If state active AND validity not expired AND certificate active
+    if(card->isActive() && !isExpiredDate(eid_file.getValidityEndDate())
+            && certificateStatus == PTEID_CERTIF_STATUS_VALID)
+    {
+        return QString(tr("STR_CARD_ACTIVE_AND_VALID"));
+    }
+    // Else If state active AND validity not expired AND certificate error
+    else if(card->isActive() && !isExpiredDate(eid_file.getValidityEndDate())
+            && (certificateStatus == PTEID_CERTIF_STATUS_CONNECT || certificateStatus == PTEID_CERTIF_STATUS_ERROR
+            || certificateStatus == PTEID_CERTIF_STATUS_ISSUER || certificateStatus == PTEID_CERTIF_STATUS_UNKNOWN))
+    {
+        return QString(tr("STR_CARD_CONNECTION_ERROR"));
+    }
+    //Else If state active AND validity not expired AND certificate suspended or revoked
+    else if(card->isActive() && !isExpiredDate(eid_file.getValidityEndDate())
+            && (certificateStatus == PTEID_CERTIF_STATUS_SUSPENDED || certificateStatus == PTEID_CERTIF_STATUS_REVOKED))
+    {
+        return QString(tr("STR_CARD_CANCELED"));
+    }
+    //Else If state active AND validity expired
+    else if(card->isActive() && isExpiredDate(eid_file.getValidityEndDate()))
+    {
         return QString(tr("STR_CARD_EXPIRED"));
     }
-    else if (!card->isActive()) {
+    //Else If state not active
+    else if(!card->isActive())
+    {
         return QString(tr("STR_CARD_NOT_ACTIVE"));
     }
-    else {
-        return QString(tr("STR_CARD_HAS_BEEN_ACTIVATED"));
-    }
-
     END_TRY_CATCH
-
-            return QString();
 }
 
 QPixmap PhotoImageProvider::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
@@ -775,17 +951,28 @@ void GAPI::startPrint(QString outputFile, double isBasicInfo,double isAddicional
     QPrinter printer;
     bool res = false;
 
-    printer.setDocName("CartaoCidadao_signed.pdf");
+    printer.setDocName("CartaoCidadao.pdf");
     QPrintDialog *dlg = new QPrintDialog(&printer);
     if(dlg->exec() == QDialog::Accepted) {
          qDebug() << "QPrintDialog! Accepted";
          BEGIN_TRY_CATCH;
          // Print PDF not Signed
          res = drawpdf(printer, params);
-         if (res) {
-             emit signalPdfPrintSucess();
+
+         if ( params.outputFile.toUtf8().size() > 0){
+             qDebug() << "Create PDF";
+             if (res) {
+                 emit signalPdfPrintSucess();
+             }else{
+                 emit signalPdfPrintFail();
+             }
          }else{
-             emit signalPdfPrintFail();
+             qDebug() << "Printing to a printer";
+             if (res) {
+                 emit signalPrinterPrintSucess();
+             }else{
+                 emit signalPrinterPrintFail();
+             }
          }
          END_TRY_CATCH
     }
@@ -800,9 +987,9 @@ bool GAPI::doSignPrintPDF(QString &file_to_sign, QString &outputsign) {
     getCardInstance(card);
     if (card == NULL) return false;
 
-    PTEID_PDFSignature sig_handler(file_to_sign.toUtf8().data());
+	PTEID_PDFSignature sig_handler(getPlatformNativeString(file_to_sign));
 
-    card->SignPDF(sig_handler, 0, 0, false, "", "", outputsign.toUtf8().data());
+	card->SignPDF(sig_handler, 0, 0, false, "", "", getPlatformNativeString(outputsign));
 
     return true;
 
@@ -1075,14 +1262,12 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
         drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_DELIVERY_ENTITY"),
                         QString::fromUtf8(eid_file.getIssuingEntity()));
         pos_y += LINE_HEIGHT;
-
-        drawSingleField(painter, pos_x, pos_y, tr("STR_CARD_STATE"), getCardActivation());
-        drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_DOCUMENT_TYPE"),
+        drawSingleField(painter, pos_x, pos_y, tr("STR_DOCUMENT_TYPE"),
                         QString::fromUtf8(eid_file.getDocumentType()));
-        pos_y += LINE_HEIGHT;
-
-        drawSingleField(painter, pos_x, pos_y, tr("STR_DELIVERY_LOCATION"),
+        drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_DELIVERY_LOCATION"),
                         QString::fromUtf8(eid_file.getLocalofRequest()));
+        pos_y += LINE_HEIGHT;
+        drawSingleField(painter, pos_x, pos_y, tr("STR_CARD_STATE"), getCardActivation());
 
         pos_y += 50;
     }
@@ -1214,7 +1399,7 @@ void GAPI::startSigningBatchPDF(QList<QString> loadedFileBatchPath, QString outp
 
 int GAPI::getPDFpageCount(QString loadedFilePath) {
 
-    PTEID_PDFSignature sig_handler(loadedFilePath.toUtf8().data());
+	PTEID_PDFSignature sig_handler(getPlatformNativeString(loadedFilePath));
 
     int pageCount = sig_handler.getPageCount();
 
@@ -1227,6 +1412,43 @@ void GAPI::startSigningXADES(QString loadedFilePath, QString outputFile, double 
 
 }
 
+void GAPI::startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, double isTimestamp) {
+
+    SignBatchParams params = {loadedFileBatchPath, outputFile, 0, 0, 0, "", "", isTimestamp, 0};
+
+    QFuture<void> future =
+            QtConcurrent::run(this, &GAPI::doSignBatchXADES, params);
+}
+
+void GAPI::doSignBatchXADES(SignBatchParams &params) {
+    qDebug() << "doSignBatchXADES! loadedFilePath = " << params.loadedFileBatchPath << " outputFile = " << params.outputFile <<
+                "page = " << params.page << "coord_x" << params.coord_x << "coord_y" << params.coord_y <<
+                "reason = " << params.reason << "location = " << params.location << "isTimestamp = " <<  params.isTimestamp;
+
+    BEGIN_TRY_CATCH
+
+        PTEID_EIDCard * card = NULL;
+        getCardInstance(card);
+        if (card == NULL) return;
+
+        QVector<const char *> files_to_sign;
+
+        for( int i = 0; i < params.loadedFileBatchPath.count(); i++ ){
+            files_to_sign.push_back(strdup(getPlatformNativeString(params.loadedFileBatchPath[i])));
+        }
+
+        QByteArray tempOutputFile = getPlatformNativeString(params.outputFile);
+
+        if (params.isTimestamp > 0)
+            card->SignXadesT(tempOutputFile.constData(), files_to_sign.data(), params.loadedFileBatchPath.count());
+        else
+            card->SignXades(tempOutputFile.constData(), files_to_sign.data(), params.loadedFileBatchPath.count());
+
+        emit signalPdfSignSucess(SignMessageOK);
+
+    END_TRY_CATCH
+}
+
 void GAPI::doSignXADES(QString loadedFilePath, QString outputFile, double isTimestamp) {
     BEGIN_TRY_CATCH
 
@@ -1235,10 +1457,10 @@ void GAPI::doSignXADES(QString loadedFilePath, QString outputFile, double isTime
     if (card == NULL) return;
 
     const char *files_to_sign[1];
-    QByteArray tempLoadedFilePath= loadedFilePath.toUtf8();
+	QByteArray tempLoadedFilePath = getPlatformNativeString(loadedFilePath);
     files_to_sign[0] = tempLoadedFilePath.constData();
 
-    QByteArray tempOutputFile= outputFile.toUtf8();
+	QByteArray tempOutputFile = getPlatformNativeString(outputFile);
 
     if (isTimestamp > 0)
         card->SignXadesT(tempOutputFile.constData(), files_to_sign, 1);
@@ -1259,7 +1481,7 @@ void GAPI::doSignPDF(SignParams &params) {
     if (card == NULL) return;
 
     QString fullInputPath = params.loadedFilePath;
-    PTEID_PDFSignature sig_handler(fullInputPath.toUtf8().data());
+	PTEID_PDFSignature sig_handler(getPlatformNativeString(fullInputPath));
 
     if (params.isTimestamp > 0)
         sig_handler.enableTimestamp();
@@ -1270,8 +1492,8 @@ void GAPI::doSignPDF(SignParams &params) {
         sig_handler.setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
 
     card->SignPDF(sig_handler, params.page, params.coord_x, params.coord_y,
-                 params.location.toUtf8().data(), params.reason.toUtf8().data(),
-                 params.outputFile.toUtf8().data());
+					params.location.toUtf8().data(), params.reason.toUtf8().data(),
+					getPlatformNativeString(params.outputFile));
 
     emit signalPdfSignSucess(SignMessageOK);
 
@@ -1295,7 +1517,8 @@ void GAPI::doSignBatchPDF(SignBatchParams &params) {
     for( int i = 0; i < params.loadedFileBatchPath.count(); i++ ){
         qDebug() << params.loadedFileBatchPath[i];
         QString fullInputPath = params.loadedFileBatchPath[i];
-        sig_handler->addToBatchSigning( fullInputPath.toUtf8().data() , false );
+        sig_handler->addToBatchSigning((char *)getPlatformNativeString(fullInputPath),
+                                       params.page == 0 ? true : false);
     }
 
     if (params.isTimestamp > 0)
@@ -1307,8 +1530,8 @@ void GAPI::doSignBatchPDF(SignBatchParams &params) {
         sig_handler->setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
 
     card->SignPDF(*sig_handler, params.page, params.coord_x, params.coord_y,
-                 params.location.toUtf8().data(), params.reason.toUtf8().data(),
-                 params.outputFile.toUtf8().data());
+		params.location.toUtf8().data(), params.reason.toUtf8().data(),
+				 getPlatformNativeString(params.outputFile));
 
     emit signalPdfSignSucess(SignMessageOK);
 
@@ -1317,13 +1540,12 @@ void GAPI::doSignBatchPDF(SignBatchParams &params) {
 
 QPixmap PDFPreviewImageProvider::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
 {
-    qDebug() << "PDFPreviewImageProvider received request for: " << id;
+	qDebug() << "PDFPreviewImageProvider received request for: " << id;
     qDebug() << "PDFPreviewImageProvider received request for: "
              << requestedSize.width() << " - " << requestedSize.height();
     QStringList strList = id.split("?");
 
-    //This should work on Windows too with QT APIs...
-    QString pdf_path = strList.at(0);
+	QString pdf_path = QUrl::fromPercentEncoding(strList.at(0).toUtf8());
 
     //URL param ?page=xx
     unsigned int page = (unsigned int) strList.at(1).split("=").at(1).toInt();
@@ -1347,8 +1569,6 @@ QPixmap PDFPreviewImageProvider::requestPixmap(const QString &id, QSize *size, c
         m_doc->setRenderBackend(Poppler::Document::RenderBackend::SplashBackend);
     }
 
-    //TODO: Hardcoded image size...
-    //int img_height = 420;
     QPixmap pTest = renderPDFPage(page);
     qDebug() << "PDFPreviewImageProvider sending signal signalPdfSourceChanged width : "
              << pTest.width()<< " - height : " << pTest.height();
@@ -1430,7 +1650,119 @@ void GAPI::startGettingCompanyAttributes() {
 }
 
 void GAPI::startGettingEntityAttributes(QList<int> entities_index) {
-    QtConcurrent::run(this, &GAPI::getSCAPEntityAttributes, entities_index);       
+    QtConcurrent::run(this, &GAPI::getSCAPEntityAttributes, entities_index);
+}
+
+void GAPI::startPingSCAP() {
+
+    // schedule the request
+    httpRequestAborted = httpRequestSuccess = false;
+
+    PTEID_EIDCard * card = NULL;
+    getCardInstance(card);
+    if (card == NULL) {
+        return;
+    }
+
+    const char * as_endpoint = "/CCC-REST/rest/scap/pingSCAP";
+
+    // Get Endpoint from settings
+    ScapSettings settings;
+    std::string port = settings.getScapServerPort().toStdString();
+    std::string sup_endpoint = std::string("https://")
+            + settings.getScapServerHost().toStdString() + ":" + port + as_endpoint;
+
+    url = sup_endpoint.c_str();
+
+    eIDMW::PTEID_Config config_pacfile(eIDMW::PTEID_PARAM_PROXY_PACFILE);
+    const char * pacfile_url = config_pacfile.getString();
+
+    if (pacfile_url != NULL && strlen(pacfile_url) > 0)
+    {
+        m_pac_url = QString(pacfile_url);
+    }
+
+    eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_HOST);
+    eIDMW::PTEID_Config config_port(eIDMW::PTEID_PARAM_PROXY_PORT);
+    eIDMW::PTEID_Config config_username(eIDMW::PTEID_PARAM_PROXY_USERNAME);
+    eIDMW::PTEID_Config config_pwd(eIDMW::PTEID_PARAM_PROXY_PWD);
+
+    std::string proxy_host = config.getString();
+    std::string proxy_username = config_username.getString();
+    std::string proxy_pwd = config_pwd.getString();
+    long proxy_port = config_port.getLong();
+
+    //10 second timeout
+    int network_timeout = 10000;
+
+    if (!proxy_host.empty() && proxy_port != 0)
+    {
+        eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_DEBUG, "eidgui", "PingSCAP: using manual proxy config");
+        qDebug() << "C++: PingSCAP: using manual proxy config";
+        proxy.setType(QNetworkProxy::HttpProxy);
+        proxy.setHostName(QString::fromStdString(proxy_host));
+        proxy.setPort(proxy_port);
+
+        if (!proxy_username.empty())
+        {
+            proxy.setUser(QString::fromStdString(proxy_username));
+            proxy.setPassword(QString::fromStdString(proxy_pwd));
+        }
+
+        QNetworkProxy::setApplicationProxy(proxy);
+    }
+    else if (!m_pac_url.isEmpty())
+    {
+        std::string proxy_port_str;
+        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "PingSCAP: using system proxy config");
+        qDebug() << "C++: PingSCAP: using system proxy config";
+        PTEID_GetProxyFromPac(m_pac_url.toUtf8().constData(),
+                              url.toString().toUtf8().constData(), &proxy_host, &proxy_port_str);
+        proxy.setType(QNetworkProxy::HttpProxy);
+        proxy.setHostName(QString::fromStdString(proxy_host));
+        proxy.setPort(atol(proxy_port_str.c_str()));
+        QNetworkProxy::setApplicationProxy(proxy);
+    }
+
+    reply = qnam.get(QNetworkRequest(url));
+
+    QTimer::singleShot(network_timeout, this, SLOT(cancelDownload()));
+    connect(reply, SIGNAL(finished()),
+            this, SLOT(httpFinished()));
+}
+
+void GAPI::cancelDownload()
+{
+    if(!httpRequestSuccess && !httpRequestAborted){
+        qDebug() << "C++: signalSCAPPingFail";
+        httpRequestAborted = true;
+        httpRequestSuccess = false;
+        emit signalSCAPPingFail();
+        reply->deleteLater();
+    }
+}
+
+void GAPI::httpFinished()
+{
+    qDebug() << "C++: httpFinished";
+    if(!httpRequestSuccess && !httpRequestAborted){
+
+        if (reply->attribute( QNetworkRequest::HttpStatusCodeAttribute ) != 200) {
+            qDebug() << "C++: reply error";
+            httpRequestAborted = true;
+            httpRequestSuccess = false;
+            emit signalSCAPPingFail();
+            QString strLog = QString("PingSCAP:: Http request failed to: ");
+            strLog += reply->url().toString();
+            PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", strLog.toStdString().c_str() );
+        } else {
+            qDebug() << "C++: signalSCAPPingSuccess";
+            httpRequestAborted = false;
+            httpRequestSuccess = true;
+            emit signalSCAPPingSuccess();
+        }
+        reply->deleteLater();
+    }
 }
 
 void GAPI::startReadingPersoNotes() {
@@ -1445,16 +1777,17 @@ void GAPI::startLoadingAttributesFromCache(int isCompanies, bool isShortDescript
     QtConcurrent::run(this, &GAPI::getSCAPAttributesFromCache, isCompanies, isShortDescription);
 }
 
+void GAPI::startRemovingAttributesFromCache(int isCompanies) {
+    QtConcurrent::run(this, &GAPI::removeSCAPAttributesFromCache, isCompanies);
+}
+
 void GAPI::startSigningSCAP(QString inputPDF, QString outputPDF, int page, int location_x, int location_y,
                             int ltv, QList<int> attribute_index) {
     SCAPSignParams signParams = {inputPDF, outputPDF, page, location_x, location_y,
                             ltv, attribute_index};
 
-
     QtConcurrent::run(this, &GAPI::doSignSCAP, signParams);
-
 }
-
 
 void GAPI::doSignSCAP(SCAPSignParams params) {
 
@@ -1465,19 +1798,21 @@ void GAPI::doSignSCAP(SCAPSignParams params) {
 
     scapServices.executeSCAPSignature(this, params.inputPDF, params.outputPDF, params.page,
                 params.location_x, params.location_y, params.ltv, attrs);
-
 }
 
-
 void GAPI::getSCAPEntities() {
-    
+
     QList<QString> attributeSuppliers;
     std::vector<ns3__AttributeSupplierType *> entities = scapServices.getAttributeSuppliers();
+
+    if(entities.size() == 0){
+        emit signalSCAPDifinitionsServiceFail(ScapGenericError, false);
+        return;
+    }
 
     for (unsigned int i = 0; i!=entities.size(); i++)
         attributeSuppliers.append(QString::fromStdString(entities.at(i)->Name));
     
-    //TODO: emit signal for error
     emit signalSCAPEntitiesLoaded(attributeSuppliers);
 }
 
@@ -1491,7 +1826,11 @@ std::vector<std::string> getChildAttributes(ns2__AttributesType *attributes, boo
         if(signatureType->ns5__Object.size() > 0)
         {
             ns5__ObjectType * signatureObject = signatureType->ns5__Object.at(0);
+            ns3__PersonalDataType * personalDataObject = signatureObject->union_ObjectType.ns3__Attribute->PersonalData;
             ns3__MainAttributeType * mainAttributeObject = signatureObject->union_ObjectType.ns3__Attribute->MainAttribute;
+
+            std::string name = personalDataObject->Name;
+            childrensList.push_back(name.c_str());
 
             std::string description = mainAttributeObject->Description->c_str();
             if (!isShortDescription) {
@@ -1536,10 +1875,9 @@ void GAPI::getSCAPEntityAttributes(QList<int> entityIDs) {
         supplier_ids.push_back(supplier_id);
     }
 
-    std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(*card, supplier_ids);
+    std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(this, *card, supplier_ids);
 
     if (attributes.size() == 0) {
-        emit signalEntityAttributesLoadedError();
         return;
     }
 
@@ -1554,10 +1892,10 @@ void GAPI::getSCAPEntityAttributes(QList<int> entityIDs) {
         return;   
        }
 
-       for(uint j = 0; j < childAttributes.size() ; j++) {
-
+       for(uint j = 0; j < childAttributes.size() ; j=j+2) {
            attribute_list.append(QString::fromStdString(attrSupplier));
            attribute_list.append(QString::fromStdString(childAttributes.at(j)));
+           attribute_list.append(QString::fromStdString(childAttributes.at(j+1)));
        }
     }
 
@@ -1577,11 +1915,10 @@ void GAPI::getSCAPCompanyAttributes() {
 
     std::vector<int> supplierIDs;
 
-    std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(*card, supplierIDs);
+    std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(this, *card, supplierIDs);
 
     if (attributes.size() == 0)
     {
-        emit signalCompanyAttributesLoadedError();
         return;
     }
 
@@ -1598,14 +1935,16 @@ void GAPI::getSCAPCompanyAttributes() {
          return;
        }
 
-        for(uint j = 0; j < childAttributes.size(); j++) {
-            attribute_list.append(QString::fromStdString(attrSupplier));
-            attribute_list.append(QString::fromStdString(childAttributes.at(j)));
-        }
+       for(uint j = 0; j < childAttributes.size() ; j=j+2) {
+          attribute_list.append(QString::fromStdString(attrSupplier));
+          attribute_list.append(QString::fromStdString(childAttributes.at(j)));
+          attribute_list.append(QString::fromStdString(childAttributes.at(j+1)));
+       }
     }
 
     emit signalCompanyAttributesLoaded(attribute_list);
 }
+
 
 void GAPI::getSCAPAttributesFromCache(int queryType, bool isShortDescription) {
 
@@ -1613,40 +1952,64 @@ void GAPI::getSCAPAttributesFromCache(int queryType, bool isShortDescription) {
     std::vector<ns2__AttributesType *> attributes;
     QList<QString> attribute_list;
 
+    //Card is only required for loading entities and companies seperately...
+    //This is a hack to support loading attributes without NIC in the context of CMD 
+    if (queryType < 2) {
+        getCardInstance(card);
+        if (card == NULL)
+            return;
+
+        if (queryType == 0 )
+            attributes = scapServices.loadAttributesFromCache(*card, false);
+        else if (queryType == 1 )
+            attributes = scapServices.loadAttributesFromCache(*card, true);    
+    }
+    else if (queryType == 2) {
+        attributes = scapServices.reloadAttributesFromCache();
+    }
+
+    for(uint i = 0; i < attributes.size() ; i++) {
+       std::string attrSupplier = attributes.at(i)->ATTRSupplier->Name;
+       std::vector<std::string> childAttributes = getChildAttributes(attributes.at(i), isShortDescription);
+
+       for(uint j = 0; j < childAttributes.size() ; j=j+2) {
+          attribute_list.append(QString::fromStdString(attrSupplier));
+          attribute_list.append(QString::fromStdString(childAttributes.at(j)));
+          attribute_list.append(QString::fromStdString(childAttributes.at(j+1)));
+       }
+    }
+
+    if (queryType == 0)
+        emit signalEntityAttributesLoaded(attribute_list);
+    else if (queryType == 1)
+        emit signalCompanyAttributesLoaded(attribute_list);
+    else if (queryType == 2)
+        emit signalAttributesLoaded(attribute_list);
+}
+
+void GAPI::removeSCAPAttributesFromCache(int isCompanies) {
+
+    qDebug() << "removeSCAPAttributesFromCache : " << isCompanies;
+
+    PTEID_EIDCard * card = NULL;
+    bool error_code = false;
+
     getCardInstance(card);
     if (card == NULL)
         return;
 
-    if (queryType == 0 || queryType == 2)
-        attributes = scapServices.loadAttributesFromCache(*card, false);
+    error_code = scapServices.removeAttributesFromCache(*card);
 
-    if (queryType == 1 || queryType == 2) {
-        std::vector<ns2__AttributesType *> attributes2 = scapServices.loadAttributesFromCache(*card, true);
-        attributes.insert(attributes.end(), attributes2.begin(), attributes2.end());
-    }
-
-    for(uint i = 0; i < attributes.size() ; i++) {
-        
-       std::string attrSupplier = attributes.at(i)->ATTRSupplier->Name;
-       std::vector<std::string> childAttributes = getChildAttributes(attributes.at(i), isShortDescription);
-
-       for(uint j = 0; j < childAttributes.size() ; j++) {
-          attribute_list.append(QString::fromStdString(attrSupplier));
-          attribute_list.append(QString::fromStdString(childAttributes.at(j)));
-       }
-    }
-    if (queryType == 1)
-        emit signalCompanyAttributesLoaded(attribute_list);
-    else if (queryType == 0)
-        emit signalEntityAttributesLoaded(attribute_list);
-    else if (queryType == 2)
-        emit signalAttributesLoaded(attribute_list);
+    if (error_code == true)
+        emit signalRemoveSCAPAttributesSucess(isCompanies);
+    else
+        emit signalRemoveSCAPAttributesFail(isCompanies);
 }
 
 void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
 
     try
-    {
+    { 
         unsigned long ReaderEndIdx = ReaderSet.readerCount();
         long ReaderIdx = 0;
         long CardIdx = 0;
@@ -1679,19 +2042,12 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
                 {
                 case PTEID_CARDTYPE_IAS07:
                 {
-                    try
-                    {
-                        PTEID_EIDCard& Card = readerContext.getEIDCard();
-                        new_card = &Card;
-                    }
-                    catch (PTEID_ExCardBadType const& e)
-                    {
-                        QString errcode;
-                        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed %s", e.GetError());
-                        errcode = errcode.setNum(e.GetError());
-                    }
-                }
+
+                    PTEID_EIDCard& Card = readerContext.getEIDCard();
+                    new_card = &Card;
                     break;
+                }
+                    
                 case PTEID_CARDTYPE_UNKNOWN:
                 default:
                     break;
@@ -1703,28 +2059,24 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
                     lastFoundCardType = CardType;
                     switch (CardType)
                     {
-                    case PTEID_CARDTYPE_IAS07:
-                    {
-                        try
+                        case PTEID_CARDTYPE_IAS07:
                         {
+
                             PTEID_EIDCard& Card = readerContext.getEIDCard();
                             new_card = &Card;
+                            break;
                         }
-                        catch (PTEID_ExCardBadType const& e)
-                        {
-                            PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed %s", e.GetError());
-                        }
-                    }
-                        break;
-                    case PTEID_CARDTYPE_UNKNOWN:
-                    default:
-                        break;
+                            
+                        case PTEID_CARDTYPE_UNKNOWN:
+                        default:
+                            break;
                     }
                 }
                 if(CardIdx > 1 && selectedReaderIndex == -1){
                     emit signalReaderContext();
                     selectedReaderIndex = -1;
-                }else{
+                }
+                else{
                     if (!bCardPresent)
                     {
                         emit signalCardAccessError(NoCardFound);
@@ -1747,22 +2099,12 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
         PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed with error code 0x%08x", e.GetError());
         emit signalCardAccessError(CardUnknownError);
     }
-    catch (PTEID_ExCardBadType e)
-    {
-        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed with error code 0x%08x", e.GetError());
-        emit signalCardAccessError(CardUnknownError);
-    }
     catch (PTEID_ExNoCardPresent e)
     {
         PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed with error code 0x%08x", e.GetError());
         emit signalCardAccessError(NoCardFound);
     }
     catch (PTEID_ExCardChanged e)
-    {
-        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed with error code 0x%08x", e.GetError());
-        emit signalCardAccessError(CardUnknownError);
-    }
-    catch (PTEID_ExReaderSetChanged e)
     {
         PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed with error code 0x%08x", e.GetError());
         emit signalCardAccessError(CardUnknownError);
@@ -1821,6 +2163,16 @@ QVariantList GAPI::getRetReaderList()
     }
 
     return list;
+}
+
+int GAPI::getReaderIndex(void)
+{
+    qDebug() << "AppController GAPI::geReaderIndex!" << selectedReaderIndex;
+    if ( selectedReaderIndex >= 0 ) {
+
+       return selectedReaderIndex;
+    }
+    return 0;
 }
 
 void GAPI::connectToCard() {
@@ -1892,22 +2244,28 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
     {
         PTEID_ReaderContext& readerContext = ReaderSet.getReaderByName(pCallBackData->getReaderName().toLatin1());
 
-        //------------------------------------
-        // is card retracted from reader?
-        //------------------------------------
-        if (!readerContext.isCardPresent())
-        {
+        unsigned int cardState = (unsigned int)ulState & 0x0000FFFF;
+        unsigned int eventCounter = ((unsigned int)ulState) >> 16;
 
-            //------------------------------------
-            // TODO: remove the certificates
-            //------------------------------------
+        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Card Event received for reader %s: cardState: %u Event Counter: %u",
+        pCallBackData->getReaderName().toUtf8().constData(), cardState, eventCounter);
+
+        //------------------------------------
+        // is card removed from the reader?
+        //------------------------------------
+		if (!readerContext.isCardPresent())
+		{
+
             if (pCallBackData->getMainWnd()->m_Settings.getRemoveCert())
             {
+                PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Will try to RemoveCertificates...");
                 bool bImported = pCallBackData->getMainWnd()->m_Certificates.RemoveCertificates(pCallBackData->getReaderName());
 
-                if(!bImported){
+                if(!bImported) {
                     qDebug() << "RemoveCertificates fail";
-					emit  pCallBackData->getMainWnd()->signalRemoveCertificatesFail();
+
+                    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "RemoveCertificates failed!");
+					emit pCallBackData->getMainWnd()->signalRemoveCertificatesFail();
                 }
             }
 
@@ -1928,7 +2286,7 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
         //------------------------------------
         // is card inserted ?
         //------------------------------------
-        if (readerContext.isCardChanged(pCallBackData->m_cardID))
+		else if (readerContext.isCardChanged(pCallBackData->m_cardID))
         {
             //------------------------------------
             // send an event to the main app to show the popup message
@@ -1942,14 +2300,19 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
             //------------------------------------
 			if (pCallBackData->getMainWnd()->m_Settings.getRegCert())
             {
+                PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Will try to ImportCertificates...");
                 bool bImported = pCallBackData->getMainWnd()->m_Certificates.ImportCertificates(pCallBackData->getReaderName());
 
-                if(!bImported){
-                    qDebug() << "ImportCertificates fail";
-					emit  pCallBackData->getMainWnd()->signalImportCertificatesFail();
+                if(!bImported) {
+                    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "ImportCertificates failed!");
+					emit pCallBackData->getMainWnd()->signalImportCertificatesFail();
                 }
             }
         }
+		else
+		{
+			PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Event ignored");
+		}
     }
     catch (...)
     {
@@ -2117,6 +2480,36 @@ void GAPI::startfillCertificateList( void ) {
     QtConcurrent::run(this, &GAPI::fillCertificateList);
 }
 
+void GAPI::startGetCardActivation( void ) {
+
+    QtConcurrent::run(this, &GAPI::getCertificateAuthStatus);
+}
+
+void GAPI::getCertificateAuthStatus ( void )
+{
+    int certificateStatus = PTEID_CERTIF_STATUS_UNKNOWN;
+
+    qDebug() << "getCertificateAuthStatus";
+
+    QString returnString;
+
+    BEGIN_TRY_CATCH
+
+    PTEID_EIDCard * card = NULL;
+    getCardInstance(card);
+    if (card == NULL) return;
+
+    PTEID_Certificates&	 certificates	= card->getCertificates();
+
+    certificateStatus = certificates.getCert(PTEID_Certificate::CITIZEN_AUTH).getStatus();
+
+    returnString = getCardActivation();
+
+    emit signalShowCardActivation(returnString);
+
+    END_TRY_CATCH
+}
+
 void GAPI::fillCertificateList ( void )
 {
     bool noIssuer = false;
@@ -2150,7 +2543,7 @@ QString GAPI::getCachePath(void){
 }
 
 bool GAPI::customSignImageExist(void){
-    QString path = m_Settings.getPteidCachedir()+"/CustomSignPicture.jpeg";
+    QString path = m_Settings.getPteidCachedir()+"/CustomSignPicture.png";
     QFileInfo check_file(path);
     // check if file exists and if yes: Is it really a file and no directory?
     if (check_file.exists()) {
@@ -2161,25 +2554,53 @@ bool GAPI::customSignImageExist(void){
 }
 
 void GAPI::customSignRemove(void){
-    QString path = m_Settings.getPteidCachedir()+"/CustomSignPicture.jpeg";
+    QString path = m_Settings.getPteidCachedir()+"/CustomSignPicture.png";
     QFile file (path);
     file.remove();
 }
 
 bool GAPI::useCustomSignature(void){
     // Detect Custom Signature Image
-    m_custom_image = QImage(m_Settings.getPteidCachedir()+"/CustomSignPicture.jpeg");
-    if (!m_custom_image.isNull())
+    m_custom_image = QImage(m_Settings.getPteidCachedir()+"/CustomSignPicture.png");
+    if (m_Settings.getUseCustomSignature() && !m_custom_image.isNull())
     {
         qDebug() << "Using Custom Picture to CC sign";
         QBuffer buffer(&m_jpeg_scaled_data);
         buffer.open(QIODevice::WriteOnly);
         //Save the generated image as high-quality JPEG data
-        QImage generated_img ("CustomSignPicture.jpeg");
-        generated_img.save(&buffer, "JPG", 100);
+        QImage generated_img (m_Settings.getPteidCachedir()+"/CustomSignPicture.png");
+        QImage final_img(generated_img.size(),QImage::Format_RGB32);
+        // Fill background with white
+        final_img.fill(QColor(Qt::white).rgb());
+        QPainter painter(&final_img);
+        painter.drawImage(0, 0, generated_img);
+        final_img.save(&buffer, "JPG", 100);
         return true;
     }else{
         qDebug() << "Using default Picture to CC sign";
         return false;
     }
+}
+void GAPI::setUseCustomSignature (bool UseCustomSignature){
+
+    m_Settings.setUseCustomSignature(UseCustomSignature);
+}
+bool GAPI::getUseCustomSignature(void){
+    return m_Settings.getUseCustomSignature();
+}
+void GAPI::setRegCertValue (bool bRegCert){
+
+    m_Settings.setRegCert(bRegCert);
+}
+void GAPI::setRemoveCertValue (bool bRemoveCert){
+
+    m_Settings.setRemoveCert(bRemoveCert);
+}
+bool GAPI::getRegCertValue (void){
+
+    return m_Settings.getRegCert();
+}
+bool GAPI::getRemoveCertValue (void){
+
+    return m_Settings.getRemoveCert();
 }

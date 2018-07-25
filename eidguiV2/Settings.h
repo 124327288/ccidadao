@@ -26,7 +26,6 @@
 #include <QtCore>
 #include <QSettings>
 #include <QString>
-#include "genpur.h"
 #include "eidlib.h"
 
 #define SECTION_CERTVALIDATION		"certificatevalidation"
@@ -45,119 +44,11 @@
 #define STR_REMOVECERT			"remove_certificate"
 #define STR_CARDREADER			"cardreader"
 
-#define STR_DEF_GUILANGUAGE		"EN"
+#define STR_DEF_GUILANGUAGE		"nl"
 
 #define PIN_MAX_LENGHT 8
 #define PIN_MIN_LENGHT 4
 
-#define SPECIALSTATUS_NA 0
-#define SPECIALSTATUS_WHITECANE 1
-#define SPECIALSTATUS_EXTMINORITY 2
-#define SPECIALSTATUS_WCANE_EXTMIN 3
-#define SPECIALSTATUS_YELLOWCANE 4
-#define SPECIALSTATUS_YCANE_EXTMIN 5
-
-// Resize Resolutions -> Common
-enum eZOOMSTATUS
-{
-    ZOOM_SMALL			// ( 800 x 600 )
-    ,ZOOM_MEDIUM		// ( 1024 x 768)
-    ,ZOOM_LARGE			// ( 1280 x 1024 )
-    ,ZOOM_HUGE			// ( 1600 x 1200 )
-};
-
-// Resize Resolutions -> Window width
-#define WINDOW_WIDTH_SMALL 800.0
-#define WINDOW_WIDTH_MEDIUM 1024.0
-#define WINDOW_WIDTH_LARGE 1280.0
-#define WINDOW_WIDTH_HUGE 1600.0
-
-#define WINDOW_RATIO 1.58
-
-// Resize Resolutions -> Window height -46 for the margin  -170 for the menu, toolbar,...
-#define WINDOW_HEIGHT_SMALL  600.0
-#define WINDOW_HEIGHT_MEDIUM 768.0
-#define WINDOW_HEIGHT_LARGE  1024.0
-#define WINDOW_HEIGHT_HUGE   1200.0
-// #define WINDOW_HEIGHT_SMALL  (int) ( (WINDOW_WIDTH_SMALL - 46) / WINDOW_RATIO + 170  )
-// #define WINDOW_HEIGHT_MEDIUM (int) ( (WINDOW_WIDTH_MEDIUM - 46) / WINDOW_RATIO + 170 )
-// #define WINDOW_HEIGHT_LARGE  (int) ( (WINDOW_WIDTH_LARGE - 46) / WINDOW_RATIO + 170  )
-// #define WINDOW_HEIGHT_HUGE   (int) ( (WINDOW_WIDTH_HUGE - 46) / WINDOW_RATIO + 170   )
-
-// zoomfactor
-// zoom1 -> zoom2
-#define ZOOMFACTOR_1 (WINDOW_HEIGHT_MEDIUM/WINDOW_HEIGHT_SMALL)
-#define ZOOMFACTOR_2 (WINDOW_HEIGHT_LARGE/WINDOW_HEIGHT_SMALL)
-#define ZOOMFACTOR_3 (WINDOW_HEIGHT_HUGE/WINDOW_HEIGHT_SMALL)
-
-// Resize Resolutions -> Button Widgets
-#define BUTTON_POINTSIZE_SMALL 10
-#define BUTTON_POINTSIZE_MEDIUM 13
-#define BUTTON_POINTSIZE_LARGE 16
-#define BUTTON_POINTSIZE_HUGE 18
-
-// Resize Resolutions -> Line Edit Widgets
-#define NORMALVALUE_POINTSIZE_SMALL 11
-#define NORMALVALUE_POINTSIZE_MEDIUM 14
-#define NORMALVALUE_POINTSIZE_LARGE 17
-#define NORMALVALUE_POINTSIZE_HUGE 20
-
-// Resize Resolutions -> Line Edit Widgets
-#define BIGVALUE_POINTSIZE_SMALL 18
-#define BIGVALUE_POINTSIZE_MEDIUM 22
-#define BIGVALUE_POINTSIZE_LARGE 26
-#define BIGVALUE_POINTSIZE_HUGE 30
-
-// Resize Resolutions -> Line Edit Widgets
-#define SISVALUE_POINTSIZE_SMALL 18
-#define SISVALUE_POINTSIZE_MEDIUM 22
-#define SISVALUE_POINTSIZE_LARGE 26
-#define SISVALUE_POINTSIZE_HUGE 30
-
-// Resize Resolutions -> Label Widgets
-#define LABEL_POINTSIZE_SMALL 9
-#define LABEL_POINTSIZE_MEDIUM 11
-#define LABEL_POINTSIZE_LARGE 14
-#define LABEL_POINTSIZE_HUGE 16
-
-// Resize Resolutions -> Title1 Widgets
-#define TITLE1_POINTSIZE_SMALL 18
-#define TITLE1_POINTSIZE_MEDIUM 22
-#define TITLE1_POINTSIZE_LARGE 26
-#define TITLE1_POINTSIZE_HUGE 30
-
-// Resize Resolutions -> Title2 Widgets
-#define TITLE2_POINTSIZE_SMALL 10
-#define TITLE2_POINTSIZE_MEDIUM 12
-#define TITLE2_POINTSIZE_LARGE 16
-#define TITLE2_POINTSIZE_HUGE 19
-
-// Resize Resolutions -> Footer Widgets
-#define FOOTER1_POINTSIZE_SMALL 8
-#define FOOTER1_POINTSIZE_MEDIUM 10
-#define FOOTER1_POINTSIZE_LARGE 12
-#define FOOTER1_POINTSIZE_HUGE 14
-
-// Resize Resolutions -> Small Widgets
-#define SMALL_POINTSIZE_SMALL 5
-#define SMALL_POINTSIZE_MEDIUM 6
-#define SMALL_POINTSIZE_LARGE 7
-#define SMALL_POINTSIZE_HUGE 9
-
-// Resize Resolutions -> Toolbar Icon/Toolbutton Widgets
-#define TOOLBAR_ICON_BASE 24
-#define TOOLBAR_ICON_INCREMENT 2
-
-#define PICTURE_RATIO 1.41
-
-// Resize Resolutions -> Card Owner Picture
-#define PICTURE_BASE_HEIGHT 250
-#define PICTURE_BASE_WIDTH PICTURE_BASE_HEIGHT / PICTURE_RATIO
-#define PICTURE_HEIGHT_INCREMENT 60
-#define PICTURE_WIDTH_INCREMENT PICTURE_HEIGHT_INCREMENT / PICTURE_RATIO
-
-#define IMG_SEX_SIZE_BASE 32
-#define IMG_SEX_SIZE_INCREMENT 8
 
 class GUISettings
 {
@@ -166,10 +57,11 @@ public:
     // ctor
     //------------------------------------------------------
     GUISettings( void )
-        : m_GuiLanguage("en")
+        : m_GuiLanguage("nl")
         , m_bShowAnimations(false)
-        , m_bNotShowStartUpHelp(false)
+        , m_bUseCustomSignature(false)
         , m_bStartMinimized(false)
+        , m_bNotShowStartUpHelp(false)
         , m_bShowPicture(false)
         , m_bShowNotification(false)
         , m_bAutoCardReading(false)
@@ -190,11 +82,11 @@ public:
         {
             eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GENERAL_LANGUAGE);
             QString lng = config.getString();
-            if ( GenPur::LANG_XX==GenPur::getLanguage(lng))
-            {
-                lng = GenPur::getLanguage(GenPur::LANG_DEF);
+            if(lng == "en" || lng == "nl"){
+                setGuiLanguage(lng);
+            }else{
+                setGuiLanguage(STR_DEF_GUILANGUAGE);
             }
-            setGuiLanguage(lng);
         }
 
         //----------------------------------------------------------
@@ -240,6 +132,17 @@ public:
             if ( 0 != ShowAnimations )
             {
                 setShowAnimations(true);
+            }
+        }
+        //----------------------------------------------------------
+        // check USECUSTOMSIGNATURE
+        //----------------------------------------------------------
+        {
+            eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GUITOOL_USECUSTOMSIGN);
+            long UseCustomSignature = config.getLong();
+            if ( 0 != UseCustomSignature )
+            {
+                setUseCustomSignature(true);
             }
         }
         //----------------------------------------------------------
@@ -316,23 +219,19 @@ public:
             m_time_stamp_host = timeStamp_url;
 
         }
-        //----------------------------------------------------------
-        // check file save path
-        //----------------------------------------------------------
-        {
-            eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GUITOOL_FILESAVE);
-            QString fileSave = config.getString();
-            m_DefSavePath = fileSave;
-        }
 
         //---------------------------------------------------------
         // Check proxy settings
         //---------------------------------------------------------
         {
+            eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_USE_SYSTEM);
+            long proxy_system = config.getLong();
+            m_bProxySystem = proxy_system;
+        }
+        {
             eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_HOST);
             QString proxy_host = config.getString();
             m_proxy_host = proxy_host;
-
         }
 
         {
@@ -380,17 +279,14 @@ public:
     {
         return m_GuiLanguage;
     }
-    GenPur::UI_LANGUAGE getGuiLanguageCode( void ) const
-    {
-        return GenPur::getLanguage(m_GuiLanguage);
-    }
+
     void setGuiLanguage( QString const& GuiLanguage=STR_DEF_GUILANGUAGE )
     {
         m_GuiLanguage = GuiLanguage;
     }
-    void setGuiLanguage( GenPur::UI_LANGUAGE language )
+    void setLanguage( QString const& language )
     {
-        m_GuiLanguage = GenPur::getLanguage(language);
+        m_GuiLanguage = language;
         eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GENERAL_LANGUAGE);
         config.setString(m_GuiLanguage.toLatin1());
     }
@@ -429,6 +325,16 @@ public:
         m_bShowAnimations = bShowAnimations;
         eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GUITOOL_SHOWANIMATIONS);
         config.setLong(m_bShowAnimations);
+    }
+    bool getUseCustomSignature( void )
+    {
+        return m_bUseCustomSignature;
+    }
+    void setUseCustomSignature(  bool bUseCustomSignature )
+    {
+        m_bUseCustomSignature = bUseCustomSignature;
+        eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GUITOOL_USECUSTOMSIGN);
+        config.setLong(m_bUseCustomSignature);
     }
     bool getNotShowHelpStartUp( void )
     {
@@ -566,18 +472,18 @@ public:
     {
         return m_GUIVersion;
     }
-    void setDefSavePath( QString const& defSavePath )
-    {
-        m_DefSavePath = defSavePath;
-        eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_GUITOOL_FILESAVE);
-        config.setString(m_DefSavePath.toLatin1());
-    }
 
-    QString const& getDefSavePath( void )
+    bool getProxySystem( void )
     {
-        return m_DefSavePath;
+        return m_bProxySystem;
     }
+    void setProxySystem( bool bProxySystem )
+    {
+        m_bProxySystem = bProxySystem;
 
+        eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_USE_SYSTEM);
+        config.setLong(m_bProxySystem);
+    }
     void setProxyHost(QString const& proxy_host)
     {
         m_proxy_host = proxy_host;
@@ -654,18 +560,19 @@ public:
 
 private:
     //Proxy Settings
+    bool m_bProxySystem;
     QString m_proxy_host;
     long m_proxy_port;
     QString m_proxy_username;
     QString m_proxy_pwd;
     QString m_pteid_cachedir;
-    bool m_test_mode;
 
     //Time Stamp Host Settings
     QString m_time_stamp_host;
 
     QString m_GuiLanguage;          //!< the GUI language
     bool    m_bShowAnimations;      //!< the GUI Animations
+    bool    m_bUseCustomSignature;  //!< the GUI use custom signature image
     bool    m_bStartMinimized;      //!< startup minimized (T/F)
     bool    m_bNotShowStartUpHelp;  //!< the GUI Show Help	bool	m_bStartMinimized;		//!< startup minimized (T/F)
     bool    m_bShowPicture;         //!< show the picture (T/F)
@@ -676,9 +583,9 @@ private:
     bool    m_bRemoveCert;          //!< remove certificates on close (T/F)
     bool    m_showJavaApps;         // wether we should show the SCAP/DSS buttons...
     QString m_strExePath;           //!< path to the executable
+    bool m_test_mode;
 
     QString m_GUIVersion;           //!! Full version of the GUI
-    QString m_DefSavePath;          //!< default save path for eid,xml,tlv files
 };
 
 #endif // SETTINGS_H

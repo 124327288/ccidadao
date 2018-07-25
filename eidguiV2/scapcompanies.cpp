@@ -2,12 +2,13 @@
 #include <sstream>
 #include "eidlib.h"
 
-#include "SCAPServices/SCAPH.h"
-#include "SCAPServices/SCAP.nsmap"
+#include "SCAP-Services2/SCAPH.h"
+#include "SCAP-Services2/SCAP.nsmap"
 #include "scapsignature.h"
 #include "ScapSettings.h"
 #include <QDir>
 
+#include "gapi.h"
 
 std::vector<ns2__AttributesType *> loadCacheFile(QString &filePath) {
     std::vector<ns2__AttributesType *> attributesType;
@@ -44,7 +45,7 @@ std::vector<ns2__AttributesType *> loadCacheFile(QString &filePath) {
     return attributesType;
 }
 
-std::vector<ns2__AttributesType *> 
+std::vector<ns2__AttributesType *>
     ScapServices::loadAttributesFromCache(eIDMW::PTEID_EIDCard &card, bool isCompanies) {
 
     std::vector<ns2__AttributesType *> attributesType;
@@ -58,13 +59,6 @@ std::vector<ns2__AttributesType *>
         QString filePath = scapCacheDir + citizenNIC + (isCompanies ? COMPANIES_SUFFIX : ENTITIES_SUFFIX);
 
         attributesType = loadCacheFile(filePath);
-
-        if (attributesType.size() > 0)
-        {
-            //Merge into single vector
-            m_attributesList.insert(m_attributesList.end(), attributesType.begin(), attributesType.end());
-
-        }
     }
     catch(...) {
         std::cerr << "Error ocurred while loading attributes from cache!";
@@ -74,7 +68,110 @@ std::vector<ns2__AttributesType *>
     return attributesType;
 }
 
-std::vector<ns2__AttributesType *> ScapServices::getAttributes(eIDMW::PTEID_EIDCard &card, std::vector<int> supplier_ids) {
+std::vector<ns2__AttributesType *>
+    ScapServices::reloadAttributesFromCache() {
+
+    std::vector<ns2__AttributesType *> attributesType;
+    try
+    {
+        //QString citizenNIC(card.getID().getCivilianIdNumber());
+
+        ScapSettings settings;
+        QString scapCachePath(settings.getCacheDir() + "/scap_attributes/");
+        QDir scapCacheDir(scapCachePath);
+        QStringList flist = scapCacheDir.entryList(QStringList("*.xml"), QDir::Files | QDir::NoSymLinks);
+        
+        m_attributesList.clear();
+
+        foreach (QString str, flist) {
+            if (str.endsWith(ENTITIES_SUFFIX))
+            {
+                QString cachefilePath(scapCachePath+str);
+                attributesType = loadCacheFile(cachefilePath);
+
+                if (attributesType.size() > 0)
+                {
+                    //Merge into single vector
+                    m_attributesList.insert(m_attributesList.end(), attributesType.begin(), attributesType.end());
+                }
+            }
+        }
+
+        foreach (QString str, flist) {
+            if (str.endsWith(COMPANIES_SUFFIX))
+            {
+                QString cachefilePath(scapCachePath+str);
+                attributesType = loadCacheFile(cachefilePath);
+
+                if (attributesType.size() > 0)
+                {
+                    //Merge into single vector
+                    m_attributesList.insert(m_attributesList.end(), attributesType.begin(), attributesType.end());
+                }
+            }
+        }
+
+        /*
+
+        QString filePathEntities = scapCacheDir + citizenNIC + ENTITIES_SUFFIX;
+
+        attributesType = loadCacheFile(filePathEntities);
+
+        m_attributesList.clear();
+
+        if (attributesType.size() > 0)
+        {
+            //Merge into single vector
+            m_attributesList.insert(m_attributesList.end(), attributesType.begin(), attributesType.end());
+        }
+
+        QString filePathCompanies = scapCacheDir + citizenNIC + COMPANIES_SUFFIX;
+
+        attributesType = loadCacheFile(filePathCompanies);
+
+        if (attributesType.size() > 0)
+        {
+            //Merge into single vector
+            m_attributesList.insert(m_attributesList.end(), attributesType.begin(), attributesType.end());
+        }
+        */
+    }
+    catch(...) {
+        std::cerr << "Error ocurred while loading attributes from cache!";
+        //TODO: report error
+    }
+    return m_attributesList;
+}
+
+bool ScapServices::removeAttributesFromCache(eIDMW::PTEID_EIDCard &card) {
+
+    try
+    {
+        ScapSettings settings;
+        QString scapCacheDir = settings.getCacheDir() + "/scap_attributes/";
+
+        qDebug() << "C++: Removing cache files: " << scapCacheDir;
+
+        QDir dir(scapCacheDir);
+
+        dir.setNameFilters(QStringList() << "*.xml");
+        dir.setFilter(QDir::Files);
+
+        foreach(QString dirFile, dir.entryList())
+        {
+            dir.remove(dirFile);
+        }
+
+        return true;
+
+    }
+    catch(...) {
+        std::cerr << "Error ocurred while removing attributes from cache!";
+        return false;
+    }
+}
+
+std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eIDMW::PTEID_EIDCard &card, std::vector<int> supplier_ids) {
 
     std::vector<ns2__AttributesType *> result;
     bool allEnterprises = true;
@@ -190,7 +287,9 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(eIDMW::PTEID_EIDC
         long ret = soap_read_ns2__AttributeResponseType(soap2, &attr_response);
         
         if (ret != 0) {
+            qDebug() << "Error reading AttributeResponseType! Malformed XML response";
             std::cerr << "Error reading AttributeResponseType! Malformed XML response" << std::endl;
+            parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
             return result;
         }
 
@@ -200,11 +299,34 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(eIDMW::PTEID_EIDC
         
 
         if (resp_size > 0) {
-            ns2__AttributesType * parent = attr_response.AttributeResponseValues.at(0);
-            std::vector<ns5__SignatureType *> childs = parent->SignedAttributes->ns3__SignatureAttribute;
+            ns2__AttributesType * parentAttribute = attr_response.AttributeResponseValues.at(0);
+            std::string resultCode = parentAttribute->ResponseResult->ResultCode;
 
-            if (childs.size() == 0) {
+            int resultCodeValue = atoi(resultCode.c_str());
+
+            if (resultCodeValue != SCAP_ATTRIBUTES_OK)
+            {
+                eIDMW::PTEID_LOG(eIDMW::PTEID_LOG_LEVEL_ERROR, "ScapSignature",
+                                 "Error in getAttributes(): Result Code: %d", resultCodeValue);
+                qDebug() << "Error in getAttributes(): Result Code: " << resultCodeValue ;
+
+                if(resultCodeValue == SCAP_ATTRIBUTES_EXPIRED){
+                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapAttributesExpiredError, allEnterprises);
+                }else if(resultCodeValue == SCAP_ZERO_ATTRIBUTES){
+                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapZeroAttributesError, allEnterprises);
+                }else if(resultCodeValue == SCAP_ATTRIBUTES_NOT_VALID){
+                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapNotValidAttributesError, allEnterprises);
+                }else{
+                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
+                }
+
+                return result;
+            }
+
+            std::vector<ns5__SignatureType *> childs = parentAttribute->SignedAttributes->ns3__SignatureAttribute;
+            if (parentAttribute->SignedAttributes == NULL || childs.size() == 0) {
                 qDebug() << "getAttributes(): Empty attributes response!";
+                parent->signalCompanyAttributesLoadedError();
                 return result;
             }
 
@@ -218,12 +340,19 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(eIDMW::PTEID_EIDC
             {
                 std::cerr << "Couldn't save attribute result to cache. Error: " << cacheFile.errorString().toStdString() << std::endl;
             }
-        }
+        } else {
 
+            if(allEnterprises) {
+                parent->signalCompanyAttributesLoadedError();
+            }else{
+                parent->signalEntityAttributesLoadedError();
+            }
+        }
         
         result = attr_response.AttributeResponseValues;
     }
     catch(...) {
+        parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
         qDebug() << "reqAttributeSupplierListType ERROR << - TODO: improve error handling";
     }
 

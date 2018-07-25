@@ -1,7 +1,5 @@
 import QtQuick 2.6
 import QtQuick.Controls 2.1
-import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 
 /* Constants imports */
@@ -28,7 +26,7 @@ Item {
                 * Constants.HEIGHT_CARD_NOTES_ROW_TOP_INC_RELATIVE
         Components.CardRowTop{}
     }
-    
+
     BusyIndicator {
         id: busyIndicator
         running: false
@@ -53,10 +51,22 @@ Item {
                 id: notesText
                 text: qsTranslate("PageCardNotes","STR_NOTES_PAGE")
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pixelSize: Constants.SIZE_TEXT_LABEL
+                font.pointSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
+            }
+            Text {
+                id: notesTextDescription
+                text: qsTranslate("PageCardNotes","STR_NOTES_DESCRIPTION_PAGE")
+                x: Constants.SIZE_TEXT_FIELD_H_SPACE
+                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.family: lato.name
+                color: Constants.COLOR_MAIN_PRETO
+                anchors.top: notesText.bottom
+                anchors.topMargin: Constants.SIZE_ROW_V_SPACE
+                width: parent.width - Constants.SIZE_TEXT_FIELD_H_SPACE
+                wrapMode: Text.Wrap
             }
             DropShadow {
                 anchors.fill: rectFieldFlick
@@ -80,9 +90,9 @@ Item {
             Rectangle {
                 id: rectFieldFlick
                 width: parent.width
-                height: parent.height - notesText.height - Constants.SIZE_ROW_V_SPACE
+                height: parent.height - notesText.height - notesTextDescription.height - 2 * Constants.SIZE_ROW_V_SPACE
                 color: "white"
-                anchors.top :notesText.bottom
+                anchors.top :notesTextDescription.bottom
                 anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                 opacity: 1
 
@@ -109,7 +119,7 @@ Item {
                         height: flickable.height
                         focus: true
                         wrapMode: TextEdit.Wrap
-                        font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.pointSize: Constants.SIZE_TEXT_FIELD
                         color: Constants.COLOR_TEXT_BODY
                     }
 
@@ -151,7 +161,7 @@ Item {
                 id: dateText
                 text: qsTranslate("PageCardNotes","STR_NOTES_PAGE_SIZE")
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pixelSize: Constants.SIZE_TEXT_LABEL
+                font.pointSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -184,7 +194,7 @@ Item {
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                font.pixelSize: Constants.SIZE_TEXT_FIELD
+                font.pointSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
             }

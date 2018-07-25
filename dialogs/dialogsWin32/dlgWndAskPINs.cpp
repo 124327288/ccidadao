@@ -31,10 +31,8 @@
 #define IDC_EDIT_PIN1 3
 #define IDC_EDIT_PIN2 4
 #define IDC_EDIT_PIN3 5
-#define IMG_SIZE 128
 #define IDC_EDIT 3
-#define IDB_KeypadStart 10
-#define IDB_KeypadEnd   21
+
 #define KP_BTN_SIZE 48
 #define KP_LBL_SIZE 24
 
@@ -44,23 +42,21 @@
 
 std::wstring langchange = CConfig::GetString(CConfig::EIDMW_CONFIG_PARAM_GENERAL_LANGUAGE);
 
-dlgWndAskPINs::dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wstring & Header, std::wstring & PINName, bool UseKeypad, HWND Parent )
+dlgWndAskPINs::dlgWndAskPINs(DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wstring & Header, std::wstring & PINName, bool isUnlock, bool dontAskPUK, HWND Parent)
 :Win32Dialog(L"WndAskPINs")
 {
-
+	hbrBkgnd = NULL;
 	InputField1_OK = InputField2_OK = InputField3_OK = false;
 	Pin1Result[0] = ' ';
 	Pin1Result[1] = (char)0;
 	Pin2Result[0] = ' ';
 	Pin2Result[1] = (char)0;
 	DrawError = false;
+	m_dontAskPIN1 = dontAskPUK;
 
 	std::wstring tmpTitle = L"";
-	/*if(wcscmp(L"nl",langchange.c_str())==0)
-		tmpTitle += (L"Renovar o código PIN");
-		else*/
-
-	if (PINName.find(L"PUK") != std::wstring::npos)
+	
+	if (isUnlock)
 		tmpTitle += GETSTRING_DLG(Unblock);
 	else
 		tmpTitle += GETSTRING_DLG(RenewingPinCode);
@@ -80,31 +76,30 @@ dlgWndAskPINs::dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wst
 		RECT clientRect;
 		GetClientRect(m_hWnd, &clientRect);
 
-
-		TextFont = GetSystemFont();
-
-		HWND hOkButton = CreateWindow(
-			L"BUTTON", GETSTRING_DLG(Ok), WS_CHILD | WS_VISIBLE | WS_TABSTOP,
-			clientRect.right - 180, clientRect.bottom - 55, 72, 24,
+		OK_Btn = CreateWindow(
+			L"BUTTON", GETSTRING_DLG(Ok), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_TEXT | BS_FLAT,
+			clientRect.right - 180, clientRect.bottom - 40, 72, 24,
 			m_hWnd, (HMENU)IDB_OK, m_hInstance, NULL);
-		EnableWindow(hOkButton, false);
+		EnableWindow(OK_Btn, false);
 
-		HWND hCancelButton = CreateWindow(
-			L"BUTTON", GETSTRING_DLG(Cancel), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
-			clientRect.right - 100, clientRect.bottom - 55, 72, 24,
+		Cancel_Btn = CreateWindow(
+			L"BUTTON", GETSTRING_DLG(Cancel), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_TEXT | BS_FLAT,
+			clientRect.right - 100, clientRect.bottom - 40, 72, 24,
 			m_hWnd, (HMENU)IDB_CANCEL, m_hInstance, NULL);
 
 		DWORD dwStyle = WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_PASSWORD;
 		if (pinInfo1.ulFlags & PIN_FLAG_DIGITS)
 			dwStyle |= ES_NUMBER;
 
+		if (!m_dontAskPIN1) {
+			HWND hTextEdit1 = CreateWindowEx(WS_EX_CLIENTEDGE,
+				L"EDIT", L"", dwStyle,
+				clientRect.right / 2 + 20, clientRect.bottom - 150, 160, 26,
+				m_hWnd, (HMENU)IDC_EDIT_PIN1, m_hInstance, NULL);
 
-		HWND hTextEdit1 = CreateWindowEx(WS_EX_CLIENTEDGE,
-			L"EDIT", L"", dwStyle,
-			clientRect.right / 2 + 110, clientRect.bottom - 150, 80, 26,
-			m_hWnd, (HMENU)IDC_EDIT_PIN1, m_hInstance, NULL);
-		SendMessage(hTextEdit1, EM_LIMITTEXT, m_ulPin1MaxLen, 0);
-
+			SendMessage(hTextEdit1, EM_LIMITTEXT, m_ulPin1MaxLen, 0);
+			SendMessage(hTextEdit1, WM_SETFONT, (WPARAM)TextFont, 0);
+		}
 
 		dwStyle = WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_PASSWORD;
 		if (pinInfo2.ulFlags & PIN_FLAG_DIGITS)
@@ -112,47 +107,46 @@ dlgWndAskPINs::dlgWndAskPINs( DlgPinInfo pinInfo1, DlgPinInfo pinInfo2, std::wst
 
 		HWND hTextEdit2 = CreateWindowEx(WS_EX_CLIENTEDGE,
 			L"EDIT", L"", dwStyle,
-			clientRect.right / 2 + 110, clientRect.bottom - 120, 80, 26,
+			clientRect.right / 2 + 20, clientRect.bottom - 120, 160, 26,
 			m_hWnd, (HMENU)IDC_EDIT_PIN2, m_hInstance, NULL);
 		SendMessage(hTextEdit2, EM_LIMITTEXT, m_ulPin1MaxLen, 0);
 
 		HWND hTextEdit3 = CreateWindowEx(WS_EX_CLIENTEDGE,
 			L"EDIT", L"", dwStyle,
-			clientRect.right / 2 + 110, clientRect.bottom - 90, 80, 26,
+			clientRect.right / 2 + 20, clientRect.bottom - 90, 160, 26,
 			m_hWnd, (HMENU)IDC_EDIT_PIN3, m_hInstance, NULL);
 		SendMessage(hTextEdit3, EM_LIMITTEXT, m_ulPin1MaxLen, 0);
 
-		std::wstring oldPin_label = PINName.find(L"PUK") != std::wstring::npos ? GETSTRING_DLG(Puk) : GETSTRING_DLG(CurrentPin);
+		std::wstring oldPin_label = isUnlock ? GETSTRING_DLG(Puk) : GETSTRING_DLG(CurrentPin);
+		int labelsX = 55;
 
-		HWND hStaticText1 = CreateWindow(
-			L"STATIC", oldPin_label.c_str(), WS_CHILD | WS_VISIBLE | SS_LEFT,
-			210, clientRect.bottom - 146, clientRect.right / 2 - 120, 22,
-			m_hWnd, (HMENU)IDC_STATIC, m_hInstance, NULL);
+		if (!m_dontAskPIN1) {
+			HWND hStaticText1 = CreateWindow(
+				L"STATIC", oldPin_label.c_str(), WS_CHILD | WS_VISIBLE | SS_LEFT,
+				labelsX, clientRect.bottom - 146, clientRect.right / 2 - 120, 22,
+				m_hWnd, (HMENU)IDC_STATIC, m_hInstance, NULL);
+			SendMessage(hStaticText1, WM_SETFONT, (WPARAM)TextFont, 0);
+		}
 
 		HWND hStaticText2 = CreateWindow(
 			L"STATIC", GETSTRING_DLG(NewPin), WS_CHILD | WS_VISIBLE | SS_LEFT,
-			210, clientRect.bottom - 116, clientRect.right / 2 - 100, 22,
+			labelsX, clientRect.bottom - 116, clientRect.right / 2 - 100, 22,
 			m_hWnd, (HMENU)IDC_STATIC, m_hInstance, NULL);
 
 		HWND hStaticText3 = CreateWindow(
 			L"STATIC", GETSTRING_DLG(ConfirmNewPin), WS_CHILD | WS_VISIBLE | SS_LEFT,
-			210, clientRect.bottom - 86, clientRect.right / 2 - 100, 22,
+			labelsX, clientRect.bottom - 86, clientRect.right / 2 - 40, 22,
 			m_hWnd, (HMENU)IDC_STATIC, m_hInstance, NULL);
 
 
-		SendMessage(hStaticText1, WM_SETFONT, (WPARAM)TextFont, 0);
 		SendMessage(hStaticText2, WM_SETFONT, (WPARAM)TextFont, 0);
 		SendMessage(hStaticText3, WM_SETFONT, (WPARAM)TextFont, 0);
+		
+		SendMessage(hTextEdit2, WM_SETFONT, (WPARAM)TextFont, 0);
+		SendMessage(hTextEdit3, WM_SETFONT, (WPARAM)TextFont, 0);
 
-		SendMessage(hOkButton, WM_SETFONT, (WPARAM)TextFont, 0);
-		SendMessage(hCancelButton, WM_SETFONT, (WPARAM)TextFont, 0);
-
-		if (wcscmp(L"PIN da Assinatura", PINName.c_str()) == 0)
-			ImagePIN = LoadBitmap(m_hInstance, MAKEINTRESOURCE(IDB_BITMAP2));
-		else
-			ImagePIN = LoadBitmap(m_hInstance, MAKEINTRESOURCE(IDB_BITMAP1));
-
-		CreateBitapMask(ImagePIN, ImagePIN_Mask);
+		SendMessage(OK_Btn, WM_SETFONT, (WPARAM)TextFont, 0);
+		SendMessage(Cancel_Btn, WM_SETFONT, (WPARAM)TextFont, 0);
 
 		SetFocus(GetDlgItem(m_hWnd, IDC_EDIT));
 
@@ -197,6 +191,8 @@ bool dlgWndAskPINs::CheckPin2Result()
 		return true;
 	return false;
 }
+
+/*
 void dlgWndAskPINs::SetHeaderText(const wchar_t * txt)
 {
 	RECT rect;
@@ -209,6 +205,7 @@ void dlgWndAskPINs::SetHeaderText(const wchar_t * txt)
 	InvalidateRect( m_hWnd, &rect, TRUE );
 	UpdateWindow( m_hWnd );
 }
+*/
 
 LRESULT dlgWndAskPINs::ProcecEvent
 			(	UINT		uMsg,			// Message For This Window
@@ -231,7 +228,7 @@ LRESULT dlgWndAskPINs::ProcecEvent
 
 						unsigned int len = (unsigned int)SendMessage(GetDlgItem(m_hWnd, IDC_EDIT_PIN1), WM_GETTEXTLENGTH, 0, 0);
 						InputField1_OK = len >= m_ulPin1MinLen;
-						EnableWindow(GetDlgItem(m_hWnd, IDOK), (InputField1_OK && InputField2_OK && InputField3_OK));
+						EnableWindow(GetDlgItem(m_hWnd, IDOK), ((InputField1_OK || m_dontAskPIN1) && InputField2_OK && InputField3_OK));
 
 					}
 					return TRUE;
@@ -242,7 +239,7 @@ LRESULT dlgWndAskPINs::ProcecEvent
 					{
 						unsigned int len = (unsigned int)SendMessage( GetDlgItem( m_hWnd, IDC_EDIT_PIN2 ), WM_GETTEXTLENGTH, 0, 0 );
 						InputField2_OK = len >= m_ulPin1MinLen;
-						EnableWindow( GetDlgItem( m_hWnd, IDOK ), ( InputField1_OK && InputField2_OK && InputField3_OK ) );
+						EnableWindow(GetDlgItem(m_hWnd, IDOK), ((InputField1_OK || m_dontAskPIN1) && InputField2_OK && InputField3_OK));
 					}
 					return TRUE;
 				}
@@ -252,7 +249,7 @@ LRESULT dlgWndAskPINs::ProcecEvent
 					{
 						unsigned int len = (unsigned int)SendMessage( GetDlgItem( m_hWnd, IDC_EDIT_PIN3 ), WM_GETTEXTLENGTH, 0, 0 );
 						InputField3_OK = len >= m_ulPin1MinLen;
-						EnableWindow( GetDlgItem( m_hWnd, IDOK ), ( InputField1_OK && InputField2_OK && InputField3_OK ) );
+						EnableWindow(GetDlgItem(m_hWnd, IDOK), ((InputField1_OK || m_dontAskPIN1) && InputField2_OK && InputField3_OK));
 					}
 					return TRUE;
 				}
@@ -281,80 +278,8 @@ LRESULT dlgWndAskPINs::ProcecEvent
 					dlgResult = eIDMW::DLG_CANCEL;
 					close();
 					return TRUE;
-
-				default:
-					unsigned short tmp = LOWORD(wParam);
-					if( tmp >= IDB_KeypadStart && tmp < IDB_KeypadEnd ) // Keypad Buttons
-					{
-						wchar_t nameBuf[128];
-						SendMessage( GetDlgItem( m_hWnd, IDC_EDIT ), WM_GETTEXT, (WPARAM)(sizeof(nameBuf)), (LPARAM)nameBuf );
-						size_t iPos = wcslen( nameBuf );
-						if( iPos >= m_ulPinMaxLen )
-							return TRUE;
-						if( tmp == IDB_KeypadEnd - 1 ) // Keypad Button 0
-						{
-							nameBuf[ iPos++ ] = L'0';
-						}
-						else // Keypad Button 1 to 9
-						{
-							nameBuf[ iPos++ ] = 49 + tmp - IDB_KeypadStart;
-						}
-							nameBuf[ iPos++ ] = NULL;				
-						SendMessage( GetDlgItem( m_hWnd, IDC_EDIT ), WM_SETTEXT, 0, (LPARAM)nameBuf );
-						return TRUE;
-					}
-					if( tmp == IDB_KeypadEnd ) // Keypad Button CE
-					{
-						SendMessage( GetDlgItem( m_hWnd, IDC_EDIT ), WM_SETTEXT, 0, (LPARAM)"" );
-					}
-					return DefWindowProc( m_hWnd, uMsg, wParam, lParam );
+			
 			}
-		}
-
-		case WM_DRAWITEM:
-		{
-			LPDRAWITEMSTRUCT lpDrawItem = (LPDRAWITEMSTRUCT)lParam;
-			if( lpDrawItem->CtlType & ODT_BUTTON )
-			{
-				FillRect( lpDrawItem->hDC, &lpDrawItem->rcItem, CreateSolidBrush( GetSysColor( COLOR_3DFACE ) ) );
-				HDC hdcMem = CreateCompatibleDC( lpDrawItem->hDC );
-				SelectObject( hdcMem , ImageKP_BTN[11] );
-				MaskBlt( lpDrawItem->hDC, (lpDrawItem->rcItem.right - KP_BTN_SIZE) / 2, (lpDrawItem->rcItem.bottom - KP_BTN_SIZE) / 2,
-					410, 262, hdcMem, 0, 0,
-					ImageKP_BTN_Mask, 0, 0, MAKEROP4( SRCCOPY, 0x00AA0029 ) );
-
-				unsigned int iNum = 0;
-				if( lpDrawItem->CtlID == IDB_KeypadEnd )
-				{
-					iNum = 10;
-				}
-				else if( lpDrawItem->CtlID >= IDB_KeypadStart && lpDrawItem->CtlID < IDB_KeypadEnd -2 )
-				{
-					iNum = lpDrawItem->CtlID - IDB_KeypadStart +1;
-				}
-				SelectObject( hdcMem , ImageKP_BTN[iNum] );
-				BitBlt( lpDrawItem->hDC, (lpDrawItem->rcItem.right - KP_LBL_SIZE) / 2, (lpDrawItem->rcItem.bottom - KP_LBL_SIZE) / 2, 
-						KP_LBL_SIZE, KP_LBL_SIZE, hdcMem, 0, 0, SRCCOPY );
-				DeleteDC(hdcMem);
-
-				if( lpDrawItem->itemState & ODS_SELECTED )
-					DrawEdge( lpDrawItem->hDC, &lpDrawItem->rcItem, EDGE_RAISED, BF_RECT );
-				
-				if( lpDrawItem->itemState & ODS_HOTLIGHT )
-					DrawEdge( lpDrawItem->hDC, &lpDrawItem->rcItem, EDGE_SUNKEN, BF_RECT );
-				
-				if( lpDrawItem->itemState & ODS_FOCUS )
-				{
-					GetClientRect( lpDrawItem->hwndItem, &rect );
-					rect.left += 2;
-					rect.right -= 2;
-					rect.top += 2;
-					rect.bottom -= 2;
-					DrawFocusRect( lpDrawItem->hDC, &rect );
-				}
-				return TRUE;
-			}
-			break;
 		}
 
 		case WM_SIZE:
@@ -366,32 +291,50 @@ LRESULT dlgWndAskPINs::ProcecEvent
 			break;
 		}
 
+		//Set the TextColor for the subwindows hTextEdit and hStaticText
+		case WM_CTLCOLORSTATIC:
+		{
+			//TODO: grey button
+			COLORREF grey = RGB(0xD6, 0xD7, 0xD7);
+			COLORREF white = RGB(0xFF, 0xFF, 0xFF);
+			HDC hdcStatic = (HDC)wParam;
+			SetTextColor(hdcStatic, RGB(0x3C, 0x5D, 0xBC));
+
+			MWLOG(LEV_DEBUG, MOD_DLG, L"  --> dlgWndAskPINs::ProcecEvent WM_CTLCOLORSTATIC (wParam=%X, lParam=%X)", wParam, lParam);
+			if ((HWND)lParam == OK_Btn || (HWND)lParam == Cancel_Btn)
+			{
+				SetBkColor(hdcStatic, grey);
+				return (INT_PTR)CreateSolidBrush(grey);
+			}
+
+			SetBkColor(hdcStatic, white);
+
+			if (hbrBkgnd == NULL)
+			{
+				hbrBkgnd = CreateSolidBrush(white);
+			}
+
+			return (INT_PTR)hbrBkgnd;
+		}
+
 		case WM_PAINT:
 		{
 			m_hDC = BeginPaint(m_hWnd, &ps);
-
-			HDC hdcMem;
+			SetTextColor(m_hDC, RGB(0x3C, 0x5D, 0xBC));
+			
 			GetClientRect(m_hWnd, &rect);
-
-			hdcMem = CreateCompatibleDC(m_hDC);
-			SelectObject(hdcMem, ImagePIN);
-
-			MaskBlt(m_hDC, 4, 4, 410, 261,
-				hdcMem, 0, 0, ImagePIN_Mask, 0, 0,
-				MAKEROP4(SRCCOPY, 0x00AA0029));
-			rect.bottom = IMG_SIZE + 52;
-			rect.top += 52;
-
-			DeleteDC(hdcMem);
-
-			rect.left += 225;
+			rect.bottom -= 60;
+			rect.top = 20;
+			rect.left += 55;
 			rect.right -= 20;
-			SetBkColor(m_hDC, GetSysColor(COLOR_3DFACE));
-			SelectObject(m_hDC, TextFont);
+
+			SetBkColor(m_hDC, RGB(255, 255, 255));
+			SelectObject(m_hDC, TextFontHeader);
 			DrawText(m_hDC, szHeader, -1, &rect, DT_WORDBREAK);
 
 			if (DrawError)
 			{
+				SelectObject(m_hDC, TextFont);
 				SetTextColor(m_hDC, RGB(255, 0, 0));
 
 				GetClientRect(m_hWnd, &rect);

@@ -42,6 +42,8 @@ PageCardAdressForm {
 
             propertyBusyIndicator.running = false
 
+            propertyButtonConfirmOfAddress.enabled = true
+
             gapi.setAddressLoaded(true)
             if(!Constants.USE_SDK_PIN_UI_POPUP)
                 dialogTestPin.visible = false
@@ -85,7 +87,9 @@ PageCardAdressForm {
                     mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
                             qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
                 }
+                propertyButtonConfirmOfAddress.enabled = false
                 mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+                mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
             }
             propertyDistrict.propertyDateField.text = ""
             propertyMunicipality.propertyDateField.text = ""
@@ -143,6 +147,7 @@ PageCardAdressForm {
                 mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
                         qsTranslate("Popup Card","STR_POPUP_CARD_READ_UNKNOWN")
                 mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+                mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
             }
         }
     }
@@ -164,7 +169,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pixelSize: 16
+            font.pointSize: 16
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -182,7 +187,7 @@ PageCardAdressForm {
                     id: textBadPin
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -216,7 +221,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pixelSize: 16
+            font.pointSize: 16
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -235,7 +240,7 @@ PageCardAdressForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_ADDRESS")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -252,7 +257,7 @@ PageCardAdressForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_FIELD
+                    font.pointSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPin.right
                     anchors.bottom: parent.bottom
@@ -273,7 +278,7 @@ PageCardAdressForm {
             }
 
             var triesLeft = gapi.verifyAddressPin(textFieldPin.text)
-            mainFormID.opacity = 1.0
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
             if (triesLeft === 3) {
                 propertyBusyIndicator.running = true
                 gapi.startReadingAddress()
@@ -292,7 +297,7 @@ PageCardAdressForm {
             }
         }
         onRejected: {
-            mainFormID.opacity = 1.0
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
         }
     }
 
@@ -314,7 +319,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pixelSize: 16
+            font.pointSize: 16
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -330,14 +335,20 @@ PageCardAdressForm {
                 Text {
                     id: textPinMsgConfirm
                     text: qsTr("STR_ADDRESS_CHANGE_TEXT")
+                          + "<a href=\"https://www.portaldocidadao.pt/web/instituto-dos-registos-e-do-notariado/cartao-de-cidadao-alteracao-de-morada\">"
+                          + " "+ qsTr("STR_ADDRESS_CHANGE_TEXT_LINK")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                     height: parent.height
                     width: parent.width
                     anchors.bottom: parent.bottom
+                    wrapMode: Text.WordWrap
+                    onLinkActivated: {
+                        Qt.openUrlExternally(link)
+                    }
                 }
             }
 
@@ -352,7 +363,7 @@ PageCardAdressForm {
                     text:  qsTr("STR_ADDRESS_CHANGE_NUMBER")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -366,7 +377,7 @@ PageCardAdressForm {
                     font.italic: textFieldNumProcess.text === "" ? true: false
                     placeholderText: qsTr("STR_ADDRESS_CHANGE_NUMBER_OP")
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_FIELD
+                    font.pointSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinCurrent.right
                     anchors.bottom: parent.bottom
@@ -383,7 +394,7 @@ PageCardAdressForm {
                     text: qsTr("STR_ADDRESS_CHANGE_CODE")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -397,7 +408,7 @@ PageCardAdressForm {
                     font.italic: textFieldConfirmAddress.text === "" ? true: false
                     placeholderText: qsTr("STR_ADDRESS_CHANGE_CODE_OP")
                     font.family: lato.name
-                    font.pixelSize: Constants.SIZE_TEXT_FIELD
+                    font.pointSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinNew.right
                     anchors.bottom: parent.bottom
@@ -405,20 +416,45 @@ PageCardAdressForm {
             }
         }
 
-        standardButtons: {
-            textFieldNumProcess.length !== 0 && textFieldConfirmAddress.length !== 0
-                    ? DialogButtonBox.Ok | DialogButtonBox.Cancel : DialogButtonBox.Cancel
+        Item {
+            width: dialogConfirmOfAddress.availableWidth
+            height: Constants.HEIGHT_BOTTOM_COMPONENT
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 180
+            Button {
+                width: Constants.WIDTH_BUTTON
+                height: Constants.HEIGHT_BOTTOM_COMPONENT
+                text: qsTr("STR_ADDRESS_CHANGE_CANCEL")
+                anchors.left: parent.left
+                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.family: lato.name
+                font.capitalization: Font.MixedCase
+                onClicked: {
+                    dialogConfirmOfAddress.close()
+                    mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
+                }
+            }
+            Button {
+                width: Constants.WIDTH_BUTTON
+                height: Constants.HEIGHT_BOTTOM_COMPONENT
+                text: qsTr("STR_ADDRESS_CHANGE_CONFIRM")
+                anchors.right: parent.right
+                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.family: lato.name
+                font.capitalization: Font.MixedCase
+                enabled: textFieldNumProcess.length !== 0 && textFieldConfirmAddress.length !== 0 ? true : false
+                onClicked: {
+                    gapi.changeAddress(textFieldNumProcess.text,textFieldConfirmAddress.text)
+                    progressBarIndeterminate.visible = true
+                    textFieldNumProcess.text = ""
+                    textFieldConfirmAddress.text = ""
+                    dialogConfirmOfAddress.close()
+                    dialogConfirmOfAddressProgress.open()
+                }
+            }
         }
-
-        onAccepted: {
-            gapi.changeAddress(textFieldNumProcess.text,textFieldConfirmAddress.text)
-            progressBarIndeterminate.visible = true
-            textFieldNumProcess.text = ""
-            textFieldConfirmAddress.text = ""
-            dialogConfirmOfAddressProgress.open()
-        }
-        onRejected: {
-            mainFormID.opacity = 1.0
+        onRejected:{
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
         }
     }
 
@@ -440,7 +476,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pixelSize: 16
+            font.pointSize: 16
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -458,7 +494,7 @@ PageCardAdressForm {
                     text: ""
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: Constants.SIZE_TEXT_LABEL
+                    font.pointSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                     height: parent.height
@@ -479,7 +515,6 @@ PageCardAdressForm {
                 visible: true
                 indeterminate: false
                 z:1
-
             }
 
             ProgressBar {
@@ -494,25 +529,37 @@ PageCardAdressForm {
                 indeterminate: true
                 z:1
             }
-
         }
 
-        standardButtons: {
-            DialogButtonBox.Ok
-        }
+        Item {
+            width: dialogConfirmOfAddress.availableWidth
+            height: Constants.HEIGHT_BOTTOM_COMPONENT
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 180
 
-        onAccepted: {
-            mainFormID.opacity = 1.0
+            Button {
+                width: Constants.WIDTH_BUTTON
+                height: Constants.HEIGHT_BOTTOM_COMPONENT
+                text: qsTr("STR_ADDRESS_CHANGE_OK")
+                anchors.right: parent.right
+                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.family: lato.name
+                font.capitalization: Font.MixedCase
+                visible: progressBarIndeterminate.visible ? false : true
+                onClicked: {
+                    mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
+                    dialogConfirmOfAddressProgress.close()
+                }
+            }
         }
-        onRejected: {
-            mainFormID.opacity = 1.0
+        onRejected:{
+            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
         }
     }
 
-
     propertyButtonConfirmOfAddress{
         onClicked: {
-            mainFormID.opacity = 0.5
+            mainFormID.opacity = Constants.OPACITY_POPUP_FOCUS
             dialogConfirmOfAddress.open()
         }
 
@@ -526,10 +573,19 @@ PageCardAdressForm {
             gapi.startReadingAddress()
         }else{
             if(Constants.USE_SDK_PIN_UI_POPUP){
-                var triesLeft = gapi.verifyAddressPin("")
-                if (triesLeft === 3) {
-                    propertyBusyIndicator.running = true
-                    gapi.startReadingAddress()
+                if (gapi.getTriesLeftAddressPin() === 0) {
+                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                            qsTranslate("Popup PIN","STR_POPUP_ERROR")
+                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                            qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_ADDRESS_BLOCKED")
+                    mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+                    mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
+                }else{
+                    var triesLeft = gapi.verifyAddressPin("")
+                    if (triesLeft === 3) {
+                        propertyBusyIndicator.running = true
+                        gapi.startReadingAddress()
+                    }
                 }
             }else{
                 dialogTestPin.open()

@@ -1,4 +1,8 @@
+include(../_Builds/eidcommon.mak)
+
 TEMPLATE = app
+
+macx: ICON = appicon.icns
 
 QT += quick quickcontrols2 concurrent
 
@@ -13,26 +17,38 @@ CONFIG += c++11
 SOURCES += main.cpp \
     appcontroller.cpp \
     gapi.cpp \
-    SCAPServices/SCAPAttributeSupplierBindingProxy.cpp \
-    SCAPServices/SCAPC.cpp \
-    SCAPServices/SCAPPDFSignatureSoapBindingProxy.cpp \
+    SCAP-Services2/SCAPAttributeSupplierBindingProxy.cpp \
+    SCAP-Services2/SCAPC.cpp \
+    SCAP-Services2/SCAPPDFSignatureWithAttachSoapBindingProxy.cpp \
     pdfsignatureclient.cpp \
     ErrorConn.cpp \
     stdsoap2.cpp \
     scapsignature.cpp \
     scapcompanies.cpp \
     filesavedialog.cpp \
-    genpur.cpp \
-    certificates.cpp
+    certificates.cpp \
+    proxyinfo.cpp \
+    singleapplication.cpp
 
 INCLUDEPATH += /usr/include/poppler/qt5/
 INCLUDEPATH += ../CMD/services
 INCLUDEPATH += ../applayer
 INCLUDEPATH += ../common
 INCLUDEPATH += ../cardlayer
+INCLUDEPATH += ../eidlib
 INCLUDEPATH += ../_Builds
 
+#Don't mess up the source folder with generated files
+OBJECTS_DIR = build
+MOC_DIR = build
 
+#Include paths for MacOS homebrew libraries
+macx: INCLUDEPATH += /usr/local/Cellar/openssl/1.0.2o_1/include/
+macx: INCLUDEPATH += /usr/local/Cellar/poppler/0.53.0/include/poppler/qt5/
+macx: LIBS += -L/usr/local/Cellar/openssl/1.0.2o_1/lib/
+macx: LIBS += -L/usr/local/Cellar/poppler/0.53.0/lib/
+
+unix:!macx: LIBS += -Wl,-rpath-link,../lib
 LIBS += -L../lib -lpteidlib -lssl -lcrypto -lpoppler-qt5 -lCMDServices
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
@@ -73,11 +89,19 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #Needed for the gsoap binding proxies
 DEFINES += WITH_OPENSSL
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
+###
+### Installation setup
+###
+target.path = $${INSTALL_DIR_BIN}
 
+## the following lines are needed in order to have
+## the translation files included in the set
+## of files to install
+translations.path = $${INSTALL_DIR_BIN}
+translations.files += eidmw_en.qm \
+                eidmw_nl.qm
+
+INSTALLS += target translations
 
 HEADERS += \
     appcontroller.h \
@@ -85,5 +109,6 @@ HEADERS += \
     filesavedialog.h \
     scapsignature.h \
     Settings.h \
-    genpur.h \
-    certificates.h
+    certificates.h \
+    singleapplication.h \
+    singleapplication_p.h

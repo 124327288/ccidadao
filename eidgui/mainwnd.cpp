@@ -202,7 +202,7 @@ MainWnd::MainWnd( GUISettings& settings, QWidget *parent )
 
 #if !defined(WIN32)
     memset( &m_WndGeometry, -1, sizeof(m_WndGeometry) );
-#endif /* !defined(WIN32) */
+#endif
 
 	GenPur::UI_LANGUAGE CurrLng   = m_Settings.getGuiLanguageCode();
 	GenPur::UI_LANGUAGE LoadedLng = LoadTranslationFile(CurrLng);
@@ -223,15 +223,14 @@ MainWnd::MainWnd( GUISettings& settings, QWidget *parent )
 	flags ^= Qt::WindowMaximizeButtonHint;
 	setWindowFlags( flags );
 
-	// Hide SCAP and other ugly buttons
-	if (!m_Settings.areJavaAppsEnabled()){
-        //m_ui.btnShortcut_SCAPSign->hide();
+	// Hide DSS and XAdES Signature buttons
+	if (!m_Settings.areJavaAppsEnabled()) {
         m_ui.btnShortcut_VerifSign->hide();
 		m_ui.btnShortcut_UnivSign->hide();
 	}
 
-	// Test mode
-	if (!m_Settings.getTestMode() ){
+	// Show test mode label
+	if (!m_Settings.getTestMode() ) {
         m_ui.lbl_testmode->hide();
 	}
 
@@ -320,6 +319,8 @@ MainWnd::MainWnd( GUISettings& settings, QWidget *parent )
 		connect(m_timerReaderList, SIGNAL(timeout()), this, SLOT(updateReaderList()));
 		m_timerReaderList->start(TIMERREADERLIST);
 	}
+
+	applyProxyConfiguration();
 
 	//------------------------------------
 	// set the tray Icon (as it appears in the traybar)
@@ -1878,7 +1879,9 @@ void MainWnd::getCertStatusText(PTEID_CertifStatus certStatus, QString &strCertS
 	case PTEID_CERTIF_STATUS_VALID:
 		strCertStatus = tr("Valid");
 		break;
-	//TODO: Handle the network error with a different string such as "cant validate certificate status"
+	case PTEID_CERTIF_STATUS_EXPIRED:
+		strCertStatus = tr("Expired");
+		break;
 	case PTEID_CERTIF_STATUS_CONNECT:
 		strCertStatus = networkError;
 		break;
@@ -2136,22 +2139,15 @@ void MainWnd::getCardForReading(PTEID_EIDCard * &new_card, bool clearData)
                     case PTEID_CARDTYPE_IAS07:
                     case PTEID_CARDTYPE_IAS101:
                     {
-                        try
-                        {
-                            PTEID_EIDCard& Card = ReaderContext.getEIDCard();
-                            new_card = &Card;
+                        
+                        PTEID_EIDCard& Card = ReaderContext.getEIDCard();
+                        new_card = &Card;
 
-                            const char* readerName = ReaderSet.getReaderName(ReaderIdx);
-                            m_CurrReaderName = readerName;
+                        const char* readerName = ReaderSet.getReaderName(ReaderIdx);
+                        m_CurrReaderName = readerName;
 
-                            ReaderIdx=ReaderEndIdx;		// stop looping as soon as we found a card
-                        }
-                        catch (PTEID_ExCardBadType const& e)
-                        {
-                            QString errcode;
-                            PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "loadCardData failed %s", e.GetError());
-                            errcode = errcode.setNum(e.GetError());
-                        }
+                        ReaderIdx=ReaderEndIdx;		// stop looping as soon as we found a card
+
                     }
                     break;
                     case PTEID_CARDTYPE_UNKNOWN:
@@ -2189,11 +2185,6 @@ void MainWnd::getCardForReading(PTEID_EIDCard * &new_card, bool clearData)
 		QString msg(tr("Index out of range"));
 		ShowPTEIDError( msg );
 	}
-	catch (PTEID_ExCardBadType e)
-	{
-		QString msg(tr("Bad card type"));
-		ShowPTEIDError( msg );
-	}
 	catch (PTEID_ExNoCardPresent e)
 	{
 		QString msg(tr("No card present"));
@@ -2207,11 +2198,6 @@ void MainWnd::getCardForReading(PTEID_EIDCard * &new_card, bool clearData)
 		/* Allow new card data reading */
 		m_mutex_ReadCard.unlock();
 		loadCardData();
-	}
-	catch (PTEID_ExReaderSetChanged e)
-	{
-		QString msg(tr("Readers changed"));
-		ShowPTEIDError( msg );
 	}
 	catch (PTEID_ExBadTransaction& e)
 	{
@@ -2270,7 +2256,7 @@ void MainWnd::loadCardDataAddress( void ) {
 
 	getCardForReading(new_card);
 
-	try	
+	try
 	{
 		if (new_card != NULL)
 		{
@@ -2282,11 +2268,13 @@ void MainWnd::loadCardDataAddress( void ) {
 		}
 	}
 	catch(PTEID_Exception &e) {
-		long errorCode = e.GetError();	 	
-		 	
+		long errorCode = e.GetError();
+
 	    if (errorCode >= EIDMW_SOD_UNEXPECTED_VALUE &&	 	
 	       errorCode <= EIDMW_SOD_ERR_VERIFY_SOD_SIGN)
 	    {
+
+	    	qDebug() << "SOD validation error " << errorCode;
 			QString title = tr("SOD validation");
 			QString msg = tr("SOD validation failed: card data consistency is compromised!");
 			QMessageBox msgBoxcc(QMessageBox::Warning, title, msg, 0, this);
@@ -2426,6 +2414,8 @@ void MainWnd::show_window_parameters() {
 
 	if (dlg->exec())
 	{
+		//Reapply proxy settings
+		applyProxyConfiguration();
 
 		if ( !m_ui.txtIdentity_Name->text().isEmpty())
 			m_ui.lblIdentity_ImgPerson->setPixmap( m_imgPicture );
@@ -3071,7 +3061,7 @@ void MainWnd::LoadDataID(PTEID_EIDCard& Card)
 		this->FutureWatcher.setFuture(future);
 		ProgressExec();
 
-		LoadingErrorCode rc = future.result();	
+		LoadingErrorCode rc = future.result();
 		if (rc == LOADING_ERROR_SOD)
 		{
 			QString title = tr("SOD validation");
@@ -3080,9 +3070,20 @@ void MainWnd::LoadDataID(PTEID_EIDCard& Card)
 			msgBoxcc.setModal(true);
 			msgBoxcc.exec();
 		}
-		else if (rc == LOADING_ERROR_GENERIC) 
+		else if (rc == LOADING_ERROR_SOD_OUTDATED)
 		{
-			
+			QString title = tr("SOD validation");
+			QString msg = tr("SOD validation failed: card data consistency is compromised!") + "<br/><br/>";
+			msg += tr("Please update your software at ")+"<a href=\'https://www.autenticacao.gov.pt/cc-aplicacao\'>Autenticação.Gov</a>" +"<br/><br/>";
+			msg += tr("If this error persists, please contact the"
+					" Citizen Card support line at telephone number +351 211 950 500 or e-mail cartaodecidadao@irn.mj.pt.");
+			QMessageBox msgBoxcc(QMessageBox::Warning, title, msg, 0, this);
+			msgBoxcc.setTextFormat(Qt::RichText);
+			msgBoxcc.setModal(true);
+			msgBoxcc.exec();
+		}
+		else if (rc == LOADING_ERROR_GENERIC)
+		{
 			QString	msg = tr("Error loading card data");
 			
 			ShowPTEIDError( msg );
@@ -4398,6 +4399,114 @@ bool MainWnd::ProviderNameCorrect (PCCERT_CONTEXT pCertContext )
 #endif
 
 
+#define AUTOUPDATES_URL "https://www.autenticacao.gov.pt/documents/10179/11461/version.txt"
+
+
+/**
+ Apply application-wide proxy settings
+*/
+void MainWnd::applyProxyConfiguration() {
+
+	eIDMW::PTEID_Config config(eIDMW::PTEID_PARAM_PROXY_HOST);
+	eIDMW::PTEID_Config config2(eIDMW::PTEID_PARAM_PROXY_PORT);
+	eIDMW::PTEID_Config config_username(eIDMW::PTEID_PARAM_PROXY_USERNAME);
+	eIDMW::PTEID_Config config_pwd(eIDMW::PTEID_PARAM_PROXY_PWD);
+	QString pac_url;
+	QNetworkProxy proxy;
+
+	//Before trying any request configure the proxy autoconfig
+	/* XX: it should only require this to use the system proxy but it does not fallback to 
+	//the configured PAC script if there is WPAD config but it is somewhat broken
+	 QNetworkProxyFactory::setUseSystemConfiguration(true); */
+
+	eIDMW::PTEID_Config config_pacfile(eIDMW::PTEID_PARAM_PROXY_PACFILE);
+	const char * pacfile_url = config_pacfile.getString();
+
+	if (pacfile_url != NULL && strlen(pacfile_url) > 0)
+	{
+		pac_url = QString(pacfile_url);
+	}
+
+    std::string proxy_host = config.getString();
+    std::string proxy_username = config_username.getString();
+    std::string proxy_pwd = config_pwd.getString();
+    long proxy_port = config2.getLong();
+
+	if (!proxy_host.empty() && proxy_port != 0)
+	{
+		PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "applyProxyConfiguration: using manual proxy config");
+		proxy.setType(QNetworkProxy::HttpProxy);
+		proxy.setHostName(QString::fromStdString(proxy_host));
+		proxy.setPort(proxy_port);
+
+		if (!proxy_username.empty())
+		{
+			proxy.setUser(QString::fromStdString(proxy_username));
+			proxy.setPassword(QString::fromStdString(proxy_pwd));
+		}
+
+		QNetworkProxy::setApplicationProxy(proxy);
+	}
+	else if (!pac_url.isEmpty())
+	{
+		std::string proxy_port_str;
+		PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "applyProxyConfiguration: using system proxy config");
+
+		PTEID_GetProxyFromPac(pac_url.toUtf8().constData(), AUTOUPDATES_URL, &proxy_host, &proxy_port_str);
+
+		proxy.setType(QNetworkProxy::HttpProxy);
+		proxy.setHostName(QString::fromStdString(proxy_host));
+		proxy.setPort(atol(proxy_port_str.c_str()));
+		QNetworkProxy::setApplicationProxy(proxy);
+	}
+	else {
+		//Reset proxy settings
+		QNetworkProxy no_proxy(QNetworkProxy::NoProxy);
+		QNetworkProxy::setApplicationProxy(no_proxy);
+	}
+}
+
+bool CardDataLoader::isUpdateAvailable(QString const &remote_data) {
+	
+	QString ver(WIN_GUI_VERSION_STRING);
+
+	//Only consider the first line of version.txt
+	QString firstLine = remote_data.left(remote_data.indexOf('\n'));
+	PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "%s: Local version: %s", __FUNCTION__, ver.toUtf8().constData());
+	PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "%s: Remote version: %s", __FUNCTION__, firstLine.toUtf8().constData());
+
+	QStringList list1 = ver.split(",");
+
+	QStringList list2 = firstLine.split(",");
+
+	if (list2.size() < 3)
+	{
+		PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui",
+			"%s: Wrong data returned from server or Proxy HTML error!", __FUNCTION__);
+
+		return false;
+	}
+
+	//Parse local version into PteidVersion
+	PteidVersion local_version;
+	local_version.major = list1.at(0).toInt();
+	local_version.minor = list1.at(1).toInt();
+	local_version.release = list1.at(2).toInt();
+
+	//Parse remote version into PteidVersion
+	PteidVersion remote_version;
+	remote_version.major = list2.at(0).toInt();
+	remote_version.minor = list2.at(1).toInt();
+	remote_version.release = list2.at(2).toInt();
+
+	PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "%s: Parsed versions: Remote= %d.%d.%d Local= %d.%d.%d", 
+		__FUNCTION__,
+		remote_version.major, remote_version.minor, remote_version.release, 
+		local_version.major, local_version.minor, local_version.release);
+
+	return compareVersions(local_version, remote_version) > 0 ;
+}
+
 LoadingErrorCode CardDataLoader::Load()
 {
 	this->mwnd->clearErrorSOD();
@@ -4410,15 +4519,40 @@ LoadingErrorCode CardDataLoader::Load()
 	catch (PTEID_Exception &e)
 	{
 		qDebug() << "Caught exception in CardDataLoader::Load()..." << e.GetError();
-		long errorCode = e.GetError();	 	
-		 	
-	    if (errorCode >= EIDMW_SOD_UNEXPECTED_VALUE &&	 	
-	       errorCode <= EIDMW_SOD_ERR_VERIFY_SOD_SIGN)	 	
-	    {	 	
+		long errorCode = e.GetError();
+
+		if (errorCode == EIDMW_SOD_ERR_VERIFY_SOD_SIGN) {
+			//Check for outdated MW which could indicate missing PKI certificates
+			QNetworkAccessManager manager;
+
+			reply = manager.get(QNetworkRequest(QUrl(AUTOUPDATES_URL)));
+
+			//This is a way to make the QNetwork call synchronous
+			QEventLoop loop;
+			QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+			loop.exec();
+
+			if (reply->error() == QNetworkReply::NoError) {
+				QByteArray replyData = reply->readAll();
+				QString qsReplyData(replyData);
+
+				if (isUpdateAvailable(replyData)) {
+					return LOADING_ERROR_SOD_OUTDATED;	
+				}
+				else
+					return LOADING_ERROR_SOD;
+			}
+			else {
+				return LOADING_ERROR_SOD;
+			}
+		}
+	    else if (errorCode >= EIDMW_SOD_UNEXPECTED_VALUE &&	 	
+	       errorCode <= EIDMW_SOD_ERR_HASH_NO_MATCH_PUBLIC_KEY)	 	
+	    {
 	       return LOADING_ERROR_SOD;
 	    }
-
-		return LOADING_ERROR_GENERIC;
+		else
+			return LOADING_ERROR_GENERIC;
 	}
 	catch(std::exception &ex) {
 		qDebug() << "Caught std::exception in CardDataLoader::Load()..." << ex.what();

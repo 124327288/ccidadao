@@ -19,8 +19,8 @@ Item {
 
     Text {
         id: textAppName
-        text: qsTranslate("PageHelpAbout","STR_HELP_TITLE")
-        font.pixelSize: Constants.SIZE_TEXT_TITLE
+        text: qsTranslate("PageHelpDocOnline","STR_HELP_DOC_TITLE") + " " + mainWindow.title
+        font.pointSize: Constants.SIZE_TEXT_TITLE
         color: Constants.COLOR_TEXT_TITLE
         font.family: lato.name
         font.bold: true
@@ -29,17 +29,26 @@ Item {
     }
 
     Text {
-        id: textVersion
-        font.pixelSize: Constants.SIZE_TEXT_BODY
+        id: textDescription
+        text: qsTranslate("PageHelpAbout","STR_HELP_TITLE")
+        font.pointSize: Constants.SIZE_TEXT_BODY
         font.family: lato.name
         anchors.top: textAppName.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE
     }
 
     Text {
+        id: textVersion
+        font.pointSize: Constants.SIZE_TEXT_BODY
+        font.family: lato.name
+        anchors.top: textDescription.bottom
+        anchors.topMargin: Constants.SIZE_ROW_V_SPACE
+    }
+
+    Text {
         id: textDifficult
         text: qsTranslate("PageHelpAbout","STR_HELP_LINK") + ": "
-        font.pixelSize: Constants.SIZE_TEXT_BODY
+        font.pointSize: Constants.SIZE_TEXT_BODY
         font.family: lato.name
         anchors.top: textVersion.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE
@@ -51,7 +60,7 @@ Item {
         textFormat: Text.RichText
         text: "<a href=\"https://www.autenticacao.gov.pt/o-cartao-de-cidadao\">https://www.autenticacao.gov.pt/o-cartao-de-cidadao</a>"
         font.italic: true
-        font.pixelSize: Constants.SIZE_TEXT_BODY
+        font.pointSize: Constants.SIZE_TEXT_BODY
         font.family: lato.name
         anchors.top: textDifficult.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE
@@ -61,7 +70,7 @@ Item {
     Text {
         id: textDevBy
         text: qsTranslate("PageHelpAbout","STR_HELP_DEV_BY")
-        font.pixelSize: Constants.SIZE_TEXT_BODY
+        font.pointSize: Constants.SIZE_TEXT_BODY
         font.family: lato.name
         anchors.top: textLinkCC.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE
@@ -70,7 +79,7 @@ Item {
     Text {
         id: textDevByAgency
         text: qsTranslate("PageHelpAbout","STR_HELP_DEV_AGENCY")
-        font.pixelSize: Constants.SIZE_TEXT_BODY
+        font.pointSize: Constants.SIZE_TEXT_BODY
         font.family: lato.name
         anchors.top: textDevBy.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE

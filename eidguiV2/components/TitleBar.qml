@@ -39,7 +39,7 @@
 ****************************************************************************/
 
 import QtQuick 2.6
-import QtQuick.Window 2.1
+import QtQuick.Window 2.2
 
 /* Constants imports */
 import "../scripts/Constants.js" as Constants
@@ -61,7 +61,7 @@ Item {
                     horizontalCenter: parent.horizontalCenter
                 }
                 text: mainWindow.title
-                font.pixelSize: Constants.SIZE_TEXT_BODY
+                font.pointSize: Constants.SIZE_TEXT_BODY
                 font.family: lato.name
                 color: "white"
             }

@@ -43,8 +43,6 @@
 #include "../../common/Util.h"
 #include "../../common/Config.h"
 
-
-const static char csOverWrite[] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 std::string readableFilePath = "/usr/local/etc/pteidgui.conf";
 
 DlgDisplayPinpadInfoArguments *oInfoData = NULL;
@@ -154,12 +152,12 @@ int main(int argc, char *argv[])
 		std::string readableFilePath = argv[2];
 
         Type_WndGeometry parentWndGeometry;
-		if (argc > 5 ){
+	if (argc > 5 ) {
             parentWndGeometry.x = atoi(argv[3]);
             parentWndGeometry.y = atoi(argv[4]);
             parentWndGeometry.width = atoi(argv[5]);
             parentWndGeometry.height = atoi(argv[6]);
-		}/* if (argc > 5 ) */
+	}
 
 		#ifdef __APPLE__
 		// In MacOS we deploy the QT plugins in a specific location which is common
