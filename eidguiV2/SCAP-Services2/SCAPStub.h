@@ -55,7 +55,7 @@ enum pdf__SignatureOrientationEnumType
 
 /* wsa.h:119 */
 #ifndef SOAP_TYPE_wsa__RelationshipTypeValues
-#define SOAP_TYPE_wsa__RelationshipTypeValues (311)
+#define SOAP_TYPE_wsa__RelationshipTypeValues (314)
 /* wsa:RelationshipTypeValues */
 enum wsa__RelationshipTypeValues
 {
@@ -65,7 +65,7 @@ enum wsa__RelationshipTypeValues
 
 /* wsa.h:127 */
 #ifndef SOAP_TYPE_wsa__FaultSubcodeValues
-#define SOAP_TYPE_wsa__FaultSubcodeValues (312)
+#define SOAP_TYPE_wsa__FaultSubcodeValues (315)
 /* wsa:FaultSubcodeValues */
 enum wsa__FaultSubcodeValues
 {
@@ -158,7 +158,10 @@ class ns6__OCSPValuesType;	/* SCAP-Services.h:426 */
 class ns6__ArchiveTimeStampType;	/* SCAP-Services.h:432 */
 class ns7__SVGListType;	/* SCAP-Services.h:450 */
 class ns9__AttributeSupplierResponseType;	/* SCAP-Services.h:453 */
-class pdf__SignRequest;	/* SCAP-Services.h:456 */
+struct _xop__Include;	/* xop.h:58 */
+struct xmime5__base64Binary;	/* xmime5.h:68 */
+class pdf__DocumentAttach;	/* SCAP-Services.h:2305 */
+class pdf__SignRequestWithAttach;	/* SCAP-Services.h:456 */
 class pdf__PersonalDataType;	/* SCAP-Services.h:459 */
 class pdf__AttributeListType;	/* SCAP-Services.h:462 */
 class pdf__AttributeType;	/* SCAP-Services.h:465 */
@@ -180,9 +183,9 @@ struct wsa__ReferencePropertiesType;	/* wsa.h:97 */
 struct wsa__ReferenceParametersType;	/* wsa.h:100 */
 struct wsa__ServiceNameType;	/* wsa.h:103 */
 struct wsa__Relationship;	/* wsa.h:106 */
-struct __ns1__Attributes;	/* SCAP-Services.h:3251 */
-struct __ns8__AttributeSuppliers;	/* SCAP-Services.h:3332 */
-struct __pdf__Sign;	/* SCAP-Services.h:3416 */
+struct __ns1__Attributes;	/* SCAP-Services.h:3261 */
+struct __ns8__AttributeSuppliers;	/* SCAP-Services.h:3342 */
+struct __pdf__Sign;	/* SCAP-Services.h:3426 */
 
 /* SCAP-Services.h:197 */
 #ifndef SOAP_TYPE_xsd__base64Binary
@@ -2428,18 +2431,89 @@ public:
 };
 #endif
 
+/* xop.h:58 */
+#ifndef SOAP_TYPE__xop__Include
+#define SOAP_TYPE__xop__Include (228)
+/* base64Binary schema type: */
+struct _xop__Include
+{
+public:
+	unsigned char *__ptr;
+	int __size;
+	char *id;	/* optional element of XSD type xsd:string */
+	char *type;	/* optional element of XSD type xsd:string */
+	char *options;	/* optional element of XSD type xsd:string */
+public:
+	int soap_type() const { return 228; } /* = unique type id SOAP_TYPE__xop__Include */
+	         _xop__Include();
+	friend SOAP_FMAC1 _xop__Include * SOAP_FMAC2 soap_instantiate__xop__Include(struct soap*, int, const char*, const char*, size_t*);
+};
+#endif
+
+/* xmime5.h:68 */
+#ifndef SOAP_TYPE_xmime5__base64Binary
+#define SOAP_TYPE_xmime5__base64Binary (229)
+/* base64Binary schema type: */
+struct xmime5__base64Binary
+{
+public:
+	unsigned char *__ptr;
+	int __size;
+	char *id;	/* optional element of XSD type xsd:string */
+	char *type;	/* optional element of XSD type xsd:string */
+	char *options;	/* optional element of XSD type xsd:string */
+public:
+	int soap_type() const { return 229; } /* = unique type id SOAP_TYPE_xmime5__base64Binary */
+	         xmime5__base64Binary();
+	friend SOAP_FMAC1 xmime5__base64Binary * SOAP_FMAC2 soap_instantiate_xmime5__base64Binary(struct soap*, int, const char*, const char*, size_t*);
+};
+#endif
+
+/* SCAP-Services.h:2305 */
+#ifndef SOAP_TYPE_pdf__DocumentAttach
+#define SOAP_TYPE_pdf__DocumentAttach (230)
+/* pdf:DocumentAttach complex type: */
+class SOAP_CMAC pdf__DocumentAttach
+{
+public:
+	struct _xop__Include xop__Include;	/* required element of XSD type xop:Include */
+	char *xmime5__contentType;	/* optional attribute of XSD type xsd:string */
+	struct soap *soap;	/* transient (not serialized) */
+public:
+	/// Return the unique type ID value SOAP_TYPE_pdf__DocumentAttach (230)
+	virtual int soap_type(void) const { return 230; }
+	/// Set object's data members to default values
+	virtual void soap_default(struct soap*);
+	/// Serialize object to prepare for SOAP 1.1/1.2 encoded output (or with SOAP_XML_GRAPH) by analyzing its (cyclic) structures
+	virtual void soap_serialize(struct soap*) const;
+	/// Output object in XML, compliant with SOAP 1.1 encoding style, return error code or SOAP_OK
+	virtual int soap_put(struct soap*, const char *tag, const char *type) const;
+	/// Output object in XML, with tag and optional id attribute and xsi:type, return error code or SOAP_OK
+	virtual int soap_out(struct soap*, const char *tag, int id, const char *type) const;
+	/// Get object from XML, compliant with SOAP 1.1 encoding style, return pointer to object or NULL on error
+	virtual void *soap_get(struct soap*, const char *tag, const char *type);
+	/// Get object from XML, with matching tag and type (NULL matches any tag and type), return pointer to object or NULL on error
+	virtual void *soap_in(struct soap*, const char *tag, const char *type);
+	/// Return a new object of type pdf__DocumentAttach, default initialized and not managed by a soap context
+	virtual pdf__DocumentAttach *soap_alloc(void) const { return SOAP_NEW(pdf__DocumentAttach); }
+	         pdf__DocumentAttach() { pdf__DocumentAttach::soap_default(NULL); }
+	virtual ~pdf__DocumentAttach() { }
+	friend SOAP_FMAC1 pdf__DocumentAttach * SOAP_FMAC2 soap_instantiate_pdf__DocumentAttach(struct soap*, int, const char*, const char*, size_t*);
+};
+#endif
+
 /* SCAP-Services.h:456 */
-#ifndef SOAP_TYPE_pdf__SignRequest
-#define SOAP_TYPE_pdf__SignRequest (98)
-/* pdf:SignRequest complex type: */
-class SOAP_CMAC pdf__SignRequest
+#ifndef SOAP_TYPE_pdf__SignRequestWithAttach
+#define SOAP_TYPE_pdf__SignRequestWithAttach (98)
+/* pdf:SignRequestWithAttach complex type: */
+class SOAP_CMAC pdf__SignRequestWithAttach
 {
 public:
 	std::string ProcessId;	/* required element of XSD type xsd:string */
 	pdf__PersonalDataType *PersonalData;	/* required element of XSD type pdf:PersonalDataType */
 	pdf__AttributeListType *AttributeList;	/* required element of XSD type pdf:AttributeListType */
 	std::string SignatureFieldName;	/* required element of XSD type xsd:string */
-	xsd__base64Binary SignDocument;	/* required element of XSD type xsd:base64Binary */
+	xsd__base64Binary DocumentAttach;	/* required element of XSD type xsd:base64Binary */
 	int *LTV;	/* optional element of XSD type xsd:int */
 	int Page;	/* required element of XSD type xsd:int */
 	int X;	/* required element of XSD type xsd:int */
@@ -2447,7 +2521,7 @@ public:
 	enum pdf__SignatureOrientationEnumType Orientation;	/* required element of XSD type pdf:SignatureOrientationEnumType */
 	struct soap *soap;	/* transient (not serialized) */
 public:
-	/// Return the unique type ID value SOAP_TYPE_pdf__SignRequest (98)
+	/// Return the unique type ID value SOAP_TYPE_pdf__SignRequestWithAttach (98)
 	virtual int soap_type(void) const { return 98; }
 	/// Set object's data members to default values
 	virtual void soap_default(struct soap*);
@@ -2461,11 +2535,11 @@ public:
 	virtual void *soap_get(struct soap*, const char *tag, const char *type);
 	/// Get object from XML, with matching tag and type (NULL matches any tag and type), return pointer to object or NULL on error
 	virtual void *soap_in(struct soap*, const char *tag, const char *type);
-	/// Return a new object of type pdf__SignRequest, default initialized and not managed by a soap context
-	virtual pdf__SignRequest *soap_alloc(void) const { return SOAP_NEW(pdf__SignRequest); }
-	         pdf__SignRequest() { pdf__SignRequest::soap_default(NULL); }
-	virtual ~pdf__SignRequest() { }
-	friend SOAP_FMAC1 pdf__SignRequest * SOAP_FMAC2 soap_instantiate_pdf__SignRequest(struct soap*, int, const char*, const char*, size_t*);
+	/// Return a new object of type pdf__SignRequestWithAttach, default initialized and not managed by a soap context
+	virtual pdf__SignRequestWithAttach *soap_alloc(void) const { return SOAP_NEW(pdf__SignRequestWithAttach); }
+	         pdf__SignRequestWithAttach() { pdf__SignRequestWithAttach::soap_default(NULL); }
+	virtual ~pdf__SignRequestWithAttach() { }
+	friend SOAP_FMAC1 pdf__SignRequestWithAttach * SOAP_FMAC2 soap_instantiate_pdf__SignRequestWithAttach(struct soap*, int, const char*, const char*, size_t*);
 };
 #endif
 
@@ -3005,7 +3079,7 @@ public:
 
 /* wsa.h:94 */
 #ifndef SOAP_TYPE_wsa__EndpointReferenceType
-#define SOAP_TYPE_wsa__EndpointReferenceType (306)
+#define SOAP_TYPE_wsa__EndpointReferenceType (309)
 /* wsa:EndpointReferenceType complex type: */
 struct wsa__EndpointReferenceType
 {
@@ -3019,7 +3093,7 @@ public:
 	char **__any;
 	char *__anyAttribute;	/* optional attribute of XSD type xsd:anyType */
 public:
-	int soap_type() const { return 306; } /* = unique type id SOAP_TYPE_wsa__EndpointReferenceType */
+	int soap_type() const { return 309; } /* = unique type id SOAP_TYPE_wsa__EndpointReferenceType */
 	         wsa__EndpointReferenceType();
 	friend SOAP_FMAC1 wsa__EndpointReferenceType * SOAP_FMAC2 soap_instantiate_wsa__EndpointReferenceType(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3027,7 +3101,7 @@ public:
 
 /* wsa.h:97 */
 #ifndef SOAP_TYPE_wsa__ReferencePropertiesType
-#define SOAP_TYPE_wsa__ReferencePropertiesType (307)
+#define SOAP_TYPE_wsa__ReferencePropertiesType (310)
 /* wsa:ReferencePropertiesType complex type: */
 struct wsa__ReferencePropertiesType
 {
@@ -3035,7 +3109,7 @@ public:
 	int __size;	/* sequence of elements <-any> of XSD type xsd:anyType */
 	char **__any;
 public:
-	int soap_type() const { return 307; } /* = unique type id SOAP_TYPE_wsa__ReferencePropertiesType */
+	int soap_type() const { return 310; } /* = unique type id SOAP_TYPE_wsa__ReferencePropertiesType */
 	         wsa__ReferencePropertiesType();
 	friend SOAP_FMAC1 wsa__ReferencePropertiesType * SOAP_FMAC2 soap_instantiate_wsa__ReferencePropertiesType(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3043,7 +3117,7 @@ public:
 
 /* wsa.h:100 */
 #ifndef SOAP_TYPE_wsa__ReferenceParametersType
-#define SOAP_TYPE_wsa__ReferenceParametersType (308)
+#define SOAP_TYPE_wsa__ReferenceParametersType (311)
 /* wsa:ReferenceParametersType complex type: */
 struct wsa__ReferenceParametersType
 {
@@ -3051,7 +3125,7 @@ public:
 	int __size;	/* sequence of elements <-any> of XSD type xsd:anyType */
 	char **__any;
 public:
-	int soap_type() const { return 308; } /* = unique type id SOAP_TYPE_wsa__ReferenceParametersType */
+	int soap_type() const { return 311; } /* = unique type id SOAP_TYPE_wsa__ReferenceParametersType */
 	         wsa__ReferenceParametersType();
 	friend SOAP_FMAC1 wsa__ReferenceParametersType * SOAP_FMAC2 soap_instantiate_wsa__ReferenceParametersType(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3059,7 +3133,7 @@ public:
 
 /* wsa.h:103 */
 #ifndef SOAP_TYPE_wsa__ServiceNameType
-#define SOAP_TYPE_wsa__ServiceNameType (309)
+#define SOAP_TYPE_wsa__ServiceNameType (312)
 /* wsa:ServiceNameType simple type: */
 struct wsa__ServiceNameType
 {
@@ -3068,7 +3142,7 @@ public:
 	char *PortName;	/* optional attribute of XSD type xsd:string */
 	char *__anyAttribute;	/* optional attribute of XSD type xsd:anyType */
 public:
-	int soap_type() const { return 309; } /* = unique type id SOAP_TYPE_wsa__ServiceNameType */
+	int soap_type() const { return 312; } /* = unique type id SOAP_TYPE_wsa__ServiceNameType */
 	         wsa__ServiceNameType();
 	friend SOAP_FMAC1 wsa__ServiceNameType * SOAP_FMAC2 soap_instantiate_wsa__ServiceNameType(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3076,7 +3150,7 @@ public:
 
 /* wsa.h:106 */
 #ifndef SOAP_TYPE_wsa__Relationship
-#define SOAP_TYPE_wsa__Relationship (310)
+#define SOAP_TYPE_wsa__Relationship (313)
 /* wsa:Relationship simple type: */
 struct wsa__Relationship
 {
@@ -3085,7 +3159,7 @@ public:
 	char *RelationshipType;	/* optional attribute of XSD type xsd:QName */
 	char *__anyAttribute;	/* optional attribute of XSD type xsd:anyType */
 public:
-	int soap_type() const { return 310; } /* = unique type id SOAP_TYPE_wsa__Relationship */
+	int soap_type() const { return 313; } /* = unique type id SOAP_TYPE_wsa__Relationship */
 	         wsa__Relationship();
 	friend SOAP_FMAC1 wsa__Relationship * SOAP_FMAC2 soap_instantiate_wsa__Relationship(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3094,7 +3168,7 @@ public:
 /* wsa.h:250 */
 #ifndef WITH_NOGLOBAL
 #ifndef SOAP_TYPE_SOAP_ENV__Header
-#define SOAP_TYPE_SOAP_ENV__Header (327)
+#define SOAP_TYPE_SOAP_ENV__Header (330)
 /* SOAP Header: */
 struct SOAP_ENV__Header
 {
@@ -3107,7 +3181,7 @@ public:
 	char *wsa__To;	/* mustUnderstand */
 	char *wsa__Action;	/* mustUnderstand */
 public:
-	int soap_type() const { return 327; } /* = unique type id SOAP_TYPE_SOAP_ENV__Header */
+	int soap_type() const { return 330; } /* = unique type id SOAP_TYPE_SOAP_ENV__Header */
 	         SOAP_ENV__Header();
 	friend SOAP_FMAC1 SOAP_ENV__Header * SOAP_FMAC2 soap_instantiate_SOAP_ENV__Header(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3117,7 +3191,7 @@ public:
 /* wsa.h:266 */
 #ifndef WITH_NOGLOBAL
 #ifndef SOAP_TYPE_SOAP_ENV__Detail
-#define SOAP_TYPE_SOAP_ENV__Detail (332)
+#define SOAP_TYPE_SOAP_ENV__Detail (335)
 /* SOAP-ENV:Detail complex type: */
 struct SOAP_ENV__Detail
 {
@@ -3127,7 +3201,7 @@ public:
 	   WARNING: do not create a cyclic data structure graph throught this element unless SOAP encoding or SOAP_XML_GRAPH are used for id-ref serialization */
 	void *fault;	/* transient (not serialized) */
 public:
-	int soap_type() const { return 332; } /* = unique type id SOAP_TYPE_SOAP_ENV__Detail */
+	int soap_type() const { return 335; } /* = unique type id SOAP_TYPE_SOAP_ENV__Detail */
 	         SOAP_ENV__Detail();
 	friend SOAP_FMAC1 SOAP_ENV__Detail * SOAP_FMAC2 soap_instantiate_SOAP_ENV__Detail(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3137,7 +3211,7 @@ public:
 /* wsa.h:267 */
 #ifndef WITH_NOGLOBAL
 #ifndef SOAP_TYPE_SOAP_ENV__Code
-#define SOAP_TYPE_SOAP_ENV__Code (334)
+#define SOAP_TYPE_SOAP_ENV__Code (337)
 /* Type SOAP_ENV__Code is a recursive data type (in)directly referencing itself through its (base) class members */
 /* SOAP Fault Code: */
 struct SOAP_ENV__Code
@@ -3146,7 +3220,7 @@ public:
 	char *SOAP_ENV__Value;	/* optional element of XSD type xsd:QName */
 	struct SOAP_ENV__Code *SOAP_ENV__Subcode;	/* optional element of XSD type SOAP-ENV:Code */
 public:
-	int soap_type() const { return 334; } /* = unique type id SOAP_TYPE_SOAP_ENV__Code */
+	int soap_type() const { return 337; } /* = unique type id SOAP_TYPE_SOAP_ENV__Code */
 	         SOAP_ENV__Code();
 	friend SOAP_FMAC1 SOAP_ENV__Code * SOAP_FMAC2 soap_instantiate_SOAP_ENV__Code(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3156,14 +3230,14 @@ public:
 /* wsa.h:268 */
 #ifndef WITH_NOGLOBAL
 #ifndef SOAP_TYPE_SOAP_ENV__Reason
-#define SOAP_TYPE_SOAP_ENV__Reason (336)
+#define SOAP_TYPE_SOAP_ENV__Reason (339)
 /* SOAP-ENV:Reason complex type: */
 struct SOAP_ENV__Reason
 {
 public:
 	char *SOAP_ENV__Text;	/* optional element of XSD type xsd:string */
 public:
-	int soap_type() const { return 336; } /* = unique type id SOAP_TYPE_SOAP_ENV__Reason */
+	int soap_type() const { return 339; } /* = unique type id SOAP_TYPE_SOAP_ENV__Reason */
 	         SOAP_ENV__Reason();
 	friend SOAP_FMAC1 SOAP_ENV__Reason * SOAP_FMAC2 soap_instantiate_SOAP_ENV__Reason(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3173,7 +3247,7 @@ public:
 /* wsa.h:273 */
 #ifndef WITH_NOGLOBAL
 #ifndef SOAP_TYPE_SOAP_ENV__Fault
-#define SOAP_TYPE_SOAP_ENV__Fault (340)
+#define SOAP_TYPE_SOAP_ENV__Fault (343)
 /* SOAP Fault: */
 struct SOAP_ENV__Fault
 {
@@ -3188,51 +3262,51 @@ public:
 	char *SOAP_ENV__Role;	/* optional element of XSD type xsd:string */
 	struct SOAP_ENV__Detail *SOAP_ENV__Detail;	/* optional element of XSD type SOAP-ENV:Detail */
 public:
-	int soap_type() const { return 340; } /* = unique type id SOAP_TYPE_SOAP_ENV__Fault */
+	int soap_type() const { return 343; } /* = unique type id SOAP_TYPE_SOAP_ENV__Fault */
 	         SOAP_ENV__Fault();
 	friend SOAP_FMAC1 SOAP_ENV__Fault * SOAP_FMAC2 soap_instantiate_SOAP_ENV__Fault(struct soap*, int, const char*, const char*, size_t*);
 };
 #endif
 #endif
 
-/* SCAP-Services.h:3251 */
+/* SCAP-Services.h:3261 */
 #ifndef SOAP_TYPE___ns1__Attributes
-#define SOAP_TYPE___ns1__Attributes (344)
+#define SOAP_TYPE___ns1__Attributes (347)
 /* Operation wrapper: */
 struct __ns1__Attributes
 {
 public:
 	ns2__AttributeRequestType *ns2__AttributeRequest;	/* optional element of XSD type ns2:AttributeRequestType */
 public:
-	int soap_type() const { return 344; } /* = unique type id SOAP_TYPE___ns1__Attributes */
+	int soap_type() const { return 347; } /* = unique type id SOAP_TYPE___ns1__Attributes */
 	         __ns1__Attributes();
 	friend SOAP_FMAC1 __ns1__Attributes * SOAP_FMAC2 soap_instantiate___ns1__Attributes(struct soap*, int, const char*, const char*, size_t*);
 };
 #endif
 
-/* SCAP-Services.h:3332 */
+/* SCAP-Services.h:3342 */
 #ifndef SOAP_TYPE___ns8__AttributeSuppliers
-#define SOAP_TYPE___ns8__AttributeSuppliers (347)
+#define SOAP_TYPE___ns8__AttributeSuppliers (350)
 /* Operation wrapper: */
 struct __ns8__AttributeSuppliers
 {
 public:
-	int soap_type() const { return 347; } /* = unique type id SOAP_TYPE___ns8__AttributeSuppliers */
+	int soap_type() const { return 350; } /* = unique type id SOAP_TYPE___ns8__AttributeSuppliers */
 	         __ns8__AttributeSuppliers();
 	friend SOAP_FMAC1 __ns8__AttributeSuppliers * SOAP_FMAC2 soap_instantiate___ns8__AttributeSuppliers(struct soap*, int, const char*, const char*, size_t*);
 };
 #endif
 
-/* SCAP-Services.h:3416 */
+/* SCAP-Services.h:3426 */
 #ifndef SOAP_TYPE___pdf__Sign
-#define SOAP_TYPE___pdf__Sign (351)
+#define SOAP_TYPE___pdf__Sign (354)
 /* Operation wrapper: */
 struct __pdf__Sign
 {
 public:
-	pdf__SignRequest *pdf__SignRequest_;	/* optional element of XSD type pdf:SignRequest */
+	pdf__SignRequestWithAttach *pdf__SignRequestWithAttach_;	/* optional element of XSD type pdf:SignRequestWithAttach */
 public:
-	int soap_type() const { return 351; } /* = unique type id SOAP_TYPE___pdf__Sign */
+	int soap_type() const { return 354; } /* = unique type id SOAP_TYPE___pdf__Sign */
 	         __pdf__Sign();
 	friend SOAP_FMAC1 __pdf__Sign * SOAP_FMAC2 soap_instantiate___pdf__Sign(struct soap*, int, const char*, const char*, size_t*);
 };
@@ -3455,435 +3529,435 @@ typedef time_t ns6__ProducedAtType;
 typedef xsd__base64Binary ns7__SVGType;
 #endif
 
-/* SCAP-Services.h:2737 */
+/* SCAP-Services.h:2747 */
 #ifndef SOAP_TYPE__ns2__AttributeRequest
-#define SOAP_TYPE__ns2__AttributeRequest (243)
+#define SOAP_TYPE__ns2__AttributeRequest (246)
 typedef ns2__AttributeRequestType _ns2__AttributeRequest;
 #endif
 
-/* SCAP-Services.h:2740 */
+/* SCAP-Services.h:2750 */
 #ifndef SOAP_TYPE__ns2__AttributeResponse
-#define SOAP_TYPE__ns2__AttributeResponse (244)
+#define SOAP_TYPE__ns2__AttributeResponse (247)
 typedef ns2__AttributeResponseType _ns2__AttributeResponse;
 #endif
 
-/* SCAP-Services.h:2743 */
+/* SCAP-Services.h:2753 */
 #ifndef SOAP_TYPE__ns2__PSAAttributeRequest
-#define SOAP_TYPE__ns2__PSAAttributeRequest (245)
+#define SOAP_TYPE__ns2__PSAAttributeRequest (248)
 typedef ns2__PSAAttributeRequestType _ns2__PSAAttributeRequest;
 #endif
 
-/* SCAP-Services.h:2746 */
+/* SCAP-Services.h:2756 */
 #ifndef SOAP_TYPE__ns2__SingleAttributeResponse
-#define SOAP_TYPE__ns2__SingleAttributeResponse (246)
+#define SOAP_TYPE__ns2__SingleAttributeResponse (249)
 typedef ns2__SingleAttributeResponseType _ns2__SingleAttributeResponse;
 #endif
 
-/* SCAP-Services.h:2765 */
+/* SCAP-Services.h:2775 */
 #ifndef SOAP_TYPE__ns5__Signature
-#define SOAP_TYPE__ns5__Signature (247)
+#define SOAP_TYPE__ns5__Signature (250)
 typedef ns5__SignatureType _ns5__Signature;
 #endif
 
-/* SCAP-Services.h:2768 */
+/* SCAP-Services.h:2778 */
 #ifndef SOAP_TYPE__ns5__SignedInfo
-#define SOAP_TYPE__ns5__SignedInfo (248)
+#define SOAP_TYPE__ns5__SignedInfo (251)
 typedef ns5__SignedInfoType _ns5__SignedInfo;
 #endif
 
-/* SCAP-Services.h:2771 */
+/* SCAP-Services.h:2781 */
 #ifndef SOAP_TYPE__ns5__CanonicalizationMethod
-#define SOAP_TYPE__ns5__CanonicalizationMethod (249)
+#define SOAP_TYPE__ns5__CanonicalizationMethod (252)
 typedef ns5__CanonicalizationMethodType _ns5__CanonicalizationMethod;
 #endif
 
-/* SCAP-Services.h:2774 */
+/* SCAP-Services.h:2784 */
 #ifndef SOAP_TYPE__ns5__SignatureMethod
-#define SOAP_TYPE__ns5__SignatureMethod (250)
+#define SOAP_TYPE__ns5__SignatureMethod (253)
 typedef ns5__SignatureMethodType _ns5__SignatureMethod;
 #endif
 
-/* SCAP-Services.h:2777 */
+/* SCAP-Services.h:2787 */
 #ifndef SOAP_TYPE__ns5__Reference
-#define SOAP_TYPE__ns5__Reference (251)
+#define SOAP_TYPE__ns5__Reference (254)
 typedef ns5__ReferenceType _ns5__Reference;
 #endif
 
-/* SCAP-Services.h:2780 */
+/* SCAP-Services.h:2790 */
 #ifndef SOAP_TYPE__ns5__Transforms
-#define SOAP_TYPE__ns5__Transforms (252)
+#define SOAP_TYPE__ns5__Transforms (255)
 typedef ns5__TransformsType _ns5__Transforms;
 #endif
 
-/* SCAP-Services.h:2783 */
+/* SCAP-Services.h:2793 */
 #ifndef SOAP_TYPE__ns5__Transform
-#define SOAP_TYPE__ns5__Transform (253)
+#define SOAP_TYPE__ns5__Transform (256)
 typedef ns5__TransformType _ns5__Transform;
 #endif
 
-/* SCAP-Services.h:2786 */
+/* SCAP-Services.h:2796 */
 #ifndef SOAP_TYPE__ns5__DigestMethod
-#define SOAP_TYPE__ns5__DigestMethod (254)
+#define SOAP_TYPE__ns5__DigestMethod (257)
 typedef ns5__DigestMethodType _ns5__DigestMethod;
 #endif
 
-/* SCAP-Services.h:2789 */
+/* SCAP-Services.h:2799 */
 #ifndef SOAP_TYPE__ns5__KeyInfo
-#define SOAP_TYPE__ns5__KeyInfo (255)
+#define SOAP_TYPE__ns5__KeyInfo (258)
 typedef ns5__KeyInfoType _ns5__KeyInfo;
 #endif
 
-/* SCAP-Services.h:2792 */
+/* SCAP-Services.h:2802 */
 #ifndef SOAP_TYPE__ns5__X509Data
-#define SOAP_TYPE__ns5__X509Data (256)
+#define SOAP_TYPE__ns5__X509Data (259)
 typedef ns5__X509DataType _ns5__X509Data;
 #endif
 
-/* SCAP-Services.h:2795 */
+/* SCAP-Services.h:2805 */
 #ifndef SOAP_TYPE__ns5__Object
-#define SOAP_TYPE__ns5__Object (257)
+#define SOAP_TYPE__ns5__Object (260)
 typedef ns5__ObjectType _ns5__Object;
 #endif
 
-/* SCAP-Services.h:2798 */
+/* SCAP-Services.h:2808 */
 #ifndef SOAP_TYPE__ns5__X509Certificate
-#define SOAP_TYPE__ns5__X509Certificate (258)
+#define SOAP_TYPE__ns5__X509Certificate (261)
 typedef ns5__X509CertificateType _ns5__X509Certificate;
 #endif
 
-/* SCAP-Services.h:2801 */
+/* SCAP-Services.h:2811 */
 #ifndef SOAP_TYPE__ns5__DigestValue
-#define SOAP_TYPE__ns5__DigestValue (259)
+#define SOAP_TYPE__ns5__DigestValue (262)
 typedef ns5__DigestValueType _ns5__DigestValue;
 #endif
 
-/* SCAP-Services.h:2804 */
+/* SCAP-Services.h:2814 */
 #ifndef SOAP_TYPE__ns5__SignatureValue
-#define SOAP_TYPE__ns5__SignatureValue (260)
+#define SOAP_TYPE__ns5__SignatureValue (263)
 typedef ns5__SignatureValueType _ns5__SignatureValue;
 #endif
 
-/* SCAP-Services.h:2807 */
+/* SCAP-Services.h:2817 */
 #ifndef SOAP_TYPE__ns5__X509IssuerName
-#define SOAP_TYPE__ns5__X509IssuerName (261)
+#define SOAP_TYPE__ns5__X509IssuerName (264)
 typedef ns5__X509IssuerNameType _ns5__X509IssuerName;
 #endif
 
-/* SCAP-Services.h:2810 */
+/* SCAP-Services.h:2820 */
 #ifndef SOAP_TYPE__ns5__X509SerialNumber
-#define SOAP_TYPE__ns5__X509SerialNumber (262)
+#define SOAP_TYPE__ns5__X509SerialNumber (265)
 typedef ns5__X509SerialNumberType _ns5__X509SerialNumber;
 #endif
 
-/* SCAP-Services.h:2829 */
+/* SCAP-Services.h:2839 */
 #ifndef SOAP_TYPE__ns3__Attribute
-#define SOAP_TYPE__ns3__Attribute (263)
+#define SOAP_TYPE__ns3__Attribute (266)
 typedef ns3__AttributeType _ns3__Attribute;
 #endif
 
-/* SCAP-Services.h:2832 */
+/* SCAP-Services.h:2842 */
 #ifndef SOAP_TYPE__ns3__SignatureAttribute
-#define SOAP_TYPE__ns3__SignatureAttribute (264)
+#define SOAP_TYPE__ns3__SignatureAttribute (267)
 typedef ns5__SignatureType _ns3__SignatureAttribute;
 #endif
 
-/* SCAP-Services.h:2867 */
+/* SCAP-Services.h:2877 */
 #ifndef SOAP_TYPE__ns6__QualifyingProperties
-#define SOAP_TYPE__ns6__QualifyingProperties (265)
+#define SOAP_TYPE__ns6__QualifyingProperties (268)
 typedef ns6__QualifyingPropertiesType _ns6__QualifyingProperties;
 #endif
 
-/* SCAP-Services.h:2870 */
+/* SCAP-Services.h:2880 */
 #ifndef SOAP_TYPE__ns6__SignedProperties
-#define SOAP_TYPE__ns6__SignedProperties (266)
+#define SOAP_TYPE__ns6__SignedProperties (269)
 typedef ns6__SignedPropertiesType _ns6__SignedProperties;
 #endif
 
-/* SCAP-Services.h:2873 */
+/* SCAP-Services.h:2883 */
 #ifndef SOAP_TYPE__ns6__SignedSignatureProperties
-#define SOAP_TYPE__ns6__SignedSignatureProperties (267)
+#define SOAP_TYPE__ns6__SignedSignatureProperties (270)
 typedef ns6__SignedSignaturePropertiesType _ns6__SignedSignatureProperties;
 #endif
 
-/* SCAP-Services.h:2876 */
+/* SCAP-Services.h:2886 */
 #ifndef SOAP_TYPE__ns6__SigningCertificate
-#define SOAP_TYPE__ns6__SigningCertificate (268)
+#define SOAP_TYPE__ns6__SigningCertificate (271)
 typedef ns6__SigningCertificateType _ns6__SigningCertificate;
 #endif
 
-/* SCAP-Services.h:2879 */
+/* SCAP-Services.h:2889 */
 #ifndef SOAP_TYPE__ns6__Cert
-#define SOAP_TYPE__ns6__Cert (269)
+#define SOAP_TYPE__ns6__Cert (272)
 typedef ns6__CertType _ns6__Cert;
 #endif
 
-/* SCAP-Services.h:2882 */
+/* SCAP-Services.h:2892 */
 #ifndef SOAP_TYPE__ns6__CertDigest
-#define SOAP_TYPE__ns6__CertDigest (270)
+#define SOAP_TYPE__ns6__CertDigest (273)
 typedef ns6__CertDigestType _ns6__CertDigest;
 #endif
 
-/* SCAP-Services.h:2885 */
+/* SCAP-Services.h:2895 */
 #ifndef SOAP_TYPE__ns6__IssuerSerial
-#define SOAP_TYPE__ns6__IssuerSerial (271)
+#define SOAP_TYPE__ns6__IssuerSerial (274)
 typedef ns6__IssuerSerialType _ns6__IssuerSerial;
 #endif
 
-/* SCAP-Services.h:2888 */
+/* SCAP-Services.h:2898 */
 #ifndef SOAP_TYPE__ns6__SigningTime
-#define SOAP_TYPE__ns6__SigningTime (272)
+#define SOAP_TYPE__ns6__SigningTime (275)
 typedef ns6__SigningTimeType _ns6__SigningTime;
 #endif
 
-/* SCAP-Services.h:2891 */
+/* SCAP-Services.h:2901 */
 #ifndef SOAP_TYPE__ns6__SignerRole
-#define SOAP_TYPE__ns6__SignerRole (273)
+#define SOAP_TYPE__ns6__SignerRole (276)
 typedef ns6__SignerRoleType _ns6__SignerRole;
 #endif
 
-/* SCAP-Services.h:2894 */
+/* SCAP-Services.h:2904 */
 #ifndef SOAP_TYPE__ns6__ClaimedRoles
-#define SOAP_TYPE__ns6__ClaimedRoles (274)
+#define SOAP_TYPE__ns6__ClaimedRoles (277)
 typedef ns6__ClaimedRolesListType _ns6__ClaimedRoles;
 #endif
 
-/* SCAP-Services.h:2897 */
+/* SCAP-Services.h:2907 */
 #ifndef SOAP_TYPE__ns6__ClaimedRole
-#define SOAP_TYPE__ns6__ClaimedRole (275)
+#define SOAP_TYPE__ns6__ClaimedRole (278)
 typedef ns6__ClaimedRoleType _ns6__ClaimedRole;
 #endif
 
-/* SCAP-Services.h:2900 */
+/* SCAP-Services.h:2910 */
 #ifndef SOAP_TYPE__ns6__UnsignedProperties
-#define SOAP_TYPE__ns6__UnsignedProperties (276)
+#define SOAP_TYPE__ns6__UnsignedProperties (279)
 typedef ns6__UnsignedPropertiesType _ns6__UnsignedProperties;
 #endif
 
-/* SCAP-Services.h:2903 */
+/* SCAP-Services.h:2913 */
 #ifndef SOAP_TYPE__ns6__UnsignedSignatureProperties
-#define SOAP_TYPE__ns6__UnsignedSignatureProperties (277)
+#define SOAP_TYPE__ns6__UnsignedSignatureProperties (280)
 typedef ns6__UnsignedSignaturePropertiesType _ns6__UnsignedSignatureProperties;
 #endif
 
-/* SCAP-Services.h:2906 */
+/* SCAP-Services.h:2916 */
 #ifndef SOAP_TYPE__ns6__CounterSignature
-#define SOAP_TYPE__ns6__CounterSignature (278)
+#define SOAP_TYPE__ns6__CounterSignature (281)
 typedef ns6__CounterSignatureType _ns6__CounterSignature;
 #endif
 
-/* SCAP-Services.h:2909 */
+/* SCAP-Services.h:2919 */
 #ifndef SOAP_TYPE__ns6__SignatureTimeStamp
-#define SOAP_TYPE__ns6__SignatureTimeStamp (279)
+#define SOAP_TYPE__ns6__SignatureTimeStamp (282)
 typedef ns6__SignatureTimeStampType _ns6__SignatureTimeStamp;
 #endif
 
-/* SCAP-Services.h:2912 */
+/* SCAP-Services.h:2922 */
 #ifndef SOAP_TYPE__ns6__EncapsulatedTimeStamp
-#define SOAP_TYPE__ns6__EncapsulatedTimeStamp (280)
+#define SOAP_TYPE__ns6__EncapsulatedTimeStamp (283)
 typedef ns6__EncapsulatedTimeStampType _ns6__EncapsulatedTimeStamp;
 #endif
 
-/* SCAP-Services.h:2915 */
+/* SCAP-Services.h:2925 */
 #ifndef SOAP_TYPE__ns6__CompleteCertificateRefs
-#define SOAP_TYPE__ns6__CompleteCertificateRefs (281)
+#define SOAP_TYPE__ns6__CompleteCertificateRefs (284)
 typedef ns6__CompleteCertificateRefsType _ns6__CompleteCertificateRefs;
 #endif
 
-/* SCAP-Services.h:2918 */
+/* SCAP-Services.h:2928 */
 #ifndef SOAP_TYPE__ns6__CertRefs
-#define SOAP_TYPE__ns6__CertRefs (282)
+#define SOAP_TYPE__ns6__CertRefs (285)
 typedef ns6__CertRefsType _ns6__CertRefs;
 #endif
 
-/* SCAP-Services.h:2921 */
+/* SCAP-Services.h:2931 */
 #ifndef SOAP_TYPE__ns6__CompleteRevocationRefs
-#define SOAP_TYPE__ns6__CompleteRevocationRefs (283)
+#define SOAP_TYPE__ns6__CompleteRevocationRefs (286)
 typedef ns6__CompleteRevocationRefsType _ns6__CompleteRevocationRefs;
 #endif
 
-/* SCAP-Services.h:2924 */
+/* SCAP-Services.h:2934 */
 #ifndef SOAP_TYPE__ns6__CRLRefs
-#define SOAP_TYPE__ns6__CRLRefs (284)
+#define SOAP_TYPE__ns6__CRLRefs (287)
 typedef ns6__CRLRefsType _ns6__CRLRefs;
 #endif
 
-/* SCAP-Services.h:2927 */
+/* SCAP-Services.h:2937 */
 #ifndef SOAP_TYPE__ns6__CRLRef
-#define SOAP_TYPE__ns6__CRLRef (285)
+#define SOAP_TYPE__ns6__CRLRef (288)
 typedef ns6__CRLRefType _ns6__CRLRef;
 #endif
 
-/* SCAP-Services.h:2930 */
+/* SCAP-Services.h:2940 */
 #ifndef SOAP_TYPE__ns6__DigestAlgAndValue
-#define SOAP_TYPE__ns6__DigestAlgAndValue (286)
+#define SOAP_TYPE__ns6__DigestAlgAndValue (289)
 typedef ns6__DigestAlgAndValueType _ns6__DigestAlgAndValue;
 #endif
 
-/* SCAP-Services.h:2933 */
+/* SCAP-Services.h:2943 */
 #ifndef SOAP_TYPE__ns6__CRLIdentifier
-#define SOAP_TYPE__ns6__CRLIdentifier (287)
+#define SOAP_TYPE__ns6__CRLIdentifier (290)
 typedef ns6__CRLIdentifierType _ns6__CRLIdentifier;
 #endif
 
-/* SCAP-Services.h:2936 */
+/* SCAP-Services.h:2946 */
 #ifndef SOAP_TYPE__ns6__OCSPRefs
-#define SOAP_TYPE__ns6__OCSPRefs (288)
+#define SOAP_TYPE__ns6__OCSPRefs (291)
 typedef ns6__OCSPRefsType _ns6__OCSPRefs;
 #endif
 
-/* SCAP-Services.h:2939 */
+/* SCAP-Services.h:2949 */
 #ifndef SOAP_TYPE__ns6__OCSPRef
-#define SOAP_TYPE__ns6__OCSPRef (289)
+#define SOAP_TYPE__ns6__OCSPRef (292)
 typedef ns6__OCSPRefType _ns6__OCSPRef;
 #endif
 
-/* SCAP-Services.h:2942 */
+/* SCAP-Services.h:2952 */
 #ifndef SOAP_TYPE__ns6__OCSPIdentifier
-#define SOAP_TYPE__ns6__OCSPIdentifier (290)
+#define SOAP_TYPE__ns6__OCSPIdentifier (293)
 typedef ns6__OCSPIdentifierType _ns6__OCSPIdentifier;
 #endif
 
-/* SCAP-Services.h:2945 */
+/* SCAP-Services.h:2955 */
 #ifndef SOAP_TYPE__ns6__ResponderID
-#define SOAP_TYPE__ns6__ResponderID (291)
+#define SOAP_TYPE__ns6__ResponderID (294)
 typedef ns6__ResponderIDType _ns6__ResponderID;
 #endif
 
-/* SCAP-Services.h:2948 */
+/* SCAP-Services.h:2958 */
 #ifndef SOAP_TYPE__ns6__SigAndRefsTimeStamp
-#define SOAP_TYPE__ns6__SigAndRefsTimeStamp (292)
+#define SOAP_TYPE__ns6__SigAndRefsTimeStamp (295)
 typedef ns6__SigAndRefsTimeStampType _ns6__SigAndRefsTimeStamp;
 #endif
 
-/* SCAP-Services.h:2951 */
+/* SCAP-Services.h:2961 */
 #ifndef SOAP_TYPE__ns6__CertificateValues
-#define SOAP_TYPE__ns6__CertificateValues (293)
+#define SOAP_TYPE__ns6__CertificateValues (296)
 typedef ns6__CertificateValuesType _ns6__CertificateValues;
 #endif
 
-/* SCAP-Services.h:2954 */
+/* SCAP-Services.h:2964 */
 #ifndef SOAP_TYPE__ns6__EncapsulatedX509Certificate
-#define SOAP_TYPE__ns6__EncapsulatedX509Certificate (294)
+#define SOAP_TYPE__ns6__EncapsulatedX509Certificate (297)
 typedef ns6__EncapsulatedX509CertificateType _ns6__EncapsulatedX509Certificate;
 #endif
 
-/* SCAP-Services.h:2957 */
+/* SCAP-Services.h:2967 */
 #ifndef SOAP_TYPE__ns6__RevocationValues
-#define SOAP_TYPE__ns6__RevocationValues (295)
+#define SOAP_TYPE__ns6__RevocationValues (298)
 typedef ns6__RevocationValuesType _ns6__RevocationValues;
 #endif
 
-/* SCAP-Services.h:2960 */
+/* SCAP-Services.h:2970 */
 #ifndef SOAP_TYPE__ns6__CRLValues
-#define SOAP_TYPE__ns6__CRLValues (296)
+#define SOAP_TYPE__ns6__CRLValues (299)
 typedef ns6__CRLValuesType _ns6__CRLValues;
 #endif
 
-/* SCAP-Services.h:2963 */
+/* SCAP-Services.h:2973 */
 #ifndef SOAP_TYPE__ns6__EncapsulatedCRLValue
-#define SOAP_TYPE__ns6__EncapsulatedCRLValue (297)
+#define SOAP_TYPE__ns6__EncapsulatedCRLValue (300)
 typedef ns6__EncapsulatedCRLValueType _ns6__EncapsulatedCRLValue;
 #endif
 
-/* SCAP-Services.h:2966 */
+/* SCAP-Services.h:2976 */
 #ifndef SOAP_TYPE__ns6__OCSPValues
-#define SOAP_TYPE__ns6__OCSPValues (298)
+#define SOAP_TYPE__ns6__OCSPValues (301)
 typedef ns6__OCSPValuesType _ns6__OCSPValues;
 #endif
 
-/* SCAP-Services.h:2969 */
+/* SCAP-Services.h:2979 */
 #ifndef SOAP_TYPE__ns6__EncapsulatedOCSPValue
-#define SOAP_TYPE__ns6__EncapsulatedOCSPValue (299)
+#define SOAP_TYPE__ns6__EncapsulatedOCSPValue (302)
 typedef ns6__EncapsulatedOCSPValueType _ns6__EncapsulatedOCSPValue;
 #endif
 
-/* SCAP-Services.h:2972 */
+/* SCAP-Services.h:2982 */
 #ifndef SOAP_TYPE__ns6__ArchiveTimeStamp
-#define SOAP_TYPE__ns6__ArchiveTimeStamp (300)
+#define SOAP_TYPE__ns6__ArchiveTimeStamp (303)
 typedef ns6__ArchiveTimeStampType _ns6__ArchiveTimeStamp;
 #endif
 
-/* SCAP-Services.h:2991 */
+/* SCAP-Services.h:3001 */
 #ifndef SOAP_TYPE__ns7__SVGList
-#define SOAP_TYPE__ns7__SVGList (301)
+#define SOAP_TYPE__ns7__SVGList (304)
 typedef ns7__SVGListType _ns7__SVGList;
 #endif
 
-/* SCAP-Services.h:2994 */
+/* SCAP-Services.h:3004 */
 #ifndef SOAP_TYPE__ns7__SVG
-#define SOAP_TYPE__ns7__SVG (302)
+#define SOAP_TYPE__ns7__SVG (305)
 typedef ns7__SVGType _ns7__SVG;
 #endif
 
-/* SCAP-Services.h:3029 */
+/* SCAP-Services.h:3039 */
 #ifndef SOAP_TYPE__ns9__AttributeSupplierResponse
-#define SOAP_TYPE__ns9__AttributeSupplierResponse (303)
+#define SOAP_TYPE__ns9__AttributeSupplierResponse (306)
 typedef ns9__AttributeSupplierResponseType _ns9__AttributeSupplierResponse;
 #endif
 
-/* SCAP-Services.h:3048 */
-#ifndef SOAP_TYPE__pdf__SignRequest
-#define SOAP_TYPE__pdf__SignRequest (304)
-typedef pdf__SignRequest _pdf__SignRequest;
+/* SCAP-Services.h:3058 */
+#ifndef SOAP_TYPE__pdf__SignRequestWithAttach
+#define SOAP_TYPE__pdf__SignRequestWithAttach (307)
+typedef pdf__SignRequestWithAttach _pdf__SignRequestWithAttach;
 #endif
 
-/* SCAP-Services.h:3051 */
+/* SCAP-Services.h:3061 */
 #ifndef SOAP_TYPE__pdf__SignResponse
-#define SOAP_TYPE__pdf__SignResponse (305)
+#define SOAP_TYPE__pdf__SignResponse (308)
 typedef pdf__SignResponse _pdf__SignResponse;
 #endif
 
 /* wsa.h:220 */
 #ifndef SOAP_TYPE__wsa__EndpointReference
-#define SOAP_TYPE__wsa__EndpointReference (318)
+#define SOAP_TYPE__wsa__EndpointReference (321)
 typedef struct wsa__EndpointReferenceType _wsa__EndpointReference;
 #endif
 
 /* wsa.h:223 */
 #ifndef SOAP_TYPE__wsa__MessageID
-#define SOAP_TYPE__wsa__MessageID (319)
+#define SOAP_TYPE__wsa__MessageID (322)
 typedef char *_wsa__MessageID;
 #endif
 
 /* wsa.h:226 */
 #ifndef SOAP_TYPE__wsa__RelatesTo
-#define SOAP_TYPE__wsa__RelatesTo (320)
+#define SOAP_TYPE__wsa__RelatesTo (323)
 typedef struct wsa__Relationship _wsa__RelatesTo;
 #endif
 
 /* wsa.h:229 */
 #ifndef SOAP_TYPE__wsa__To
-#define SOAP_TYPE__wsa__To (321)
+#define SOAP_TYPE__wsa__To (324)
 typedef char *_wsa__To;
 #endif
 
 /* wsa.h:232 */
 #ifndef SOAP_TYPE__wsa__Action
-#define SOAP_TYPE__wsa__Action (322)
+#define SOAP_TYPE__wsa__Action (325)
 typedef char *_wsa__Action;
 #endif
 
 /* wsa.h:235 */
 #ifndef SOAP_TYPE__wsa__From
-#define SOAP_TYPE__wsa__From (323)
+#define SOAP_TYPE__wsa__From (326)
 typedef struct wsa__EndpointReferenceType _wsa__From;
 #endif
 
 /* wsa.h:238 */
 #ifndef SOAP_TYPE__wsa__ReplyTo
-#define SOAP_TYPE__wsa__ReplyTo (324)
+#define SOAP_TYPE__wsa__ReplyTo (327)
 typedef struct wsa__EndpointReferenceType _wsa__ReplyTo;
 #endif
 
 /* wsa.h:241 */
 #ifndef SOAP_TYPE__wsa__FaultTo
-#define SOAP_TYPE__wsa__FaultTo (325)
+#define SOAP_TYPE__wsa__FaultTo (328)
 typedef struct wsa__EndpointReferenceType _wsa__FaultTo;
 #endif
 
 /* wsa.h:244 */
 #ifndef SOAP_TYPE__wsa__ReplyAfter
-#define SOAP_TYPE__wsa__ReplyAfter (326)
+#define SOAP_TYPE__wsa__ReplyAfter (329)
 typedef unsigned int _wsa__ReplyAfter;
 #endif
 

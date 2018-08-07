@@ -13,7 +13,7 @@
 
 //SCAP
 #include "scapsignature.h"
-#include "SCAPServices/SCAPH.h"
+#include "SCAP-Services2/SCAPH.h"
 //#include "ASService/ASServiceH.h"   
 //#include "PDFSignature/envStub.h"
 

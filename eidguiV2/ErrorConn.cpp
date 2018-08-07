@@ -1,5 +1,5 @@
 #include "ErrorConn.h"
-#include "SCAPServices/SCAPH.h"
+#include "SCAP-Services2/SCAPH.h"
 
 void ErrorConn::setErrConnInfo(){
     int index = 0;

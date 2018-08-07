@@ -5,12 +5,9 @@
 #include "ScapSettings.h"
 #include "gapi.h"
 
-//#include "ASService/soapH.h"
-//#include "ASService/soapAttributeSupplierBindingProxy.h"
-//#include "ASService/AttributeSupplierBinding.nsmap"
-#include "SCAPServices/SCAPH.h"
-#include "SCAPServices/SCAPAttributeSupplierBindingProxy.h"
-//#include "SCAPServices/SCAP.nsmap"
+
+#include "SCAP-Services2/SCAPH.h"
+#include "SCAP-Services2/SCAPAttributeSupplierBindingProxy.h"
 
 // Client for WS PADES/PDFSignature
 #include "pdfsignatureclient.h"

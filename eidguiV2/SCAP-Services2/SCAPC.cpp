@@ -18,7 +18,7 @@ A commercial use license is available from Genivia Inc., contact@genivia.com
 
 #include "SCAPH.h"
 
-SOAP_SOURCE_STAMP("@(#) SCAPC.cpp ver 2.8.28 2017-09-15 14:38:01 GMT")
+SOAP_SOURCE_STAMP("@(#) SCAPC.cpp ver 2.8.28 2018-03-13 10:39:17 GMT")
 
 
 #ifndef WITH_NOGLOBAL
@@ -215,6 +215,8 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		return soap_in_bool(soap, NULL, NULL, "xsd:boolean");
 	case SOAP_TYPE_pdf__SignatureOrientationEnumType:
 		return soap_in_pdf__SignatureOrientationEnumType(soap, NULL, NULL, "pdf:SignatureOrientationEnumType");
+	case SOAP_TYPE_pdf__DocumentAttach:
+		return soap_in_pdf__DocumentAttach(soap, NULL, NULL, "pdf:DocumentAttach");
 	case SOAP_TYPE_ns7__SVGType:
 		return soap_in_ns7__SVGType(soap, NULL, NULL, "ns7:SVGType");
 	case SOAP_TYPE_ns6__ByNameType:
@@ -277,8 +279,8 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		return soap_in_pdf__AttributeListType(soap, NULL, NULL, "pdf:AttributeListType");
 	case SOAP_TYPE_pdf__PersonalDataType:
 		return soap_in_pdf__PersonalDataType(soap, NULL, NULL, "pdf:PersonalDataType");
-	case SOAP_TYPE_pdf__SignRequest:
-		return soap_in_pdf__SignRequest(soap, NULL, NULL, "pdf:SignRequest");
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		return soap_in_pdf__SignRequestWithAttach(soap, NULL, NULL, "pdf:SignRequestWithAttach");
 	case SOAP_TYPE_ns9__AttributeSupplierResponseType:
 		return soap_in_ns9__AttributeSupplierResponseType(soap, NULL, NULL, "ns9:AttributeSupplierResponseType");
 	case SOAP_TYPE_ns7__SVGListType:
@@ -445,8 +447,10 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		return soap_in_wsa__ReferencePropertiesType(soap, NULL, NULL, "wsa:ReferencePropertiesType");
 	case SOAP_TYPE_wsa__EndpointReferenceType:
 		return soap_in_wsa__EndpointReferenceType(soap, NULL, NULL, "wsa:EndpointReferenceType");
-	case SOAP_TYPE_PointerTopdf__SignRequest:
-		return soap_in_PointerTopdf__SignRequest(soap, NULL, NULL, "pdf:SignRequest");
+	case SOAP_TYPE_xmime5__base64Binary:
+		return soap_in_xmime5__base64Binary(soap, NULL, NULL, "xmime5:base64Binary");
+	case SOAP_TYPE_PointerTopdf__SignRequestWithAttach:
+		return soap_in_PointerTopdf__SignRequestWithAttach(soap, NULL, NULL, "pdf:SignRequestWithAttach");
 	case SOAP_TYPE_PointerTons2__AttributeRequestType:
 		return soap_in_PointerTons2__AttributeRequestType(soap, NULL, NULL, "ns2:AttributeRequestType");
 	case SOAP_TYPE_PointerTo_wsa__FaultTo:
@@ -652,6 +656,10 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 	{	const char *t = soap->type;
 		if (!*t)
 			t = soap->tag;
+		if (!soap_match_tag(soap, t, "pdf:DocumentAttach"))
+		{	*type = SOAP_TYPE_pdf__DocumentAttach;
+			return soap_in_pdf__DocumentAttach(soap, NULL, NULL, NULL);
+		}
 		if (!soap_match_tag(soap, t, "ns7:SVGType"))
 		{	*type = SOAP_TYPE_ns7__SVGType;
 			return soap_in_ns7__SVGType(soap, NULL, NULL, NULL);
@@ -776,9 +784,9 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		{	*type = SOAP_TYPE_pdf__PersonalDataType;
 			return soap_in_pdf__PersonalDataType(soap, NULL, NULL, NULL);
 		}
-		if (!soap_match_tag(soap, t, "pdf:SignRequest"))
-		{	*type = SOAP_TYPE_pdf__SignRequest;
-			return soap_in_pdf__SignRequest(soap, NULL, NULL, NULL);
+		if (!soap_match_tag(soap, t, "pdf:SignRequestWithAttach"))
+		{	*type = SOAP_TYPE_pdf__SignRequestWithAttach;
+			return soap_in_pdf__SignRequestWithAttach(soap, NULL, NULL, NULL);
 		}
 		if (!soap_match_tag(soap, t, "ns9:AttributeSupplierResponseType"))
 		{	*type = SOAP_TYPE_ns9__AttributeSupplierResponseType;
@@ -1160,6 +1168,10 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		{	*type = SOAP_TYPE_wsa__EndpointReferenceType;
 			return soap_in_wsa__EndpointReferenceType(soap, NULL, NULL, NULL);
 		}
+		if (!soap_match_tag(soap, t, "xmime5:base64Binary"))
+		{	*type = SOAP_TYPE_xmime5__base64Binary;
+			return soap_in_xmime5__base64Binary(soap, NULL, NULL, NULL);
+		}
 		if (!soap_match_tag(soap, t, "xsd:QName"))
 		{	char **s;
 			*type = SOAP_TYPE__QName;
@@ -1185,9 +1197,9 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		{	*type = SOAP_TYPE__pdf__SignResponse;
 			return soap_in__pdf__SignResponse(soap, NULL, NULL, NULL);
 		}
-		if (!soap_match_tag(soap, t, "pdf:SignRequest"))
-		{	*type = SOAP_TYPE__pdf__SignRequest;
-			return soap_in__pdf__SignRequest(soap, NULL, NULL, NULL);
+		if (!soap_match_tag(soap, t, "pdf:SignRequestWithAttach"))
+		{	*type = SOAP_TYPE__pdf__SignRequestWithAttach;
+			return soap_in__pdf__SignRequestWithAttach(soap, NULL, NULL, NULL);
 		}
 		if (!soap_match_tag(soap, t, "ns9:AttributeSupplierResponse"))
 		{	*type = SOAP_TYPE__ns9__AttributeSupplierResponse;
@@ -1449,6 +1461,10 @@ SOAP_FMAC3 void * SOAP_FMAC4 soap_getelement(struct soap *soap, int *type)
 		{	*type = SOAP_TYPE__wsa__EndpointReference;
 			return soap_in__wsa__EndpointReference(soap, NULL, NULL, NULL);
 		}
+		if (!soap_match_tag(soap, t, "xop:Include"))
+		{	*type = SOAP_TYPE__xop__Include;
+			return soap_in__xop__Include(soap, NULL, NULL, NULL);
+		}
 		if (!soap_match_tag(soap, t, "wsa:Action"))
 		{	char **s;
 			*type = SOAP_TYPE__wsa__Action;
@@ -1561,8 +1577,8 @@ SOAP_FMAC3 int SOAP_FMAC4 soap_putelement(struct soap *soap, const void *ptr, co
 		return soap_out_pdf__SignatureOrientationEnumType(soap, tag, id, (const enum pdf__SignatureOrientationEnumType *)ptr, "pdf:SignatureOrientationEnumType");
 	case SOAP_TYPE__pdf__SignResponse:
 		return soap_out__pdf__SignResponse(soap, "pdf:SignResponse", id, (const pdf__SignResponse *)ptr, NULL);
-	case SOAP_TYPE__pdf__SignRequest:
-		return soap_out__pdf__SignRequest(soap, "pdf:SignRequest", id, (const pdf__SignRequest *)ptr, NULL);
+	case SOAP_TYPE__pdf__SignRequestWithAttach:
+		return soap_out__pdf__SignRequestWithAttach(soap, "pdf:SignRequestWithAttach", id, (const pdf__SignRequestWithAttach *)ptr, NULL);
 	case SOAP_TYPE__ns9__AttributeSupplierResponse:
 		return soap_out__ns9__AttributeSupplierResponse(soap, "ns9:AttributeSupplierResponse", id, (const ns9__AttributeSupplierResponseType *)ptr, NULL);
 	case SOAP_TYPE__ns7__SVG:
@@ -1683,6 +1699,8 @@ SOAP_FMAC3 int SOAP_FMAC4 soap_putelement(struct soap *soap, const void *ptr, co
 		return soap_out__ns2__AttributeResponse(soap, "ns2:AttributeResponse", id, (const ns2__AttributeResponseType *)ptr, NULL);
 	case SOAP_TYPE__ns2__AttributeRequest:
 		return soap_out__ns2__AttributeRequest(soap, "ns2:AttributeRequest", id, (const ns2__AttributeRequestType *)ptr, NULL);
+	case SOAP_TYPE_pdf__DocumentAttach:
+		return ((pdf__DocumentAttach *)ptr)->soap_out(soap, tag, id, "pdf:DocumentAttach");
 	case SOAP_TYPE_ns7__SVGType:
 		return soap_out_ns7__SVGType(soap, tag, id, (const xsd__base64Binary *)ptr, "ns7:SVGType");
 	case SOAP_TYPE_ns6__ByNameType:
@@ -1745,8 +1763,8 @@ SOAP_FMAC3 int SOAP_FMAC4 soap_putelement(struct soap *soap, const void *ptr, co
 		return ((pdf__AttributeListType *)ptr)->soap_out(soap, tag, id, "pdf:AttributeListType");
 	case SOAP_TYPE_pdf__PersonalDataType:
 		return ((pdf__PersonalDataType *)ptr)->soap_out(soap, tag, id, "pdf:PersonalDataType");
-	case SOAP_TYPE_pdf__SignRequest:
-		return ((pdf__SignRequest *)ptr)->soap_out(soap, tag, id, "pdf:SignRequest");
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		return ((pdf__SignRequestWithAttach *)ptr)->soap_out(soap, tag, id, "pdf:SignRequestWithAttach");
 	case SOAP_TYPE_ns9__AttributeSupplierResponseType:
 		return ((ns9__AttributeSupplierResponseType *)ptr)->soap_out(soap, tag, id, "ns9:AttributeSupplierResponseType");
 	case SOAP_TYPE_ns7__SVGListType:
@@ -1923,8 +1941,12 @@ SOAP_FMAC3 int SOAP_FMAC4 soap_putelement(struct soap *soap, const void *ptr, co
 		return soap_out_wsa__ReferencePropertiesType(soap, tag, id, (const struct wsa__ReferencePropertiesType *)ptr, "wsa:ReferencePropertiesType");
 	case SOAP_TYPE_wsa__EndpointReferenceType:
 		return soap_out_wsa__EndpointReferenceType(soap, tag, id, (const struct wsa__EndpointReferenceType *)ptr, "wsa:EndpointReferenceType");
-	case SOAP_TYPE_PointerTopdf__SignRequest:
-		return soap_out_PointerTopdf__SignRequest(soap, tag, id, (pdf__SignRequest *const*)ptr, "pdf:SignRequest");
+	case SOAP_TYPE_xmime5__base64Binary:
+		return soap_out_xmime5__base64Binary(soap, tag, id, (const struct xmime5__base64Binary *)ptr, "xmime5:base64Binary");
+	case SOAP_TYPE__xop__Include:
+		return soap_out__xop__Include(soap, "xop:Include", id, (const struct _xop__Include *)ptr, NULL);
+	case SOAP_TYPE_PointerTopdf__SignRequestWithAttach:
+		return soap_out_PointerTopdf__SignRequestWithAttach(soap, tag, id, (pdf__SignRequestWithAttach *const*)ptr, "pdf:SignRequestWithAttach");
 	case SOAP_TYPE_PointerTons2__AttributeRequestType:
 		return soap_out_PointerTons2__AttributeRequestType(soap, tag, id, (ns2__AttributeRequestType *const*)ptr, "ns2:AttributeRequestType");
 	case SOAP_TYPE_PointerTo_wsa__FaultTo:
@@ -2143,8 +2165,8 @@ SOAP_FMAC3 void SOAP_FMAC4 soap_markelement(struct soap *soap, const void *ptr, 
 	case SOAP_TYPE__pdf__SignResponse:
 		soap_serialize__pdf__SignResponse(soap, (const pdf__SignResponse *)ptr);
 		break;
-	case SOAP_TYPE__pdf__SignRequest:
-		soap_serialize__pdf__SignRequest(soap, (const pdf__SignRequest *)ptr);
+	case SOAP_TYPE__pdf__SignRequestWithAttach:
+		soap_serialize__pdf__SignRequestWithAttach(soap, (const pdf__SignRequestWithAttach *)ptr);
 		break;
 	case SOAP_TYPE__ns9__AttributeSupplierResponse:
 		soap_serialize__ns9__AttributeSupplierResponse(soap, (const ns9__AttributeSupplierResponseType *)ptr);
@@ -2326,6 +2348,9 @@ SOAP_FMAC3 void SOAP_FMAC4 soap_markelement(struct soap *soap, const void *ptr, 
 	case SOAP_TYPE__ns2__AttributeRequest:
 		soap_serialize__ns2__AttributeRequest(soap, (const ns2__AttributeRequestType *)ptr);
 		break;
+	case SOAP_TYPE_pdf__DocumentAttach:
+		((pdf__DocumentAttach *)ptr)->soap_serialize(soap);
+		break;
 	case SOAP_TYPE_ns7__SVGType:
 		soap_serialize_ns7__SVGType(soap, (const xsd__base64Binary *)ptr);
 		break;
@@ -2419,8 +2444,8 @@ SOAP_FMAC3 void SOAP_FMAC4 soap_markelement(struct soap *soap, const void *ptr, 
 	case SOAP_TYPE_pdf__PersonalDataType:
 		((pdf__PersonalDataType *)ptr)->soap_serialize(soap);
 		break;
-	case SOAP_TYPE_pdf__SignRequest:
-		((pdf__SignRequest *)ptr)->soap_serialize(soap);
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		((pdf__SignRequestWithAttach *)ptr)->soap_serialize(soap);
 		break;
 	case SOAP_TYPE_ns9__AttributeSupplierResponseType:
 		((ns9__AttributeSupplierResponseType *)ptr)->soap_serialize(soap);
@@ -2695,8 +2720,14 @@ SOAP_FMAC3 void SOAP_FMAC4 soap_markelement(struct soap *soap, const void *ptr, 
 	case SOAP_TYPE_wsa__EndpointReferenceType:
 		soap_serialize_wsa__EndpointReferenceType(soap, (const struct wsa__EndpointReferenceType *)ptr);
 		break;
-	case SOAP_TYPE_PointerTopdf__SignRequest:
-		soap_serialize_PointerTopdf__SignRequest(soap, (pdf__SignRequest *const*)ptr);
+	case SOAP_TYPE_xmime5__base64Binary:
+		soap_serialize_xmime5__base64Binary(soap, (const struct xmime5__base64Binary *)ptr);
+		break;
+	case SOAP_TYPE__xop__Include:
+		soap_serialize__xop__Include(soap, (const struct _xop__Include *)ptr);
+		break;
+	case SOAP_TYPE_PointerTopdf__SignRequestWithAttach:
+		soap_serialize_PointerTopdf__SignRequestWithAttach(soap, (pdf__SignRequestWithAttach *const*)ptr);
 		break;
 	case SOAP_TYPE_PointerTons2__AttributeRequestType:
 		soap_serialize_PointerTons2__AttributeRequestType(soap, (ns2__AttributeRequestType *const*)ptr);
@@ -3142,8 +3173,14 @@ SOAP_FMAC3 void * SOAP_FMAC4 SCAP_instantiate(struct soap *soap, int t, const ch
 		return (void*)soap_instantiate_ns7__SVGListType(soap, -1, type, arrayType, n);
 	case SOAP_TYPE_ns9__AttributeSupplierResponseType:
 		return (void*)soap_instantiate_ns9__AttributeSupplierResponseType(soap, -1, type, arrayType, n);
-	case SOAP_TYPE_pdf__SignRequest:
-		return (void*)soap_instantiate_pdf__SignRequest(soap, -1, type, arrayType, n);
+	case SOAP_TYPE__xop__Include:
+		return (void*)soap_instantiate__xop__Include(soap, -1, type, arrayType, n);
+	case SOAP_TYPE_xmime5__base64Binary:
+		return (void*)soap_instantiate_xmime5__base64Binary(soap, -1, type, arrayType, n);
+	case SOAP_TYPE_pdf__DocumentAttach:
+		return (void*)soap_instantiate_pdf__DocumentAttach(soap, -1, type, arrayType, n);
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		return (void*)soap_instantiate_pdf__SignRequestWithAttach(soap, -1, type, arrayType, n);
 	case SOAP_TYPE_pdf__PersonalDataType:
 		return (void*)soap_instantiate_pdf__PersonalDataType(soap, -1, type, arrayType, n);
 	case SOAP_TYPE_pdf__AttributeListType:
@@ -3382,8 +3419,8 @@ SOAP_FMAC3 void * SOAP_FMAC4 SCAP_instantiate(struct soap *soap, int t, const ch
 		return (void*)soap_instantiate__ns7__SVG(soap, -1, type, arrayType, n);
 	case SOAP_TYPE__ns9__AttributeSupplierResponse:
 		return (void*)soap_instantiate__ns9__AttributeSupplierResponse(soap, -1, type, arrayType, n);
-	case SOAP_TYPE__pdf__SignRequest:
-		return (void*)soap_instantiate__pdf__SignRequest(soap, -1, type, arrayType, n);
+	case SOAP_TYPE__pdf__SignRequestWithAttach:
+		return (void*)soap_instantiate__pdf__SignRequestWithAttach(soap, -1, type, arrayType, n);
 	case SOAP_TYPE__pdf__SignResponse:
 		return (void*)soap_instantiate__pdf__SignResponse(soap, -1, type, arrayType, n);
 	case SOAP_TYPE__wsa__EndpointReference:
@@ -3855,11 +3892,29 @@ SOAP_FMAC3 int SOAP_FMAC4 SCAP_fdelete(struct soap_clist *p)
 		else
 			SOAP_DELETE_ARRAY(static_cast<ns9__AttributeSupplierResponseType*>(p->ptr));
 		break;
-	case SOAP_TYPE_pdf__SignRequest:
+	case SOAP_TYPE__xop__Include:
 		if (p->size < 0)
-			SOAP_DELETE(static_cast<pdf__SignRequest*>(p->ptr));
+			SOAP_DELETE(static_cast<struct _xop__Include*>(p->ptr));
 		else
-			SOAP_DELETE_ARRAY(static_cast<pdf__SignRequest*>(p->ptr));
+			SOAP_DELETE_ARRAY(static_cast<struct _xop__Include*>(p->ptr));
+		break;
+	case SOAP_TYPE_xmime5__base64Binary:
+		if (p->size < 0)
+			SOAP_DELETE(static_cast<struct xmime5__base64Binary*>(p->ptr));
+		else
+			SOAP_DELETE_ARRAY(static_cast<struct xmime5__base64Binary*>(p->ptr));
+		break;
+	case SOAP_TYPE_pdf__DocumentAttach:
+		if (p->size < 0)
+			SOAP_DELETE(static_cast<pdf__DocumentAttach*>(p->ptr));
+		else
+			SOAP_DELETE_ARRAY(static_cast<pdf__DocumentAttach*>(p->ptr));
+		break;
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		if (p->size < 0)
+			SOAP_DELETE(static_cast<pdf__SignRequestWithAttach*>(p->ptr));
+		else
+			SOAP_DELETE_ARRAY(static_cast<pdf__SignRequestWithAttach*>(p->ptr));
 		break;
 	case SOAP_TYPE_pdf__PersonalDataType:
 		if (p->size < 0)
@@ -4555,11 +4610,11 @@ SOAP_FMAC3 int SOAP_FMAC4 SCAP_fdelete(struct soap_clist *p)
 		else
 			SOAP_DELETE_ARRAY(static_cast<ns9__AttributeSupplierResponseType*>(p->ptr));
 		break;
-	case SOAP_TYPE__pdf__SignRequest:
+	case SOAP_TYPE__pdf__SignRequestWithAttach:
 		if (p->size < 0)
-			SOAP_DELETE(static_cast<pdf__SignRequest*>(p->ptr));
+			SOAP_DELETE(static_cast<pdf__SignRequestWithAttach*>(p->ptr));
 		else
-			SOAP_DELETE_ARRAY(static_cast<pdf__SignRequest*>(p->ptr));
+			SOAP_DELETE_ARRAY(static_cast<pdf__SignRequestWithAttach*>(p->ptr));
 		break;
 	case SOAP_TYPE__pdf__SignResponse:
 		if (p->size < 0)
@@ -5174,9 +5229,21 @@ SOAP_FMAC3 void SOAP_FMAC4 SCAP_finsert(struct soap *soap, int t, int tt, void *
 		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy ns9__AttributeSupplierResponseType type=%d location=%p object=%p\n", t, p, q));
 		*(ns9__AttributeSupplierResponseType*)p = *(ns9__AttributeSupplierResponseType*)q;
 		break;
-	case SOAP_TYPE_pdf__SignRequest:
-		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__SignRequest type=%d location=%p object=%p\n", t, p, q));
-		*(pdf__SignRequest*)p = *(pdf__SignRequest*)q;
+	case SOAP_TYPE__xop__Include:
+		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy struct _xop__Include type=%d location=%p object=%p\n", t, p, q));
+		*(struct _xop__Include*)p = *(struct _xop__Include*)q;
+		break;
+	case SOAP_TYPE_xmime5__base64Binary:
+		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy struct xmime5__base64Binary type=%d location=%p object=%p\n", t, p, q));
+		*(struct xmime5__base64Binary*)p = *(struct xmime5__base64Binary*)q;
+		break;
+	case SOAP_TYPE_pdf__DocumentAttach:
+		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__DocumentAttach type=%d location=%p object=%p\n", t, p, q));
+		*(pdf__DocumentAttach*)p = *(pdf__DocumentAttach*)q;
+		break;
+	case SOAP_TYPE_pdf__SignRequestWithAttach:
+		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__SignRequestWithAttach type=%d location=%p object=%p\n", t, p, q));
+		*(pdf__SignRequestWithAttach*)p = *(pdf__SignRequestWithAttach*)q;
 		break;
 	case SOAP_TYPE_pdf__PersonalDataType:
 		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__PersonalDataType type=%d location=%p object=%p\n", t, p, q));
@@ -5644,9 +5711,9 @@ SOAP_FMAC3 void SOAP_FMAC4 SCAP_finsert(struct soap *soap, int t, int tt, void *
 		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy ns9__AttributeSupplierResponseType type=%d location=%p object=%p\n", t, p, q));
 		*(ns9__AttributeSupplierResponseType*)p = *(ns9__AttributeSupplierResponseType*)q;
 		break;
-	case SOAP_TYPE__pdf__SignRequest:
-		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__SignRequest type=%d location=%p object=%p\n", t, p, q));
-		*(pdf__SignRequest*)p = *(pdf__SignRequest*)q;
+	case SOAP_TYPE__pdf__SignRequestWithAttach:
+		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__SignRequestWithAttach type=%d location=%p object=%p\n", t, p, q));
+		*(pdf__SignRequestWithAttach*)p = *(pdf__SignRequestWithAttach*)q;
 		break;
 	case SOAP_TYPE__pdf__SignResponse:
 		DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Copy pdf__SignResponse type=%d location=%p object=%p\n", t, p, q));
@@ -6374,6 +6441,136 @@ SOAP_FMAC3 xsd__base64Binary * SOAP_FMAC4 soap_in__ns6__EncapsulatedTimeStamp(st
 			return NULL;
 	}
 	return a;
+}
+
+void pdf__DocumentAttach::soap_default(struct soap *soap)
+{
+	this->soap = soap;
+	soap_default__xop__Include(soap, &this->pdf__DocumentAttach::xop__Include);
+	soap_default_string(soap, &this->pdf__DocumentAttach::xmime5__contentType);
+	/* transient soap skipped */
+}
+
+void pdf__DocumentAttach::soap_serialize(struct soap *soap) const
+{
+	(void)soap; /* appease -Wall -Werror */
+#ifndef WITH_NOIDREF
+	soap_serialize__xop__Include(soap, &this->pdf__DocumentAttach::xop__Include);
+#endif
+}
+
+int pdf__DocumentAttach::soap_out(struct soap *soap, const char *tag, int id, const char *type) const
+{
+	return soap_out_pdf__DocumentAttach(soap, tag, id, this, type);
+}
+
+SOAP_FMAC3 int SOAP_FMAC4 soap_out_pdf__DocumentAttach(struct soap *soap, const char *tag, int id, const pdf__DocumentAttach *a, const char *type)
+{
+	if (((pdf__DocumentAttach*)a)->xmime5__contentType)
+		soap_set_attr(soap, "xmime5:contentType", (char*)((pdf__DocumentAttach*)a)->xmime5__contentType, 1);
+	(void)soap; (void)tag; (void)id; (void)a; (void)type; /* appease -Wall -Werror */
+	if (soap_element_begin_out(soap, tag, soap_embedded_id(soap, id, a, SOAP_TYPE_pdf__DocumentAttach), type))
+		return soap->error;
+	if (soap_out__xop__Include(soap, "xop:Include", -1, &a->pdf__DocumentAttach::xop__Include, ""))
+		return soap->error;
+	return soap_element_end_out(soap, tag);
+}
+
+void *pdf__DocumentAttach::soap_in(struct soap *soap, const char *tag, const char *type)
+{	return soap_in_pdf__DocumentAttach(soap, tag, this, type);
+}
+
+SOAP_FMAC3 pdf__DocumentAttach * SOAP_FMAC4 soap_in_pdf__DocumentAttach(struct soap *soap, const char *tag, pdf__DocumentAttach *a, const char *type)
+{
+	(void)tag; (void)type; /* appease -Wall -Werror */
+	if (soap_element_begin_in(soap, tag, 0, NULL))
+		return NULL;
+	a = (pdf__DocumentAttach *)soap_id_enter(soap, soap->id, a, SOAP_TYPE_pdf__DocumentAttach, sizeof(pdf__DocumentAttach), soap->type, soap->arrayType, SCAP_instantiate, SCAP_fbase);
+	if (!a)
+		return NULL;
+	if (soap->alloced)
+		a->soap_default(soap);
+	if (soap_s2string(soap, soap_attr_value(soap, "xmime5:contentType", 0), (char**)&((pdf__DocumentAttach*)a)->xmime5__contentType, 0, -1))
+		return NULL;
+	size_t soap_flag_xop__Include1 = 1;
+	if (soap->body && !*soap->href)
+	{
+		for (;;)
+		{	soap->error = SOAP_TAG_MISMATCH;
+			if (soap_flag_xop__Include1 && soap->error == SOAP_TAG_MISMATCH)
+				if (soap_in__xop__Include(soap, "xop:Include", &a->pdf__DocumentAttach::xop__Include, ""))
+				{	soap_flag_xop__Include1--;
+					continue;
+				}
+			if (soap->error == SOAP_TAG_MISMATCH)
+				soap->error = soap_ignore_element(soap);
+			if (soap->error == SOAP_NO_TAG)
+				break;
+			if (soap->error)
+				return NULL;
+		}
+		if ((soap->mode & SOAP_XML_STRICT) && (soap_flag_xop__Include1 > 0))
+		{	soap->error = SOAP_OCCURS;
+			return NULL;
+		}
+		if (soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	else if ((soap->mode & SOAP_XML_STRICT) && !*soap->href)
+	{	soap->error = SOAP_OCCURS;
+		return NULL;
+	}
+	else
+	{	a = (pdf__DocumentAttach *)soap_id_forward(soap, soap->href, (void*)a, 0, SOAP_TYPE_pdf__DocumentAttach, SOAP_TYPE_pdf__DocumentAttach, sizeof(pdf__DocumentAttach), 0, SCAP_finsert, SCAP_fbase);
+		if (soap->body && soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	return a;
+}
+
+SOAP_FMAC1 pdf__DocumentAttach * SOAP_FMAC2 soap_instantiate_pdf__DocumentAttach(struct soap *soap, int n, const char *type, const char *arrayType, size_t *size)
+{
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "soap_instantiate_pdf__DocumentAttach(%p, %d, %s, %s)\n", soap, n, type?type:"", arrayType?arrayType:""));
+	(void)type; (void)arrayType; /* appease -Wall -Werror */
+	pdf__DocumentAttach *p;
+	size_t k = sizeof(pdf__DocumentAttach);
+	if (n < 0)
+	{	p = SOAP_NEW(pdf__DocumentAttach);
+		if (p)
+			((pdf__DocumentAttach*)p)->soap = soap;
+	}
+	else
+	{	p = SOAP_NEW_ARRAY(pdf__DocumentAttach, n);
+		k *= n;
+		if (p)
+			for (int i = 0; i < n; i++)
+				((pdf__DocumentAttach*)p)[i].soap = soap;
+	}
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Instantiated pdf__DocumentAttach location=%p n=%d\n", p, n));
+	soap_link(soap, p, SOAP_TYPE_pdf__DocumentAttach, n, SCAP_fdelete);
+	if (size)
+		*size = k;
+	return p;
+}
+
+int pdf__DocumentAttach::soap_put(struct soap *soap, const char *tag, const  char *type) const
+{
+	if (this->soap_out(soap, tag?tag:"pdf:DocumentAttach", -2, type))
+		return soap->error;
+	return soap_putindependent(soap);
+}
+
+void *pdf__DocumentAttach::soap_get(struct soap *soap, const char *tag, const char *type)
+{
+	return soap_get_pdf__DocumentAttach(soap, this, tag, type);
+}
+
+SOAP_FMAC3 pdf__DocumentAttach * SOAP_FMAC4 soap_get_pdf__DocumentAttach(struct soap *soap, pdf__DocumentAttach *p, const char *tag, const char *type)
+{
+	if ((p = soap_in_pdf__DocumentAttach(soap, tag, p, type)))
+		if (soap_getindependent(soap))
+			return NULL;
+	return p;
 }
 
 SOAP_FMAC3 void SOAP_FMAC4 soap_serialize_ns7__SVGType(struct soap *soap, const xsd__base64Binary *a)
@@ -8754,94 +8951,94 @@ SOAP_FMAC3 pdf__PersonalDataType * SOAP_FMAC4 soap_get_pdf__PersonalDataType(str
 	return p;
 }
 
-void pdf__SignRequest::soap_default(struct soap *soap)
+void pdf__SignRequestWithAttach::soap_default(struct soap *soap)
 {
 	this->soap = soap;
-	soap_default_std__string(soap, &this->pdf__SignRequest::ProcessId);
-	this->pdf__SignRequest::PersonalData = NULL;
-	this->pdf__SignRequest::AttributeList = NULL;
-	soap_default_std__string(soap, &this->pdf__SignRequest::SignatureFieldName);
-	this->pdf__SignRequest::SignDocument.xsd__base64Binary::soap_default(soap);
-	this->pdf__SignRequest::LTV = NULL;
-	soap_default_int(soap, &this->pdf__SignRequest::Page);
-	soap_default_int(soap, &this->pdf__SignRequest::X);
-	soap_default_int(soap, &this->pdf__SignRequest::Y);
-	soap_default_pdf__SignatureOrientationEnumType(soap, &this->pdf__SignRequest::Orientation);
+	soap_default_std__string(soap, &this->pdf__SignRequestWithAttach::ProcessId);
+	this->pdf__SignRequestWithAttach::PersonalData = NULL;
+	this->pdf__SignRequestWithAttach::AttributeList = NULL;
+	soap_default_std__string(soap, &this->pdf__SignRequestWithAttach::SignatureFieldName);
+	this->pdf__SignRequestWithAttach::DocumentAttach.xsd__base64Binary::soap_default(soap);
+	this->pdf__SignRequestWithAttach::LTV = NULL;
+	soap_default_int(soap, &this->pdf__SignRequestWithAttach::Page);
+	soap_default_int(soap, &this->pdf__SignRequestWithAttach::X);
+	soap_default_int(soap, &this->pdf__SignRequestWithAttach::Y);
+	soap_default_pdf__SignatureOrientationEnumType(soap, &this->pdf__SignRequestWithAttach::Orientation);
 	/* transient soap skipped */
 }
 
-void pdf__SignRequest::soap_serialize(struct soap *soap) const
+void pdf__SignRequestWithAttach::soap_serialize(struct soap *soap) const
 {
 	(void)soap; /* appease -Wall -Werror */
 #ifndef WITH_NOIDREF
-	soap_embedded(soap, &this->pdf__SignRequest::ProcessId, SOAP_TYPE_std__string);
-	soap_serialize_std__string(soap, &this->pdf__SignRequest::ProcessId);
-	soap_serialize_PointerTopdf__PersonalDataType(soap, &this->pdf__SignRequest::PersonalData);
-	soap_serialize_PointerTopdf__AttributeListType(soap, &this->pdf__SignRequest::AttributeList);
-	soap_embedded(soap, &this->pdf__SignRequest::SignatureFieldName, SOAP_TYPE_std__string);
-	soap_serialize_std__string(soap, &this->pdf__SignRequest::SignatureFieldName);
-	soap_embedded(soap, &this->pdf__SignRequest::SignDocument, SOAP_TYPE_xsd__base64Binary);
-	this->pdf__SignRequest::SignDocument.soap_serialize(soap);
-	soap_serialize_PointerToint(soap, &this->pdf__SignRequest::LTV);
-	soap_embedded(soap, &this->pdf__SignRequest::Page, SOAP_TYPE_int);
-	soap_embedded(soap, &this->pdf__SignRequest::X, SOAP_TYPE_int);
-	soap_embedded(soap, &this->pdf__SignRequest::Y, SOAP_TYPE_int);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::ProcessId, SOAP_TYPE_std__string);
+	soap_serialize_std__string(soap, &this->pdf__SignRequestWithAttach::ProcessId);
+	soap_serialize_PointerTopdf__PersonalDataType(soap, &this->pdf__SignRequestWithAttach::PersonalData);
+	soap_serialize_PointerTopdf__AttributeListType(soap, &this->pdf__SignRequestWithAttach::AttributeList);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::SignatureFieldName, SOAP_TYPE_std__string);
+	soap_serialize_std__string(soap, &this->pdf__SignRequestWithAttach::SignatureFieldName);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::DocumentAttach, SOAP_TYPE_xsd__base64Binary);
+	this->pdf__SignRequestWithAttach::DocumentAttach.soap_serialize(soap);
+	soap_serialize_PointerToint(soap, &this->pdf__SignRequestWithAttach::LTV);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::Page, SOAP_TYPE_int);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::X, SOAP_TYPE_int);
+	soap_embedded(soap, &this->pdf__SignRequestWithAttach::Y, SOAP_TYPE_int);
 #endif
 }
 
-int pdf__SignRequest::soap_out(struct soap *soap, const char *tag, int id, const char *type) const
+int pdf__SignRequestWithAttach::soap_out(struct soap *soap, const char *tag, int id, const char *type) const
 {
-	return soap_out_pdf__SignRequest(soap, tag, id, this, type);
+	return soap_out_pdf__SignRequestWithAttach(soap, tag, id, this, type);
 }
 
-SOAP_FMAC3 int SOAP_FMAC4 soap_out_pdf__SignRequest(struct soap *soap, const char *tag, int id, const pdf__SignRequest *a, const char *type)
+SOAP_FMAC3 int SOAP_FMAC4 soap_out_pdf__SignRequestWithAttach(struct soap *soap, const char *tag, int id, const pdf__SignRequestWithAttach *a, const char *type)
 {
 	(void)soap; (void)tag; (void)id; (void)a; (void)type; /* appease -Wall -Werror */
-	if (soap_element_begin_out(soap, tag, soap_embedded_id(soap, id, a, SOAP_TYPE_pdf__SignRequest), type))
+	if (soap_element_begin_out(soap, tag, soap_embedded_id(soap, id, a, SOAP_TYPE_pdf__SignRequestWithAttach), type))
 		return soap->error;
-	if (soap_out_std__string(soap, "ProcessId", -1, &a->pdf__SignRequest::ProcessId, ""))
+	if (soap_out_std__string(soap, "ProcessId", -1, &a->pdf__SignRequestWithAttach::ProcessId, ""))
 		return soap->error;
-	if (!a->pdf__SignRequest::PersonalData)
+	if (!a->pdf__SignRequestWithAttach::PersonalData)
 	{	if (soap_element_nil(soap, "PersonalData"))
 			return soap->error;
 	}
 	else
-	if (soap_out_PointerTopdf__PersonalDataType(soap, "PersonalData", -1, &a->pdf__SignRequest::PersonalData, ""))
+	if (soap_out_PointerTopdf__PersonalDataType(soap, "PersonalData", -1, &a->pdf__SignRequestWithAttach::PersonalData, ""))
 		return soap->error;
-	if (!a->pdf__SignRequest::AttributeList)
+	if (!a->pdf__SignRequestWithAttach::AttributeList)
 	{	if (soap_element_nil(soap, "AttributeList"))
 			return soap->error;
 	}
 	else
-	if (soap_out_PointerTopdf__AttributeListType(soap, "AttributeList", -1, &a->pdf__SignRequest::AttributeList, ""))
+	if (soap_out_PointerTopdf__AttributeListType(soap, "AttributeList", -1, &a->pdf__SignRequestWithAttach::AttributeList, ""))
 		return soap->error;
-	if (soap_out_std__string(soap, "SignatureFieldName", -1, &a->pdf__SignRequest::SignatureFieldName, ""))
+	if (soap_out_std__string(soap, "SignatureFieldName", -1, &a->pdf__SignRequestWithAttach::SignatureFieldName, ""))
 		return soap->error;
-	if ((a->pdf__SignRequest::SignDocument).soap_out(soap, "SignDocument", -1, ""))
+	if ((a->pdf__SignRequestWithAttach::DocumentAttach).soap_out(soap, "DocumentAttach", -1, ""))
 		return soap->error;
-	if (soap_out_PointerToint(soap, "LTV", -1, &a->pdf__SignRequest::LTV, ""))
+	if (soap_out_PointerToint(soap, "LTV", -1, &a->pdf__SignRequestWithAttach::LTV, ""))
 		return soap->error;
-	if (soap_out_int(soap, "Page", -1, &a->pdf__SignRequest::Page, ""))
+	if (soap_out_int(soap, "Page", -1, &a->pdf__SignRequestWithAttach::Page, ""))
 		return soap->error;
-	if (soap_out_int(soap, "X", -1, &a->pdf__SignRequest::X, ""))
+	if (soap_out_int(soap, "X", -1, &a->pdf__SignRequestWithAttach::X, ""))
 		return soap->error;
-	if (soap_out_int(soap, "Y", -1, &a->pdf__SignRequest::Y, ""))
+	if (soap_out_int(soap, "Y", -1, &a->pdf__SignRequestWithAttach::Y, ""))
 		return soap->error;
-	if (soap_out_pdf__SignatureOrientationEnumType(soap, "Orientation", -1, &a->pdf__SignRequest::Orientation, ""))
+	if (soap_out_pdf__SignatureOrientationEnumType(soap, "Orientation", -1, &a->pdf__SignRequestWithAttach::Orientation, ""))
 		return soap->error;
 	return soap_element_end_out(soap, tag);
 }
 
-void *pdf__SignRequest::soap_in(struct soap *soap, const char *tag, const char *type)
-{	return soap_in_pdf__SignRequest(soap, tag, this, type);
+void *pdf__SignRequestWithAttach::soap_in(struct soap *soap, const char *tag, const char *type)
+{	return soap_in_pdf__SignRequestWithAttach(soap, tag, this, type);
 }
 
-SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_in_pdf__SignRequest(struct soap *soap, const char *tag, pdf__SignRequest *a, const char *type)
+SOAP_FMAC3 pdf__SignRequestWithAttach * SOAP_FMAC4 soap_in_pdf__SignRequestWithAttach(struct soap *soap, const char *tag, pdf__SignRequestWithAttach *a, const char *type)
 {
 	(void)tag; (void)type; /* appease -Wall -Werror */
 	if (soap_element_begin_in(soap, tag, 0, NULL))
 		return NULL;
-	a = (pdf__SignRequest *)soap_id_enter(soap, soap->id, a, SOAP_TYPE_pdf__SignRequest, sizeof(pdf__SignRequest), soap->type, soap->arrayType, SCAP_instantiate, SCAP_fbase);
+	a = (pdf__SignRequestWithAttach *)soap_id_enter(soap, soap->id, a, SOAP_TYPE_pdf__SignRequestWithAttach, sizeof(pdf__SignRequestWithAttach), soap->type, soap->arrayType, SCAP_instantiate, SCAP_fbase);
 	if (!a)
 		return NULL;
 	if (soap->alloced)
@@ -8850,7 +9047,7 @@ SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_in_pdf__SignRequest(struct soap *s
 	size_t soap_flag_PersonalData1 = 1;
 	size_t soap_flag_AttributeList1 = 1;
 	size_t soap_flag_SignatureFieldName1 = 1;
-	size_t soap_flag_SignDocument1 = 1;
+	size_t soap_flag_DocumentAttach1 = 1;
 	size_t soap_flag_LTV1 = 1;
 	size_t soap_flag_Page1 = 1;
 	size_t soap_flag_X1 = 1;
@@ -8861,52 +9058,52 @@ SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_in_pdf__SignRequest(struct soap *s
 		for (;;)
 		{	soap->error = SOAP_TAG_MISMATCH;
 			if (soap_flag_ProcessId1 && (soap->error == SOAP_TAG_MISMATCH || soap->error == SOAP_NO_TAG))
-				if (soap_in_std__string(soap, "ProcessId", &a->pdf__SignRequest::ProcessId, "xsd:string"))
+				if (soap_in_std__string(soap, "ProcessId", &a->pdf__SignRequestWithAttach::ProcessId, "xsd:string"))
 				{	soap_flag_ProcessId1--;
 					continue;
 				}
 			if (soap_flag_PersonalData1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_PointerTopdf__PersonalDataType(soap, "PersonalData", &a->pdf__SignRequest::PersonalData, "pdf:PersonalDataType"))
+				if (soap_in_PointerTopdf__PersonalDataType(soap, "PersonalData", &a->pdf__SignRequestWithAttach::PersonalData, "pdf:PersonalDataType"))
 				{	soap_flag_PersonalData1--;
 					continue;
 				}
 			if (soap_flag_AttributeList1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_PointerTopdf__AttributeListType(soap, "AttributeList", &a->pdf__SignRequest::AttributeList, "pdf:AttributeListType"))
+				if (soap_in_PointerTopdf__AttributeListType(soap, "AttributeList", &a->pdf__SignRequestWithAttach::AttributeList, "pdf:AttributeListType"))
 				{	soap_flag_AttributeList1--;
 					continue;
 				}
 			if (soap_flag_SignatureFieldName1 && (soap->error == SOAP_TAG_MISMATCH || soap->error == SOAP_NO_TAG))
-				if (soap_in_std__string(soap, "SignatureFieldName", &a->pdf__SignRequest::SignatureFieldName, "xsd:string"))
+				if (soap_in_std__string(soap, "SignatureFieldName", &a->pdf__SignRequestWithAttach::SignatureFieldName, "xsd:string"))
 				{	soap_flag_SignatureFieldName1--;
 					continue;
 				}
-			if (soap_flag_SignDocument1 && soap->error == SOAP_TAG_MISMATCH)
-				if ((a->pdf__SignRequest::SignDocument).soap_in(soap, "SignDocument", "xsd:base64Binary"))
-				{	soap_flag_SignDocument1--;
+			if (soap_flag_DocumentAttach1 && soap->error == SOAP_TAG_MISMATCH)
+				if ((a->pdf__SignRequestWithAttach::DocumentAttach).soap_in(soap, "DocumentAttach", "xsd:base64Binary"))
+				{	soap_flag_DocumentAttach1--;
 					continue;
 				}
 			if (soap_flag_LTV1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_PointerToint(soap, "LTV", &a->pdf__SignRequest::LTV, "xsd:int"))
+				if (soap_in_PointerToint(soap, "LTV", &a->pdf__SignRequestWithAttach::LTV, "xsd:int"))
 				{	soap_flag_LTV1--;
 					continue;
 				}
 			if (soap_flag_Page1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_int(soap, "Page", &a->pdf__SignRequest::Page, "xsd:int"))
+				if (soap_in_int(soap, "Page", &a->pdf__SignRequestWithAttach::Page, "xsd:int"))
 				{	soap_flag_Page1--;
 					continue;
 				}
 			if (soap_flag_X1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_int(soap, "X", &a->pdf__SignRequest::X, "xsd:int"))
+				if (soap_in_int(soap, "X", &a->pdf__SignRequestWithAttach::X, "xsd:int"))
 				{	soap_flag_X1--;
 					continue;
 				}
 			if (soap_flag_Y1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_int(soap, "Y", &a->pdf__SignRequest::Y, "xsd:int"))
+				if (soap_in_int(soap, "Y", &a->pdf__SignRequestWithAttach::Y, "xsd:int"))
 				{	soap_flag_Y1--;
 					continue;
 				}
 			if (soap_flag_Orientation1 && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_pdf__SignatureOrientationEnumType(soap, "Orientation", &a->pdf__SignRequest::Orientation, "pdf:SignatureOrientationEnumType"))
+				if (soap_in_pdf__SignatureOrientationEnumType(soap, "Orientation", &a->pdf__SignRequestWithAttach::Orientation, "pdf:SignatureOrientationEnumType"))
 				{	soap_flag_Orientation1--;
 					continue;
 				}
@@ -8917,7 +9114,7 @@ SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_in_pdf__SignRequest(struct soap *s
 			if (soap->error)
 				return NULL;
 		}
-		if ((soap->mode & SOAP_XML_STRICT) && (soap_flag_ProcessId1 > 0 || soap_flag_PersonalData1 > 0 || soap_flag_AttributeList1 > 0 || soap_flag_SignatureFieldName1 > 0 || soap_flag_SignDocument1 > 0 || soap_flag_Page1 > 0 || soap_flag_X1 > 0 || soap_flag_Y1 > 0 || soap_flag_Orientation1 > 0))
+		if ((soap->mode & SOAP_XML_STRICT) && (soap_flag_ProcessId1 > 0 || soap_flag_PersonalData1 > 0 || soap_flag_AttributeList1 > 0 || soap_flag_SignatureFieldName1 > 0 || soap_flag_DocumentAttach1 > 0 || soap_flag_Page1 > 0 || soap_flag_X1 > 0 || soap_flag_Y1 > 0 || soap_flag_Orientation1 > 0))
 		{	soap->error = SOAP_OCCURS;
 			return NULL;
 		}
@@ -8929,53 +9126,53 @@ SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_in_pdf__SignRequest(struct soap *s
 		return NULL;
 	}
 	else
-	{	a = (pdf__SignRequest *)soap_id_forward(soap, soap->href, (void*)a, 0, SOAP_TYPE_pdf__SignRequest, SOAP_TYPE_pdf__SignRequest, sizeof(pdf__SignRequest), 0, SCAP_finsert, SCAP_fbase);
+	{	a = (pdf__SignRequestWithAttach *)soap_id_forward(soap, soap->href, (void*)a, 0, SOAP_TYPE_pdf__SignRequestWithAttach, SOAP_TYPE_pdf__SignRequestWithAttach, sizeof(pdf__SignRequestWithAttach), 0, SCAP_finsert, SCAP_fbase);
 		if (soap->body && soap_element_end_in(soap, tag))
 			return NULL;
 	}
 	return a;
 }
 
-SOAP_FMAC1 pdf__SignRequest * SOAP_FMAC2 soap_instantiate_pdf__SignRequest(struct soap *soap, int n, const char *type, const char *arrayType, size_t *size)
+SOAP_FMAC1 pdf__SignRequestWithAttach * SOAP_FMAC2 soap_instantiate_pdf__SignRequestWithAttach(struct soap *soap, int n, const char *type, const char *arrayType, size_t *size)
 {
-	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "soap_instantiate_pdf__SignRequest(%p, %d, %s, %s)\n", soap, n, type?type:"", arrayType?arrayType:""));
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "soap_instantiate_pdf__SignRequestWithAttach(%p, %d, %s, %s)\n", soap, n, type?type:"", arrayType?arrayType:""));
 	(void)type; (void)arrayType; /* appease -Wall -Werror */
-	pdf__SignRequest *p;
-	size_t k = sizeof(pdf__SignRequest);
+	pdf__SignRequestWithAttach *p;
+	size_t k = sizeof(pdf__SignRequestWithAttach);
 	if (n < 0)
-	{	p = SOAP_NEW(pdf__SignRequest);
+	{	p = SOAP_NEW(pdf__SignRequestWithAttach);
 		if (p)
-			((pdf__SignRequest*)p)->soap = soap;
+			((pdf__SignRequestWithAttach*)p)->soap = soap;
 	}
 	else
-	{	p = SOAP_NEW_ARRAY(pdf__SignRequest, n);
+	{	p = SOAP_NEW_ARRAY(pdf__SignRequestWithAttach, n);
 		k *= n;
 		if (p)
 			for (int i = 0; i < n; i++)
-				((pdf__SignRequest*)p)[i].soap = soap;
+				((pdf__SignRequestWithAttach*)p)[i].soap = soap;
 	}
-	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Instantiated pdf__SignRequest location=%p n=%d\n", p, n));
-	soap_link(soap, p, SOAP_TYPE_pdf__SignRequest, n, SCAP_fdelete);
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Instantiated pdf__SignRequestWithAttach location=%p n=%d\n", p, n));
+	soap_link(soap, p, SOAP_TYPE_pdf__SignRequestWithAttach, n, SCAP_fdelete);
 	if (size)
 		*size = k;
 	return p;
 }
 
-int pdf__SignRequest::soap_put(struct soap *soap, const char *tag, const  char *type) const
+int pdf__SignRequestWithAttach::soap_put(struct soap *soap, const char *tag, const  char *type) const
 {
-	if (this->soap_out(soap, tag?tag:"pdf:SignRequest", -2, type))
+	if (this->soap_out(soap, tag?tag:"pdf:SignRequestWithAttach", -2, type))
 		return soap->error;
 	return soap_putindependent(soap);
 }
 
-void *pdf__SignRequest::soap_get(struct soap *soap, const char *tag, const char *type)
+void *pdf__SignRequestWithAttach::soap_get(struct soap *soap, const char *tag, const char *type)
 {
-	return soap_get_pdf__SignRequest(soap, this, tag, type);
+	return soap_get_pdf__SignRequestWithAttach(soap, this, tag, type);
 }
 
-SOAP_FMAC3 pdf__SignRequest * SOAP_FMAC4 soap_get_pdf__SignRequest(struct soap *soap, pdf__SignRequest *p, const char *tag, const char *type)
+SOAP_FMAC3 pdf__SignRequestWithAttach * SOAP_FMAC4 soap_get_pdf__SignRequestWithAttach(struct soap *soap, pdf__SignRequestWithAttach *p, const char *tag, const char *type)
 {
-	if ((p = soap_in_pdf__SignRequest(soap, tag, p, type)))
+	if ((p = soap_in_pdf__SignRequestWithAttach(soap, tag, p, type)))
 		if (soap_getindependent(soap))
 			return NULL;
 	return p;
@@ -19172,28 +19369,28 @@ __pdf__Sign::__pdf__Sign()
 SOAP_FMAC3 void SOAP_FMAC4 soap_default___pdf__Sign(struct soap *soap, struct __pdf__Sign *a)
 {
 	(void)soap; (void)a; /* appease -Wall -Werror */
-	a->pdf__SignRequest_ = NULL;
+	a->pdf__SignRequestWithAttach_ = NULL;
 }
 
 SOAP_FMAC3 void SOAP_FMAC4 soap_serialize___pdf__Sign(struct soap *soap, const struct __pdf__Sign *a)
 {
 	(void)soap; (void)a; /* appease -Wall -Werror */
 #ifndef WITH_NOIDREF
-	soap_serialize_PointerTopdf__SignRequest(soap, &a->pdf__SignRequest_);
+	soap_serialize_PointerTopdf__SignRequestWithAttach(soap, &a->pdf__SignRequestWithAttach_);
 #endif
 }
 
 SOAP_FMAC3 int SOAP_FMAC4 soap_out___pdf__Sign(struct soap *soap, const char *tag, int id, const struct __pdf__Sign *a, const char *type)
 {
 	(void)soap; (void)tag; (void)id; (void)a; (void)type; /* appease -Wall -Werror */
-	if (soap_out_PointerTopdf__SignRequest(soap, "pdf:SignRequest", -1, &a->pdf__SignRequest_, ""))
+	if (soap_out_PointerTopdf__SignRequestWithAttach(soap, "pdf:SignRequestWithAttach", -1, &a->pdf__SignRequestWithAttach_, ""))
 		return soap->error;
 	return SOAP_OK;
 }
 
 SOAP_FMAC3 struct __pdf__Sign * SOAP_FMAC4 soap_in___pdf__Sign(struct soap *soap, const char *tag, struct __pdf__Sign *a, const char *type)
 {
-	size_t soap_flag_pdf__SignRequest_ = 1;
+	size_t soap_flag_pdf__SignRequestWithAttach_ = 1;
 	short soap_flag;
 	(void)tag; (void)type; /* appease -Wall -Werror */
 	a = (struct __pdf__Sign *)soap_id_enter(soap, "", a, SOAP_TYPE___pdf__Sign, sizeof(struct __pdf__Sign), NULL, NULL, NULL, NULL);
@@ -19202,9 +19399,9 @@ SOAP_FMAC3 struct __pdf__Sign * SOAP_FMAC4 soap_in___pdf__Sign(struct soap *soap
 	soap_default___pdf__Sign(soap, a);
 		for (soap_flag = 0;; soap_flag = 1)
 		{	soap->error = SOAP_TAG_MISMATCH;
-			if (soap_flag_pdf__SignRequest_ && soap->error == SOAP_TAG_MISMATCH)
-				if (soap_in_PointerTopdf__SignRequest(soap, "pdf:SignRequest", &a->pdf__SignRequest_, "pdf:SignRequest"))
-				{	soap_flag_pdf__SignRequest_--;
+			if (soap_flag_pdf__SignRequestWithAttach_ && soap->error == SOAP_TAG_MISMATCH)
+				if (soap_in_PointerTopdf__SignRequestWithAttach(soap, "pdf:SignRequestWithAttach", &a->pdf__SignRequestWithAttach_, "pdf:SignRequestWithAttach"))
+				{	soap_flag_pdf__SignRequestWithAttach_--;
 					continue;
 				}
 			if (soap->error == SOAP_TAG_MISMATCH)
@@ -20712,6 +20909,234 @@ SOAP_FMAC3 struct wsa__EndpointReferenceType * SOAP_FMAC4 soap_get_wsa__Endpoint
 	return p;
 }
 
+xmime5__base64Binary::xmime5__base64Binary()
+{
+	soap_default_xmime5__base64Binary(NULL, this);
+}
+
+SOAP_FMAC3 void SOAP_FMAC4 soap_default_xmime5__base64Binary(struct soap *soap, struct xmime5__base64Binary *a)
+{
+	(void)soap; /* appease -Wall -Werror */
+	a->__ptr = NULL;
+	a->__size = 0;
+	a->id = NULL;
+	a->type = NULL;
+	a->options = NULL;
+}
+
+SOAP_FMAC3 void SOAP_FMAC4 soap_serialize_xmime5__base64Binary(struct soap *soap, const struct xmime5__base64Binary *a)
+{
+	(void)soap; (void)a; /* appease -Wall -Werror */
+#ifndef WITH_NOIDREF
+	if (a->__ptr && !soap_array_reference(soap, a, a->__ptr, a->__size, SOAP_TYPE_xmime5__base64Binary))
+		if (a->id || a->type)
+			soap->mode |= SOAP_ENC_DIME;
+#endif
+}
+
+SOAP_FMAC3 int SOAP_FMAC4 soap_out_xmime5__base64Binary(struct soap *soap, const char *tag, int id, const struct xmime5__base64Binary *a, const char *type)
+{
+#ifndef WITH_LEANER
+	id = soap_attachment(soap, tag, id, a, a->__ptr, a->__size, a->id, a->type, a->options, type, SOAP_TYPE_xmime5__base64Binary);
+#else
+	id = soap_element_id(soap, tag, id, a, a->__ptr, a->__size, type, SOAP_TYPE_xmime5__base64Binary, NULL);
+#endif
+	if (id < 0)
+		return soap->error;
+	if (soap_element_begin_out(soap, tag, id, type))
+		return soap->error;
+	if (soap_putbase64(soap, a->__ptr, a->__size))
+		return soap->error;
+	return soap_element_end_out(soap, tag);
+}
+
+SOAP_FMAC3 struct xmime5__base64Binary * SOAP_FMAC4 soap_in_xmime5__base64Binary(struct soap *soap, const char *tag, struct xmime5__base64Binary *a, const char *type)
+{
+	if (soap_element_begin_in(soap, tag, 1, NULL))
+		return NULL;
+	if (*soap->type && soap_match_tag(soap, soap->type, type) && soap_match_tag(soap, soap->type, ":base64Binary") && soap_match_tag(soap, soap->type, ":base64"))
+	{	soap->error = SOAP_TYPE;
+		return NULL;
+	}
+	a = (struct xmime5__base64Binary *)soap_id_enter(soap, soap->id, a, SOAP_TYPE_xmime5__base64Binary, sizeof(struct xmime5__base64Binary), NULL, NULL, NULL, NULL);
+	if (!a)
+		return NULL;
+	soap_default_xmime5__base64Binary(soap, a);
+	if (soap->body && !*soap->href)
+	{
+		a->__ptr = soap_getbase64(soap, &a->__size, 0);
+#ifndef WITH_LEANER
+		if (soap_xop_forward(soap, &a->__ptr, &a->__size, &a->id, &a->type, &a->options))
+			return NULL;
+#endif
+		if ((!a->__ptr && soap->error) || soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	else
+	{	
+#ifndef WITH_LEANER
+		if (*soap->href != '#')
+		{	if (soap_attachment_forward(soap, &a->__ptr, &a->__size, &a->id, &a->type, &a->options))
+				return NULL;
+		}
+		else
+#endif
+			a = (struct xmime5__base64Binary *)soap_id_forward(soap, soap->href, (void*)a, 0, SOAP_TYPE_xmime5__base64Binary, SOAP_TYPE_xmime5__base64Binary, sizeof(struct xmime5__base64Binary), 0, SCAP_finsert, SCAP_fbase);
+		if (soap->body && soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	return a;
+}
+
+SOAP_FMAC1 struct xmime5__base64Binary * SOAP_FMAC2 soap_instantiate_xmime5__base64Binary(struct soap *soap, int n, const char *type, const char *arrayType, size_t *size)
+{
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "soap_instantiate_xmime5__base64Binary(%p, %d, %s, %s)\n", soap, n, type?type:"", arrayType?arrayType:""));
+	(void)type; (void)arrayType; /* appease -Wall -Werror */
+	struct xmime5__base64Binary *p;
+	size_t k = sizeof(struct xmime5__base64Binary);
+	if (n < 0)
+	{	p = SOAP_NEW(struct xmime5__base64Binary);
+	}
+	else
+	{	p = SOAP_NEW_ARRAY(struct xmime5__base64Binary, n);
+		k *= n;
+	}
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Instantiated struct xmime5__base64Binary location=%p n=%d\n", p, n));
+	soap_link(soap, p, SOAP_TYPE_xmime5__base64Binary, n, SCAP_fdelete);
+	if (size)
+		*size = k;
+	return p;
+}
+
+SOAP_FMAC3 int SOAP_FMAC4 soap_put_xmime5__base64Binary(struct soap *soap, const struct xmime5__base64Binary *a, const char *tag, const char *type)
+{
+	if (soap_out_xmime5__base64Binary(soap, tag?tag:"xmime5:base64Binary", -2, a, type))
+		return soap->error;
+	return soap_putindependent(soap);
+}
+
+SOAP_FMAC3 struct xmime5__base64Binary * SOAP_FMAC4 soap_get_xmime5__base64Binary(struct soap *soap, struct xmime5__base64Binary *p, const char *tag, const char *type)
+{
+	if ((p = soap_in_xmime5__base64Binary(soap, tag, p, type)))
+		if (soap_getindependent(soap))
+			return NULL;
+	return p;
+}
+
+_xop__Include::_xop__Include()
+{
+	soap_default__xop__Include(NULL, this);
+}
+
+SOAP_FMAC3 void SOAP_FMAC4 soap_default__xop__Include(struct soap *soap, struct _xop__Include *a)
+{
+	(void)soap; /* appease -Wall -Werror */
+	a->__ptr = NULL;
+	a->__size = 0;
+	a->id = NULL;
+	a->type = NULL;
+	a->options = NULL;
+}
+
+SOAP_FMAC3 void SOAP_FMAC4 soap_serialize__xop__Include(struct soap *soap, const struct _xop__Include *a)
+{
+	(void)soap; (void)a; /* appease -Wall -Werror */
+#ifndef WITH_NOIDREF
+	if (a->__ptr && !soap_array_reference(soap, a, a->__ptr, a->__size, SOAP_TYPE__xop__Include))
+		if (a->id || a->type)
+			soap->mode |= SOAP_ENC_DIME;
+#endif
+}
+
+SOAP_FMAC3 int SOAP_FMAC4 soap_out__xop__Include(struct soap *soap, const char *tag, int id, const struct _xop__Include *a, const char *type)
+{
+#ifndef WITH_LEANER
+	id = soap_attachment(soap, tag, id, a, a->__ptr, a->__size, a->id, a->type, a->options, type, SOAP_TYPE__xop__Include);
+#else
+	id = soap_element_id(soap, tag, id, a, a->__ptr, a->__size, type, SOAP_TYPE__xop__Include, NULL);
+#endif
+	if (id < 0)
+		return soap->error;
+	if (soap_element_begin_out(soap, tag, id, type))
+		return soap->error;
+	if (soap_putbase64(soap, a->__ptr, a->__size))
+		return soap->error;
+	return soap_element_end_out(soap, tag);
+}
+
+SOAP_FMAC3 struct _xop__Include * SOAP_FMAC4 soap_in__xop__Include(struct soap *soap, const char *tag, struct _xop__Include *a, const char *type)
+{
+	if (soap_element_begin_in(soap, tag, 1, NULL))
+		return NULL;
+	if (*soap->type && soap_match_tag(soap, soap->type, type) && soap_match_tag(soap, soap->type, ":base64Binary") && soap_match_tag(soap, soap->type, ":base64"))
+	{	soap->error = SOAP_TYPE;
+		return NULL;
+	}
+	a = (struct _xop__Include *)soap_id_enter(soap, soap->id, a, SOAP_TYPE__xop__Include, sizeof(struct _xop__Include), NULL, NULL, NULL, NULL);
+	if (!a)
+		return NULL;
+	soap_default__xop__Include(soap, a);
+	if (soap->body && !*soap->href)
+	{
+		a->__ptr = soap_getbase64(soap, &a->__size, 0);
+#ifndef WITH_LEANER
+		if (soap_xop_forward(soap, &a->__ptr, &a->__size, &a->id, &a->type, &a->options))
+			return NULL;
+#endif
+		if ((!a->__ptr && soap->error) || soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	else
+	{	
+#ifndef WITH_LEANER
+		if (*soap->href != '#')
+		{	if (soap_attachment_forward(soap, &a->__ptr, &a->__size, &a->id, &a->type, &a->options))
+				return NULL;
+		}
+		else
+#endif
+			a = (struct _xop__Include *)soap_id_forward(soap, soap->href, (void*)a, 0, SOAP_TYPE__xop__Include, SOAP_TYPE__xop__Include, sizeof(struct _xop__Include), 0, SCAP_finsert, SCAP_fbase);
+		if (soap->body && soap_element_end_in(soap, tag))
+			return NULL;
+	}
+	return a;
+}
+
+SOAP_FMAC1 struct _xop__Include * SOAP_FMAC2 soap_instantiate__xop__Include(struct soap *soap, int n, const char *type, const char *arrayType, size_t *size)
+{
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "soap_instantiate__xop__Include(%p, %d, %s, %s)\n", soap, n, type?type:"", arrayType?arrayType:""));
+	(void)type; (void)arrayType; /* appease -Wall -Werror */
+	struct _xop__Include *p;
+	size_t k = sizeof(struct _xop__Include);
+	if (n < 0)
+	{	p = SOAP_NEW(struct _xop__Include);
+	}
+	else
+	{	p = SOAP_NEW_ARRAY(struct _xop__Include, n);
+		k *= n;
+	}
+	DBGLOG(TEST, SOAP_MESSAGE(fdebug, "Instantiated struct _xop__Include location=%p n=%d\n", p, n));
+	soap_link(soap, p, SOAP_TYPE__xop__Include, n, SCAP_fdelete);
+	if (size)
+		*size = k;
+	return p;
+}
+
+SOAP_FMAC3 int SOAP_FMAC4 soap_put__xop__Include(struct soap *soap, const struct _xop__Include *a, const char *tag, const char *type)
+{
+	if (soap_out__xop__Include(soap, tag?tag:"xop:Include", -2, a, type))
+		return soap->error;
+	return soap_putindependent(soap);
+}
+
+SOAP_FMAC3 struct _xop__Include * SOAP_FMAC4 soap_get__xop__Include(struct soap *soap, struct _xop__Include *p, const char *tag, const char *type)
+{
+	if ((p = soap_in__xop__Include(soap, tag, p, type)))
+		if (soap_getindependent(soap))
+			return NULL;
+	return p;
+}
+
 SOAP_FMAC3 void SOAP_FMAC4 soap_serialize__ns5__union_ObjectType(struct soap *soap, int choice, const union _ns5__union_ObjectType *a)
 {
 	(void)soap; (void)choice; (void)a; /* appease -Wall -Werror */
@@ -20774,35 +21199,35 @@ SOAP_FMAC3 union _ns5__union_ObjectType * SOAP_FMAC4 soap_in__ns5__union_ObjectT
 	return NULL;
 }
 
-SOAP_FMAC3 void SOAP_FMAC4 soap_serialize_PointerTopdf__SignRequest(struct soap *soap, pdf__SignRequest *const*a)
+SOAP_FMAC3 void SOAP_FMAC4 soap_serialize_PointerTopdf__SignRequestWithAttach(struct soap *soap, pdf__SignRequestWithAttach *const*a)
 {
 	(void)soap; (void)a; /* appease -Wall -Werror */
 #ifndef WITH_NOIDREF
-	if (!soap_reference(soap, *a, SOAP_TYPE_pdf__SignRequest))
+	if (!soap_reference(soap, *a, SOAP_TYPE_pdf__SignRequestWithAttach))
 		(*a)->soap_serialize(soap);
 #endif
 }
 
-SOAP_FMAC3 int SOAP_FMAC4 soap_out_PointerTopdf__SignRequest(struct soap *soap, const char *tag, int id, pdf__SignRequest *const*a, const char *type)
+SOAP_FMAC3 int SOAP_FMAC4 soap_out_PointerTopdf__SignRequestWithAttach(struct soap *soap, const char *tag, int id, pdf__SignRequestWithAttach *const*a, const char *type)
 {
-	id = soap_element_id(soap, tag, id, *a, NULL, 0, type, SOAP_TYPE_pdf__SignRequest, NULL);
+	id = soap_element_id(soap, tag, id, *a, NULL, 0, type, SOAP_TYPE_pdf__SignRequestWithAttach, NULL);
 	if (id < 0)
 		return soap->error;
 	return (*a)->soap_out(soap, tag, id, type);
 }
 
-SOAP_FMAC3 pdf__SignRequest ** SOAP_FMAC4 soap_in_PointerTopdf__SignRequest(struct soap *soap, const char *tag, pdf__SignRequest **a, const char *type)
+SOAP_FMAC3 pdf__SignRequestWithAttach ** SOAP_FMAC4 soap_in_PointerTopdf__SignRequestWithAttach(struct soap *soap, const char *tag, pdf__SignRequestWithAttach **a, const char *type)
 {
 	(void)type; /* appease -Wall -Werror */
 	if (soap_element_begin_in(soap, tag, 1, NULL))
 		return NULL;
 	if (!a)
-		if (!(a = (pdf__SignRequest **)soap_malloc(soap, sizeof(pdf__SignRequest *))))
+		if (!(a = (pdf__SignRequestWithAttach **)soap_malloc(soap, sizeof(pdf__SignRequestWithAttach *))))
 			return NULL;
 	*a = NULL;
 	if (!soap->null && *soap->href != '#')
 	{	soap_revert(soap);
-		if (!(*a = (pdf__SignRequest *)soap_instantiate_pdf__SignRequest(soap, -1, soap->type, soap->arrayType, NULL)))
+		if (!(*a = (pdf__SignRequestWithAttach *)soap_instantiate_pdf__SignRequestWithAttach(soap, -1, soap->type, soap->arrayType, NULL)))
 			return NULL;
 		(*a)->soap_default(soap);
 		if (!(*a)->soap_in(soap, tag, NULL))
@@ -20811,23 +21236,23 @@ SOAP_FMAC3 pdf__SignRequest ** SOAP_FMAC4 soap_in_PointerTopdf__SignRequest(stru
 		}
 	}
 	else
-	{	a = (pdf__SignRequest **)soap_id_lookup(soap, soap->href, (void**)a, SOAP_TYPE_pdf__SignRequest, sizeof(pdf__SignRequest), 0, SCAP_fbase);
+	{	a = (pdf__SignRequestWithAttach **)soap_id_lookup(soap, soap->href, (void**)a, SOAP_TYPE_pdf__SignRequestWithAttach, sizeof(pdf__SignRequestWithAttach), 0, SCAP_fbase);
 		if (soap->body && soap_element_end_in(soap, tag))
 			return NULL;
 	}
 	return a;
 }
 
-SOAP_FMAC3 int SOAP_FMAC4 soap_put_PointerTopdf__SignRequest(struct soap *soap, pdf__SignRequest *const*a, const char *tag, const char *type)
+SOAP_FMAC3 int SOAP_FMAC4 soap_put_PointerTopdf__SignRequestWithAttach(struct soap *soap, pdf__SignRequestWithAttach *const*a, const char *tag, const char *type)
 {
-	if (soap_out_PointerTopdf__SignRequest(soap, tag?tag:"pdf:SignRequest", -2, a, type))
+	if (soap_out_PointerTopdf__SignRequestWithAttach(soap, tag?tag:"pdf:SignRequestWithAttach", -2, a, type))
 		return soap->error;
 	return soap_putindependent(soap);
 }
 
-SOAP_FMAC3 pdf__SignRequest ** SOAP_FMAC4 soap_get_PointerTopdf__SignRequest(struct soap *soap, pdf__SignRequest **p, const char *tag, const char *type)
+SOAP_FMAC3 pdf__SignRequestWithAttach ** SOAP_FMAC4 soap_get_PointerTopdf__SignRequestWithAttach(struct soap *soap, pdf__SignRequestWithAttach **p, const char *tag, const char *type)
 {
-	if ((p = soap_in_PointerTopdf__SignRequest(soap, tag, p, type)))
+	if ((p = soap_in_PointerTopdf__SignRequestWithAttach(soap, tag, p, type)))
 		if (soap_getindependent(soap))
 			return NULL;
 	return p;
