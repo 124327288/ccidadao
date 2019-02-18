@@ -2,7 +2,7 @@ import QtQuick 2.6
 
 ListModel {
     ListElement {
-        name: "Difinitions"
+        name: "Definitions"
         expand: false
         imageUrl: "images/definitions_icon.png"
         imageUrlSel: "images/definitions_icon_selected.png"
@@ -21,6 +21,11 @@ ListModel {
                 subName: QT_TR_NOOP("STR_MENU_APP_SETTINGS")
                 expand: false
                 url: "contentPages/definitions/PageDefinitionsApp.qml"
+            },
+            ListElement {
+                subName: QT_TR_NOOP("STR_MENU_APP_DATA")
+                expand: false
+                url: "contentPages/definitions/PageDefinitionsData.qml"
             },
             ListElement {
                 subName: QT_TR_NOOP("STR_MENU_UPDATES")

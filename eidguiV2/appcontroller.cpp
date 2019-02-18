@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QCursor>
 #include <QDebug>
+#include <QtConcurrent>
 
 #include <fstream>
 #include <sstream>
@@ -32,16 +33,11 @@ std::string remoteversion = "https://svn.gov.pt/projects/ccidadao/repository/mid
 std::string WINDOWS32 = "PteidMW-Basic.msi";
 std::string WINDOWS64 = "PteidMW-Basic-x64.msi";
 std::string MAC_OS = "pteid-mw.pkg";
-std::string DEBIAN32 = "pteid-mw_debian_i386.deb";
-std::string DEBIAN64 = "pteid-mw_debian_amd64.deb";
-std::string UBUNTU32 = "pteid-mw_ubuntu_i386.deb";
-std::string UBUNTU64 = "pteid-mw_ubuntu_amd64.deb";
+std::string UBUNTU64 = "pteid-mw_ubuntu18_amd64.deb";
 std::string FEDORA32 = "pteid-mw-fedora.i386.rpm";
 std::string FEDORA64 = "pteid-mw-fedora.x86_64.rpm";
 std::string SUSE32 = "pteid-mw-suse.i586.rpm";
 std::string SUSE64 = "pteid-mw-suse.x86_64.rpm";
-std::string MANDRIVA32 = "pteid-mw-mandriva.i586.rpm";
-std::string MANDRIVA64 = "pteid-mw-mandriva.x86_64.rpm";
 
 struct PteidVersion
 {
@@ -130,6 +126,13 @@ bool AppController::LoadTranslationFile(QString NewLanguage)
 }
 void AppController::autoUpdates(){
     qDebug() << "C++: Starting autoUpdates";
+
+    if (qnam.networkAccessible() == QNetworkAccessManager::NotAccessible){
+        qDebug() << "C++: autoUpdates No Internet Connection";
+        emit signalAutoUpdateFail(GAPI::NetworkError);
+        return;
+    }
+
     url = remoteversion.c_str();
 
     QFileInfo fileInfo(url.path());
@@ -153,6 +156,7 @@ void AppController::autoUpdates(){
         emit signalAutoUpdateFail(GAPI::UnableSaveFile);
         return;
     }
+
     // schedule the request
     httpRequestAborted = false;
     startRequest(url);
@@ -195,6 +199,12 @@ void AppController::startUpdate(){
 void AppController::startRequest(QUrl url){
     qDebug() << "C++: startRequest";
 
+    if (qnam.networkAccessible() == QNetworkAccessManager::NotAccessible){
+        qDebug() << "C++: startRequest No Internet Connection";
+        emit signalAutoUpdateFail(GAPI::NetworkError);
+        return;
+    }
+
     eIDMW::PTEID_Config config_pacfile(eIDMW::PTEID_PARAM_PROXY_PACFILE);
     const char * pacfile_url = config_pacfile.getString();
 
@@ -213,8 +223,8 @@ void AppController::startRequest(QUrl url){
     std::string proxy_pwd = config_pwd.getString();
     long proxy_port = config2.getLong();
 
-    //10 second timeout
-    int network_timeout = 10000;
+    //allow up to 1 minutes to fetch remote version
+    int download_duration = 60000;
 
     if (!proxy_host.empty() && proxy_port != 0)
     {
@@ -245,21 +255,30 @@ void AppController::startRequest(QUrl url){
     }
 
     reply = qnam.get(QNetworkRequest(url));
-    QTimer::singleShot(network_timeout, this, SLOT(cancelDownload()));
+	QTimer::singleShot(download_duration, this, SLOT(cancelDownload()));
+    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(httpError(QNetworkReply::NetworkError)));
     connect(reply, SIGNAL(finished()),
             this, SLOT(httpFinished()));
     connect(reply, SIGNAL(readyRead()),
             this, SLOT(httpReadyRead()));
     connect(reply, SIGNAL(downloadProgress(qint64,qint64)),
             this, SLOT(updateDataReadProgress(qint64,qint64)));
-
 }
 void AppController::startUpdateRequest(QUrl url){
     qDebug() << "C++: startUpdateRequest";
 
-    int network_timeout = 10000;
+    if (qnam.networkAccessible() == QNetworkAccessManager::NotAccessible){
+        qDebug() << "C++: startUpdateRequest No Internet Connection";
+        emit signalAutoUpdateFail(GAPI::NetworkError);
+        return;
+    }
+
+	int download_duration = 300000;
     reply = qnam.get(QNetworkRequest(url));
-    QTimer::singleShot(network_timeout, this, SLOT(cancelUpdateDownload()));
+	QTimer::singleShot(download_duration, this, SLOT(cancelUpdateDownload()));
+    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(httpUpdateError(QNetworkReply::NetworkError)));
     connect(reply, SIGNAL(finished()),
             this, SLOT(httpUpdateFinished()));
     connect(reply, SIGNAL(readyRead()),
@@ -280,12 +299,19 @@ void AppController::httpUpdateFinished(){
             file = 0;
             qDebug() << "C++: httpUpdateRequestAborted";
         }
+
+        if (!userCanceled){
+            //network failure occurred when downloading
+            emit signalAutoUpdateFail(GAPI::NetworkError);
+        }
+
         reply->deleteLater();
-        emit signalAutoUpdateFail(GAPI::DownloadFailed);
+        reply = 0;
         return;
     }
     if (!file){
         reply->deleteLater();
+        reply = 0;
         emit signalAutoUpdateFail(GAPI::DownloadFailed);
         return;
     }
@@ -296,7 +322,7 @@ void AppController::httpUpdateFinished(){
     if (reply->error())
     {
         file->remove();
-        emit signalAutoUpdateFail(GAPI::DownloadFailed);
+        emit signalAutoUpdateFail(GAPI::NetworkError);
     }
     else if (!redirectionTarget.isNull())
     {
@@ -330,29 +356,63 @@ void AppController::RunPackage(std::string pkg, std::string distro){
     pkgpath.append(QDir::tempPath().toStdString());
     pkgpath.append("/");
     pkgpath.append(pkg);
+
+    qDebug() << QString::fromStdString("pkgpath " + pkgpath);
+
 #ifdef WIN32
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
     ZeroMemory(&si,sizeof(si));
     si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
 
-    std::string winpath;
-    winpath.append("C:\\Windows\\system32\\msiexec.exe /i");
+    std::wstring msi_path = QDir::toNativeSeparators(QString::fromStdString(pkgpath)).toStdWString();
 
-    QString s = QDir::toNativeSeparators(QString::fromStdString(pkgpath));
-    winpath.append(s.toStdString());
-    winpath.append(" /L*v ");
-    winpath.append(QDir::tempPath().toStdString());
-    winpath.append("\\Pteid-MSI.log");
-    CreateProcess(NULL, LPTSTR(winpath.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-	
-	PTEID_ReleaseSDK();
-	
-    exit(0);
+    qDebug() << QString::fromStdString("msi package path");
+    qDebug() << QString::fromStdWString(msi_path);
+
+    std::wstring log_file = QDir::toNativeSeparators(QString::fromStdString(QDir::tempPath().toStdString() + "\\Pteid-MSI.log")).toStdWString();
+
+    qDebug() << QString::fromStdString("log file path");
+    qDebug() << QString::fromStdWString(log_file);
+
+    //Prepare CreateProcess args
+    std::wstring installer_app = L"C:\\Windows\\system32\\msiexec.exe";
+    std::wstring logging_level = L" /L*v ";
+    std::wstring msi_args = L" /i ";
+
+    std::wstring path = installer_app;
+    path.append(msi_args);
+
+    //add double quotes for paths
+    path.append(L"\"");
+    path.append(msi_path);
+    path.append(L"\"");
+
+    path.append(logging_level);
+
+    //add double quotes for paths
+    path.append(L"\"");
+    path.append(log_file);
+    path.append(L"\"");
+
+    //guarantees null-terminating string
+    path.push_back(0);
+    
+    LPWSTR path_pointer = (wchar_t *) path.c_str();
+    
+    if (!CreateProcess(NULL, path_pointer, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+        qDebug() << "autoUpdate process failed to start";
+        qDebug() << QString::fromStdString("Error: " + GetLastError());
+        emit signalAutoUpdateFail(GAPI::InstallFailed);
+    } else {
+        PTEID_ReleaseSDK();
+        exit(0);
+    }
 
 #elif __APPLE__
     // This launches the GUI installation process, the user has to follow the wizard to actually perform the installation
-    execl("/usr/bin/open", pkgpath.c_str(), NULL);
+    execl("/usr/bin/open", "open", pkgpath.c_str(), NULL);
 #else
 
     //Normalize distro string to lowercase
@@ -360,7 +420,7 @@ void AppController::RunPackage(std::string pkg, std::string distro){
 
     std::cout << "pkgpath " << pkgpath << " distro " << distro << std::endl;
 
-    if (distro == "debian" || distro == "ubuntu" || distro == "caixamagica")
+    if (distro == "ubuntu")
     {
         // TODO: Ubunto < 17
         execl ("/usr/bin/software-center", "software-center", pkgpath.c_str(), NULL);
@@ -375,7 +435,7 @@ void AppController::RunPackage(std::string pkg, std::string distro){
 
     else if (distro == "suse")
     {
-            execl ("/usr/bin/gpk-install-local-file", "gpk-install-local-file", pkgpath.c_str(), NULL);
+        execl ("/usr/bin/gpk-install-local-file", "gpk-install-local-file", pkgpath.c_str(), NULL);
     }
 #endif
     qDebug() << "C++: RunPackage finish";
@@ -401,8 +461,40 @@ void AppController::updateUpdateDataReadProgress(qint64 bytesRead, qint64 totalB
     emit signalAutoUpdateProgress((int)valueFloat);
 
 }
+
+void AppController::httpError(QNetworkReply::NetworkError networkError)
+{
+    qDebug() << "C++: httpError";
+
+    switch(networkError){
+        case QNetworkReply::NetworkError::NoError:
+            //no error hence do nothing
+            break;
+        default:
+            cancelDownload();
+            break;
+    }
+    return;
+}
+
+void AppController::httpUpdateError(QNetworkReply::NetworkError networkError)
+{
+    qDebug() << "C++: httpUpdateError";
+
+    switch(networkError){
+        case QNetworkReply::NetworkError::NoError:
+            //no error hence do nothing
+            break;
+        default:
+            cancelUpdateDownload();
+            break;
+    }
+    return;
+}
+
 void AppController::httpFinished()
 {
+    qDebug() << "C++: httpFinished";
     if (httpRequestAborted) {
         if (file) {
             file->close();
@@ -410,9 +502,9 @@ void AppController::httpFinished()
             delete file;
             file = 0;
         }
-
-        emit signalAutoUpdateFail(GAPI::DownloadFailed);
         reply->deleteLater();
+        reply = 0;
+        emit signalAutoUpdateFail(GAPI::NetworkError);
         return;
     }
 
@@ -420,10 +512,11 @@ void AppController::httpFinished()
     if (reply->error()) {
         qDebug() << "C++: reply error";
         file->remove();
-        emit signalAutoUpdateFail(GAPI::DownloadFailed);
+        emit signalAutoUpdateFail(GAPI::NetworkError);
         QString strLog = QString("AutoUpdates:: Download failed: ");
         strLog += reply->url().toString();
         PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", strLog.toStdString().c_str() );
+        return;
     } else if (!redirectionTarget.isNull()) {
         QUrl newUrl = url.resolved(redirectionTarget.toUrl());
         // TODO: ask about redirect.
@@ -486,10 +579,25 @@ bool AppController::VerifyUpdates(std::string filedata)
     QString ver (WIN_GUI_VERSION_STRING);
 
     //Only consider the first line of version.txt
-    QString remote_data(filedata.c_str());
-    remote_data = remote_data.left(remote_data.indexOf('\n'));
+    QString remote_data(filedata.c_str());    
+    QStringList remote_data_list = remote_data.split('\n');
+
+    remote_data = remote_data_list[0];
+    remote_version = remote_data;
+    remote_version = remote_version.replace(',', '.');
+
+    //used for initialization and cleaning previous content in case it failed
+    release_notes = "";
+    for(int i = 1; i < remote_data_list.length(); i++){
+        release_notes += remote_data_list[i];
+    }
+
+    qDebug() << release_notes;
+    qDebug() << remote_version;
 
     QStringList list1 = ver.split(",");
+
+    installed_version = list1.at(0) + '.' + list1.at(1) + '.' + list1.at(2);
 
     QStringList list2 = remote_data.split(",");
 
@@ -498,7 +606,7 @@ bool AppController::VerifyUpdates(std::string filedata)
         PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui",
             "AutoUpdates::VerifyUpdates: Wrong data returned from server or Proxy HTML error!");
         qDebug() << "C++: AutoUpdates::VerifyUpdates: Wrong data returned from server or Proxy HTML error!";
-        emit signalAutoUpdateFail(GAPI::DownloadFailed);
+        emit signalAutoUpdateFail(GAPI::NetworkError);
         return false;
     }
 
@@ -624,12 +732,7 @@ void AppController::ChooseVersion(std::string distro, std::string arch)
 
     if (arch == "x86_64")
     {
-        if (distro == "debian")
-        {
-            downloadurl.append(DEBIAN64);
-            updateWindows(downloadurl, distro);
-        }
-        if (distro == "Ubuntu" || distro == "CaixaMagica")
+        if (distro == "Ubuntu")
         {
             downloadurl.append(UBUNTU64);
             updateWindows(downloadurl, distro);
@@ -644,38 +747,17 @@ void AppController::ChooseVersion(std::string distro, std::string arch)
                 downloadurl.append(SUSE64);
                 updateWindows(downloadurl, distro);
         }
-        else if (distro == "mandriva")
-        {
-                downloadurl.append(MANDRIVA64);
-                updateWindows(downloadurl, distro);
-        }
-
     } else {
         //32bits
-        if (distro == "debian")
+        if (distro == "suse")
         {
-            downloadurl.append(DEBIAN32);
-            updateWindows(downloadurl, distro);
-        }
-        if (distro == "Ubuntu" || distro == "CaixaMagica")
-        {
-            downloadurl.append(UBUNTU32);
-            updateWindows(downloadurl, distro);
+                downloadurl.append(SUSE32);
+                updateWindows(downloadurl, distro);
         }
         else if (distro == "fedora")
         {
             downloadurl.append(FEDORA32);
             updateWindows(downloadurl, distro);
-        }
-        else if (distro == "suse")
-        {
-                downloadurl.append(SUSE32);
-                updateWindows(downloadurl, distro);
-        }
-        else if (distro == "mandriva")
-        {
-                downloadurl.append(MANDRIVA32);
-                updateWindows(downloadurl, distro);
         }
     }
 #endif
@@ -687,21 +769,50 @@ void AppController::updateWindows(std::string uri, std::string distro)
     urli = uri;
     getdistro = distro;
 
-    emit signalAutoUpdateAvailable();
+    emit signalAutoUpdateAvailable(release_notes, installed_version, remote_version);
 }
 
 void AppController::cancelDownload()
 {
     qDebug() << "C++: cancelDownload";
     httpRequestAborted = true;
+
+    if (reply != NULL){
+        reply->abort();
+    }
+
+    if (qnam.networkAccessible() == QNetworkAccessManager::NotAccessible){
+        qDebug() << "C++: cancelDownload No Internet Connection";
+
+        emit signalAutoUpdateFail(GAPI::NetworkError);
+        return;
+    }
+}
+
+void AppController::userCancelledUpdateDownload()
+{
+    qDebug() << "C++: userCanceledUpdateDownload";
+
+    httpUpdateRequestAborted = true;
+    userCanceled = true;
+
+    if (reply != NULL){
+        reply->abort();
+    }
+
+    emit signalAutoUpdateFail(GAPI::DownloadCancelled);
 }
 
 void AppController::cancelUpdateDownload()
 {
     qDebug() << "C++: cancelUpdateDownload";
+
     httpUpdateRequestAborted = true;
-    reply->abort();
-    emit signalAutoUpdateFail(GAPI::DownloadFailed);
+    userCanceled = false;
+
+    if (reply != NULL){
+        reply->abort();
+    }
 }
 
 QVariant AppController::getCursorPos()
@@ -809,3 +920,106 @@ QString AppController::getProxyPwdValue (void){
 void AppController::setProxyPwdValue (QString const& proxy_pwd){
     m_Settings.setProxyPwd(proxy_pwd);
 }
+
+void AppController::flushCache(){
+    QtConcurrent::run(this, &AppController::doFlushCache);
+}
+
+void AppController::doFlushCache(){
+    if(removePteidCache()){
+        emit signalRemovePteidCacheSuccess();
+    }
+}
+
+bool AppController::removePteidCache() {
+
+    try
+    {
+        GUISettings settings;
+        QString ptEidCacheDir = settings.getPteidCachedir();
+        qDebug() << "C++: Removing ptEidCache files: " << ptEidCacheDir;
+
+        QDir dir(ptEidCacheDir);
+        bool has_all_permissions = true;
+#ifdef WIN32
+        extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
+        qt_ntfs_permission_lookup++; // turn ntfs checking (allows isReadable and isWritable)
+#endif
+        if(!dir.isReadable())
+        {
+            PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui",
+                "No read permissions: PTEID cache directory!");
+            qDebug() << "C++: Cache folder does not have read permissions! ";
+            has_all_permissions = false;
+            emit signalCacheNotReadable();
+        }
+#ifdef WIN32
+        qt_ntfs_permission_lookup--; // turn ntfs permissions lookup off for performance
+#endif
+
+        dir.setNameFilters(QStringList() << "*.bin" << ".cache.csc");
+        dir.setFilter(QDir::Files | QDir::Hidden);
+
+        foreach(QString dirFile, dir.entryList())
+        {
+            dir.remove(dirFile);
+        }
+        return has_all_permissions;
+    }
+    catch(...) {
+        std::cerr << "Error ocurred while removing ptEidCache from cache!";
+        emit signalRemovePteidCacheFail();
+        return false;
+    }
+}
+
+
+void AppController::getPteidCacheSize() {
+    QtConcurrent::run(this, &AppController::doGetPteidCacheSize);
+}
+
+void AppController::doGetPteidCacheSize() {
+    GUISettings settings;
+    QString ptEidCacheDir = settings.getPteidCachedir();
+    emit signalAppCacheSize(formatSize(dirSize(ptEidCacheDir, "*.bin")));
+}
+
+void AppController::getScapCacheSize() {
+    QtConcurrent::run(this, &AppController::doGetScapCacheSize);
+}
+
+void AppController::doGetScapCacheSize() {
+    ScapSettings settings;
+    QString scapCacheDir = settings.getCacheDir() + "/scap_attributes/";
+    emit signalScapCacheSize(formatSize(dirSize(scapCacheDir, "*.xml")));
+}
+
+//borrowed from https://stackoverflow.com/a/47854799
+qint64 AppController::dirSize(QString dirPath, QString nameFilter) {
+    qint64 size = 0;
+    QDir dir(dirPath);
+    //calculate total size of current directories' files
+    QDir::Filters fileFilters = QDir::Files|QDir::System|QDir::Hidden;
+    dir.setNameFilters(QStringList() << nameFilter);
+    for(QString filePath : dir.entryList(fileFilters)) {
+        QFileInfo fi(dir, filePath);
+        size+= fi.size();
+    }
+    //add size of child directories recursively
+    QDir::Filters dirFilters = QDir::Dirs|QDir::NoDotAndDotDot|QDir::System|QDir::Hidden;
+    for(QString childDirPath : dir.entryList(dirFilters))
+        size+= dirSize(dirPath + QDir::separator() + childDirPath, nameFilter);
+    return size;
+}
+//borrowed from https://stackoverflow.com/a/47854799
+QString AppController::formatSize(qint64 size) {
+    QStringList units = {"Bytes", "KB", "MB", "GB", "TB", "PB"};
+    int i;
+    double outputSize = size;
+    for(i=0; i<units.size()-1; i++) {
+        if(outputSize<1024) break;
+        outputSize= outputSize/1024;
+    }
+    return QString("%0 %1").arg(outputSize, 0, 'f', 0).arg(units[i]);
+}
+

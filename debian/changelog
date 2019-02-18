@@ -1,14 +1,3 @@
-pteid-mw (3.0.13svn5530-1) UNRELEASED; urgency=medium
-
-  * Address Change Bugfix
-  * Various SCAP related fixes
-
- -- Andre Guerreiro <andre.guerreiro@caixamagica.pt>  Wed, 04 Jul 2018 10:49:55 +0100
-pteid-mw (3.0.12svn5475-1) UNRELEASED; urgency=medium
-
-  * Update to SVN revision 5437 - New V3 GUI application with CMD signature feature
-
- -- Andre Guerreiro <andre.guerreiro@caixamagica.pt>  Thu, 10 May 2018 10:48:55 +0100
 pteid-mw (2.4.11svn5339-1) UNRELEASED; urgency=medium
 
   * Update to SVN revision 5339 - Disable checking of the address file hash in SOD only if the card was issued in a specific range of dates

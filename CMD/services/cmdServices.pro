@@ -28,7 +28,7 @@ LIBS += -L./../../lib -l$${COMMONLIB} -l$${APPLAYERLIB} -l$${CARDLAYERLIB} -lpte
 INCLUDEPATH += . ../../eidlib/ ../../common ../../applayer ../../cardlayer
 macx:INCLUDEPATH += /usr/local/Cellar/openssl/1.0.2j/include/
 
-unix: DEFINES += __UNIX__ DEBUG WITH_OPENSSL
+unix: DEFINES += __UNIX__ WITH_OPENSSL
 #Support Fat binaries on Mac with both x86 and x86_64 architectures
 
 # Input
@@ -44,7 +44,6 @@ HEADERS += \
 SOURCES += \
             soapC.cpp \
             duration.cpp \
-#            soapWSHttpBinding_USCORECCMovelSignatureProxy.cpp \
 	    soapBasicHttpBinding_USCORECCMovelSignatureProxy.cpp \
             cmdServices.cpp \
             CMDSignature.cpp

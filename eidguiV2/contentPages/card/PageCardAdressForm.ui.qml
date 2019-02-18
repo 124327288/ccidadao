@@ -209,7 +209,7 @@ Item {
                 width: parent.width
                 Components.LabelTextBoxForm {
                     id: textBoxMunicipality
-                    propertyDateText.text: qsTranslate("GAPI","STR_MUNICIPALY")
+                    propertyDateText.text: qsTranslate("GAPI","STR_MUNICIPALITY")
                     propertyDateField.text: ""
                 }
             }
@@ -227,7 +227,7 @@ Item {
                 width: parent.width
                 Components.LabelTextBoxForm {
                     id: textBoxParish
-                    propertyDateText.text: qsTranslate("GAPI","STR_CICIL_PARISH")
+                    propertyDateText.text: qsTranslate("GAPI","STR_CIVIL_PARISH")
                     propertyDateField.text: ""
                 }
             }
@@ -358,7 +358,7 @@ Item {
                 Text {
                     text: "-"
                     y: 20
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                 }
@@ -407,7 +407,7 @@ Item {
                 height: parent.height
                 anchors.horizontalCenter: parent.horizontalCenter
                 font.capitalization: Font.MixedCase
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 wrapMode: Text.WordWrap
@@ -425,7 +425,7 @@ Item {
                 width: 250
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
                 anchors.right: parent.right
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 enabled: false

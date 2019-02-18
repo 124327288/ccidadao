@@ -8,6 +8,7 @@ import "../../scripts/Constants.js" as Constants
 import eidguiV2 1.0
 
 PageDefinitionsAppForm {
+
     Connections {
         target: gapi
         onSignalCardAccessError:{
@@ -175,7 +176,7 @@ PageDefinitionsAppForm {
     }
 
     Component.onCompleted: {
-        console.log("Page difinitions onCompleted")
+        console.log("Page definitions onCompleted")
 
         propertyComboBoxReader.model = gapi.getRetReaderList()
 
@@ -236,6 +237,6 @@ PageDefinitionsAppForm {
         propertyTextFieldAutUser.text = controler.getProxyUsernameValue()
         propertyTextFieldAutPass.text = controler.getProxyPwdValue()
 
-        console.log("Page difinitions onCompleted finished")
+        console.log("Page definitions onCompleted finished")
     }
 }

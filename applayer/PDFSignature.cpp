@@ -52,6 +52,8 @@ namespace eIDMW
 		location_y = -1;
 		m_civil_number = NULL;
 		m_citizen_fullname = NULL;
+		m_attributeSupplier = NULL;
+		m_attributeName = NULL;
 		m_batch_mode = true;
 		m_timestamp = false;
 		m_isLandscape = false;
@@ -65,6 +67,8 @@ namespace eIDMW
         m_outputName = NULL;
         m_signStarted = false;
         m_isExternalCertificate = false;
+        m_isCC = true;
+        m_incrementalMode = false;
 	}
 
 	PDFSignature::PDFSignature(const char *pdf_file_path): m_pdf_file_path(pdf_file_path)
@@ -77,6 +81,8 @@ namespace eIDMW
         location_y = -1;
         m_civil_number = NULL;
         m_citizen_fullname = NULL;
+        m_attributeSupplier = NULL;
+		m_attributeName = NULL;
         m_batch_mode = false;
         m_timestamp = false;
         m_isLandscape = false;
@@ -91,16 +97,15 @@ namespace eIDMW
         m_outputName = NULL;
         m_signStarted = false;
         m_isExternalCertificate = false;
+        m_isCC = true;
+        m_incrementalMode = false;
 	}
 
 	void PDFSignature::setCustomImage(unsigned char *img_data, unsigned long img_length)
 	{
-
-		this->my_custom_image.img_data = img_data;
+		this->my_custom_image.img_data = (unsigned char*)malloc(img_length);
+		memcpy(this->my_custom_image.img_data, img_data, img_length);
 		this->my_custom_image.img_length = img_length;
-		// this->my_custom_image.img_height = img_height;
-		// this->my_custom_image.img_width = img_width;
-
 	}
 
 	PDFSignature::~PDFSignature()
@@ -111,6 +116,10 @@ namespace eIDMW
 		//Free the strdup'ed strings from batchAddFile
 		for (int i = 0; i != m_files_to_sign.size(); i++)
 			free(m_files_to_sign.at(i).first);
+
+		if (my_custom_image.img_data != NULL) {
+			free(my_custom_image.img_data);
+		}
 
 		if (m_doc != NULL)
 			delete m_doc;
@@ -126,6 +135,8 @@ namespace eIDMW
 		location_y = -1;
 		m_civil_number = NULL;
 		m_citizen_fullname = NULL;
+		m_attributeSupplier = NULL;
+		m_attributeName = NULL;
 		m_batch_mode = false;
 		m_timestamp = false;
 		m_isLandscape = false;
@@ -327,6 +338,16 @@ namespace eIDMW
             return certData;
 	}
 
+	void PDFSignature::setSCAPAttributes(const char * citizenName, const char * citizenId,
+	                      const char * attributeSupplier, const char * attributeName) {
+
+		m_attributeSupplier = attributeSupplier;
+		m_attributeName = attributeName;
+		m_citizen_fullname = (char *) citizenName;
+		m_civil_number = (char *)citizenId;
+
+	}
+
 	void PDFSignature::parseCitizenDataFromCert(CByteArray &certData) {
 		const int cert_field_size = 256;
 
@@ -353,15 +374,14 @@ namespace eIDMW
 	}
 
 	int PDFSignature::getPageCount()  {
+		if (m_doc->getErrorCode() == errEncrypted)
+		{
+			fprintf(stderr, "getPageCount(): Encrypted PDFs are unsupported at the moment\n");
+			return -2;
+		}
 		if (!m_doc->isOk())
 		{
-			fprintf(stderr, "getPageCount(): Probably broken PDF...\n");
-			return -1;
-		}
-		if (m_doc->isEncrypted())
-		{
-			fprintf(stderr,
-				"getPageCount(): Encrypted PDFs are unsupported at the moment\n");
+			fprintf(stderr,"getPageCount(): Probably broken PDF...\n");
 			return -1;
 		}
 		return m_doc->getNumPages();
@@ -385,7 +405,29 @@ namespace eIDMW
 		char * pdf_filename = Basename((char*)path);
 		std::string clean_filename = CPathUtil::remove_ext_from_basename(pdf_filename);
 
-		std::string final_path = string(output_dir) + PATH_SEP + clean_filename + "_signed.pdf";
+		int equal_filename_count = 0;
+		for (unsigned int i = 0; i < unique_filenames.size(); i++)
+		{
+			std::string current_file_name = unique_filenames.at(i).first;
+			if (clean_filename.compare(current_file_name) == 0) {
+				//unique_filenames contains clean_filename
+				equal_filename_count = ++unique_filenames.at(i).second;
+				break;
+			}
+		}
+
+		if (equal_filename_count == 0){
+			//clean_filename is not part of the vector, make sure it's added to it
+			unique_filenames.push_back(std::make_pair(clean_filename, equal_filename_count));
+		}
+
+		std::string final_path = string(output_dir) + PATH_SEP + clean_filename;
+
+		if(equal_filename_count > 0){
+			final_path += "_" + std::to_string(equal_filename_count);
+		}
+
+		final_path += "_signed.pdf";
 
 		return final_path;
 	}
@@ -437,15 +479,15 @@ namespace eIDMW
 		GooString filename(input_path);
 		PDFDoc doc(new GooString(input_path));
 
+		if (doc.getErrorCode() == errEncrypted)
+		{
+		    fprintf(stderr,
+		        "getOtherPageCount(): Encrypted PDFs are unsupported at the moment\n");
+		    return -2;
+		}
 		if (!doc.isOk())
 		{
 			fprintf(stderr, "getOtherPageCount(): Probably broken PDF...\n");
-			return -1;
-		}
-		if (doc.isEncrypted())
-		{
-			fprintf(stderr,
-				"getOtherPageCount(): Encrypted PDFs are unsupported at the moment\n");
 			return -1;
 		}
 
@@ -484,8 +526,7 @@ namespace eIDMW
 
 		if (doc->isEncrypted())
 		{
-			fprintf(stderr, "Encrypted PDF: This is in the TODO List\n");
-			//TODO: Add proper error code(s)
+			fprintf(stderr, "Error: Encrypted PDF \n");
 			delete outputName;
 			throw CMWEXCEPTION(EIDMW_PDF_UNSUPPORTED_ERROR);
 		}
@@ -515,7 +556,7 @@ namespace eIDMW
 		m_isLandscape = isLandscapeFormat();
 
 		//Fix dimensions for the /Rotate case
-		if (m_isLandscape && height > width)
+		if (p->getRotate() == 90 || p->getRotate() == 270)
 		{
 			double dim1 = height;
 			height = width;
@@ -551,22 +592,46 @@ namespace eIDMW
 
 			    sig_location.x2 = sig_location.x1 + sig_width;
 			    sig_location.y2 = sig_location.y1 + actual_sig_height;
+
+				// When batch signing with some PDFs with rotated pages, the max location_x and location_y percentages in horizontal
+				// and vertical pages are different. This may cause the visible signature to be off-page. If this happens,
+				// translate the signature back to the page.
+				if (sig_location.x2 > width) {
+					sig_location.x1 = width-sig_width;
+					sig_location.x2 = width;
+				}
+				if (sig_location.y2 > height) {
+					sig_location.y1 = height-actual_sig_height;
+					sig_location.y2 = height;
+				}
 			}
 
 		}
 		MWLOG(LEV_DEBUG, MOD_APL, "PDFSignature: Signature rectangle before rotation (if needed) (%f, %f, %f, %f)", sig_location.x1, sig_location.y1, sig_location.x2, sig_location.y2);
 
-		if (p->getRotate() == 90 || p->getRotate() == 270)
+		if (p->getRotate() == 90)
 		{
 			//Apply Rotation of R: R' = [-y2, x1, -y1, x2]
 			sig_location = PDFRectangle(height-sig_location.y2, sig_location.x1,
 			              height-sig_location.y1, sig_location.x2);
 			MWLOG(LEV_DEBUG, MOD_APL, "PDFSignature: Rotating rectangle to (%f, %f, %f, %f)", sig_location.x1, sig_location.y1, sig_location.x2, sig_location.y2);
+		} else if (p->getRotate() == 270)
+		{
+			//Apply Rotation of R: R' = [y1, -x2, y2, -x1]
+			sig_location = PDFRectangle(sig_location.y1, width-sig_location.x2,
+			              sig_location.y2, width-sig_location.x1);
+			MWLOG(LEV_DEBUG, MOD_APL, "PDFSignature: Rotating rectangle to (%f, %f, %f, %f)", sig_location.x1, sig_location.y1, sig_location.x2, sig_location.y2);
+		}  else if (p->getRotate() == 180)
+		{
+			//Apply Rotation of R: R' = []
+			sig_location = PDFRectangle(width-sig_location.x2, height-sig_location.y2,
+			              width-sig_location.x1, height-sig_location.y1);
+			MWLOG(LEV_DEBUG, MOD_APL, "PDFSignature: Rotating rectangle to (%f, %f, %f, %f)", sig_location.x1, sig_location.y1, sig_location.x2, sig_location.y2);
 		}
 
 		unsigned char *to_sign;
 
-		if (isExternalCertificate()) {
+		if (isExternalCertificate() && m_attributeSupplier == NULL) {
 			parseCitizenDataFromCert(m_externCertificate);
 		}
 		else {
@@ -576,15 +641,19 @@ namespace eIDMW
 		   		parseCitizenDataFromCert(signatureCert);
 		   	}
 		}
+
+		if (m_attributeSupplier != NULL) {
+			doc->addSCAPAttributes(m_attributeSupplier, m_attributeName);
+		}
 		
-        bool incremental = doc->isSigned() || doc->isReaderEnabled();
+        m_incrementalMode = doc->isSigned() || doc->isReaderEnabled();
 
 		if (this->my_custom_image.img_data != NULL)
 			doc->addCustomSignatureImage(my_custom_image.img_data, my_custom_image.img_length);
 
-        doc->prepareSignature(incremental, &sig_location, m_citizen_fullname, m_civil_number,
-			         location, reason, m_page, m_sector, isLangPT, !isExternalCertificate());
-        unsigned long len = doc->getSigByteArray(&to_sign, incremental);
+        doc->prepareSignature(m_incrementalMode, &sig_location, m_citizen_fullname, m_civil_number,
+                                 location, reason, m_page, m_sector, isLangPT, isCC());
+        unsigned long len = doc->getSigByteArray(&to_sign, m_incrementalMode);
 
 		int rc = 0;
 		try
@@ -634,6 +703,14 @@ namespace eIDMW
 
         return rc;
 	}
+
+    bool PDFSignature::isCC(){
+       return m_isCC;
+    }
+
+    void PDFSignature::setIsCC(bool in_IsCC){
+        m_isCC = in_IsCC;
+    }
 
     bool PDFSignature::isExternalCertificate(){
         return m_isExternalCertificate;
@@ -698,8 +775,6 @@ namespace eIDMW
             throw CMWEXCEPTION(EIDMW_ERR_UNKNOWN);
         }
 
-        bool incremental = m_doc->isSigned() || m_doc->isReaderEnabled();
-
         int return_code =
             getSignedData_pkcs7( (unsigned char*)signature.GetBytes()
                                 , signature.Size()
@@ -715,7 +790,7 @@ namespace eIDMW
         m_doc->closeSignature( signature_contents );
 
         PDFWriteMode pdfWriteMode =
-            incremental ? writeForceIncremental : writeForceRewrite;
+            m_incrementalMode ? writeForceIncremental : writeForceRewrite;
 #ifdef WIN32
 		std::string utf8Filename(m_outputName->getCString());
 		std::wstring utf16Filename = utilStringWiden(utf8Filename);
@@ -724,10 +799,6 @@ namespace eIDMW
 #else
 		int final_ret = m_doc->saveAs(m_outputName, pdfWriteMode);
 #endif
-
-        if ( final_ret != errNone )
-         throw CMWEXCEPTION(EIDMW_ERR_UNKNOWN);
-
         m_signStarted = false;
 
         free((void *)signature_contents);
@@ -741,10 +812,16 @@ namespace eIDMW
         PKCS7_free( m_pkcs7 );
         m_pkcs7 = NULL;
 
-        if (return_code == 1) {
-        	throw CMWEXCEPTION(EIDMW_TIMESTAMP_ERROR);
+		if (final_ret == errPermission || final_ret == errOpenFile){
+            throw CMWEXCEPTION(EIDMW_PERMISSION_DENIED);
+        }
+        else if (final_ret != errNone) {
+            throw CMWEXCEPTION(EIDMW_ERR_UNKNOWN);
         }
 
+        if (return_code == 1) {
+            throw CMWEXCEPTION(EIDMW_TIMESTAMP_ERROR);
+        }
         return return_code;
     }
 }

@@ -368,10 +368,15 @@ void PTEID_PDFSignature::enableTimestamp()
 	mp_signature->enableTimestamp();
 
 }
-
+// this function is not exposed to Java, however is keep for backward compatibility
 void PTEID_PDFSignature::setCustomImage(unsigned char *image_data, unsigned long img_length)
 {
 	mp_signature->setCustomImage(image_data, img_length);
+}
+
+void PTEID_PDFSignature::setCustomImage(const PTEID_ByteArray &image_data)
+{
+	mp_signature->setCustomImage(const_cast<unsigned char *>(image_data.GetBytes()) , image_data.Size());
 }
 
 void PTEID_PDFSignature::enableSmallSignatureFormat()
@@ -783,12 +788,46 @@ bool PTEID_EIDCard::Activate(const char *pinCode, PTEID_ByteArray &BCDDate, bool
 bool PTEID_EIDCard::writePersonalNotes(const PTEID_ByteArray &out,PTEID_Pin *pin,const char *csPinCode){
 	BEGIN_TRY_CATCH
 
-	//martinho: TODO: isto terá de ser muito melhorado...
-	persoNotesDirty = writeFile("3F005F00EF07", out, pin, csPinCode);
+	//ensure that pin asked is the authentication one
+	if (pin != NULL && pin->getPinRef() != PTEID_Pin::AUTH_PIN) {
+		throw CMWEXCEPTION(EIDMW_ERR_PARAM_BAD);
+	}
 
+	/**
+	 * clear notes before writing again,
+	 * avoids mergings previous notes with new ones,
+	 * leading to a inconsistent state
+	*/
+	bool cleared = clearPersonalNotes(pin, csPinCode);
+	if (cleared) {
+		persoNotesDirty = writeFile("3F005F00EF07", out, pin, csPinCode);
+	}
+	
 	END_TRY_CATCH
 
 	return persoNotesDirty;
+}
+
+bool PTEID_EIDCard::clearPersonalNotes(PTEID_Pin *pin,const char *csPinCode){
+	unsigned long ulSize = 1000;
+	unsigned char *pucData = static_cast<unsigned char *>(calloc(ulSize, sizeof(char)));
+	bool cleared = false;
+
+	BEGIN_TRY_CATCH
+
+	//ensure that pin asked is the authentication one
+	if (pin != NULL && pin->getPinRef() != PTEID_Pin::AUTH_PIN) {
+		throw CMWEXCEPTION(EIDMW_ERR_PARAM_BAD);
+	}
+
+	const unsigned char *data = const_cast<unsigned char *>(pucData);
+	const PTEID_ByteArray clear(data, ulSize);
+
+	cleared = writeFile("3F005F00EF07", clear, pin, csPinCode);
+
+	END_TRY_CATCH
+	free(pucData);
+	return cleared;
 }
 
 const char *PTEID_EIDCard::readPersonalNotes() {
@@ -916,7 +955,6 @@ using eIDMW::PTEID_PublicKey;
 using eIDMW::APL_Card;
 using eIDMW::CMWException;
 
-
 //This object should be initialized by calling PTEID_CVC_Init() and freed after a CVC_WriteFile() or CVC_ReadFile() operation
 //It will hold all the keys and other values necessary for Secure Messaging operations
 SecurityContext *securityContext = NULL;
@@ -937,11 +975,11 @@ PTEIDSDK_API long PTEID_Init(char *ReaderName){
 	}
 	catch(PTEID_ExNoCardPresent &)
 	{
-		return -1104;
+		return SC_ERROR_CARD_NOT_PRESENT;
 	}
 	catch(PTEID_ExNoReader &)
 	{
-		return -1101;
+		return SC_ERROR_NO_READERS_FOUND;
 	}
 	catch(PTEID_Exception &ex)
 	{
@@ -951,7 +989,7 @@ PTEIDSDK_API long PTEID_Init(char *ReaderName){
 	{
 		return -1;
 	}
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_Exit(unsigned long ulMode) {
@@ -961,7 +999,7 @@ PTEIDSDK_API long PTEID_Exit(unsigned long ulMode) {
 	}
 
 	PTEID_ReleaseSDK();
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API tCompCardType PTEID_GetCardType() {
@@ -981,13 +1019,6 @@ PTEIDSDK_API tCompCardType PTEID_GetCardType() {
 	}
 	return COMP_CARD_TYPE_ERR;
 }
-
-//Error codes inherited from Pteid Middleware V1: documented in CC_Technical_Reference_1.61
-#define SC_ERROR_AUTH_METHOD_BLOCKED -1212
-#define SC_ERROR_PIN_CODE_INCORRECT -1214
-#define SC_ERROR_INTERNAL -1400
-#define SC_ERROR_OBJECT_NOT_VALID -1406
-#define SC_ERROR_PIN_CODE_INCORRECT -1214
 
 PTEIDSDK_API long PTEID_GetID(PTEID_ID *IDData){
 
@@ -1045,7 +1076,7 @@ PTEIDSDK_API long PTEID_GetID(PTEID_ID *IDData){
 		}
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetAddr(PTEID_ADDR *AddrData) {
@@ -1112,21 +1143,19 @@ PTEIDSDK_API long PTEID_GetAddr(PTEID_ADDR *AddrData) {
 		catch (PTEID_Exception &ex)
 		{
 			long errorCode = ex.GetError();
-
 			if (errorCode >= EIDMW_SOD_UNEXPECTED_VALUE &&
 				errorCode <= EIDMW_SOD_ERR_VERIFY_SOD_SIGN)
 			{
 				return SC_ERROR_OBJECT_NOT_VALID;
-			}
-			else
-			{
+			} else if (errorCode == EIDMW_ERR_PIN_CANCEL) {
+				return SC_ERROR_KEYPAD_CANCELLED;
+			} else {
 				return SC_ERROR_INTERNAL;
 			}
-
 		}
 
 	}
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetPic(PTEID_PIC *PicData){
@@ -1150,7 +1179,7 @@ PTEIDSDK_API long PTEID_GetPic(PTEID_PIC *PicData){
 		memcpy(PicData->imageinfo, scratch.GetBytes(), (PTEID_MAX_IMAGEINFO_LEN>= scratch.Size()) ? scratch.Size(): PTEID_MAX_IMAGEINFO_LEN);
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetCertificates(PTEID_Certifs *Certifs){
@@ -1172,7 +1201,7 @@ PTEIDSDK_API long PTEID_GetCertificates(PTEID_Certifs *Certifs){
 		Certifs->certificatesLength = i;
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 
@@ -1181,8 +1210,9 @@ PTEIDSDK_API long PTEID_VerifyPIN(unsigned char PinId,	char *Pin, long *triesLef
 	bool ret;
 
 	if (readerContext!=NULL) {
-		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131)
-			return 0;
+		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131){
+			return PTEID_OK;
+		}
 
         try{
             PTEID_Pins &pins = readerContext->getEIDCard().getPins();
@@ -1198,7 +1228,7 @@ PTEIDSDK_API long PTEID_VerifyPIN(unsigned char PinId,	char *Pin, long *triesLef
                     *triesLeft = pin.getTriesLeft();
 
                     if (ret)
-                        return 0;
+                        return PTEID_OK;
                     else if (*triesLeft == 0)
                         return SC_ERROR_AUTH_METHOD_BLOCKED;
                     else
@@ -1207,13 +1237,21 @@ PTEIDSDK_API long PTEID_VerifyPIN(unsigned char PinId,	char *Pin, long *triesLef
                 }
             }
 		}
-		catch(PTEID_Exception &)
+		catch(PTEID_Exception &ex)
 		{
-			return SC_ERROR_AUTH_METHOD_BLOCKED;
+			long errorCode = ex.GetError();
+			if (errorCode == EIDMW_ERR_TIMEOUT) {
+				return SC_ERROR_KEYPAD_TIMEOUT;
+			}
+			else if (errorCode == EIDMW_ERR_PIN_CANCEL) {
+				return SC_ERROR_KEYPAD_CANCELLED;
+			} else {
+				return SC_ERROR_AUTH_METHOD_BLOCKED;
+			}
 		}
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_VerifyPIN_No_Alert(unsigned char PinId,	char *Pin, long *triesLeft){
@@ -1223,7 +1261,7 @@ PTEIDSDK_API long PTEID_VerifyPIN_No_Alert(unsigned char PinId,	char *Pin, long 
 		return PTEID_VerifyPIN(PinId, Pin, triesLeft);
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_ChangePIN(unsigned char PinId, char *pszOldPin, char *pszNewPin, long *triesLeft){
@@ -1232,8 +1270,9 @@ PTEIDSDK_API long PTEID_ChangePIN(unsigned char PinId, char *pszOldPin, char *ps
 	unsigned long int tries = -1;
 
 	if (readerContext!=NULL){
-		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131)
-			return 0;
+		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131){
+			return PTEID_OK;
+		}
 
 		PTEID_Pins &pins = readerContext->getEIDCard().getPins();
 		for (unsigned long pinIdx=0; pinIdx < pins.count(); pinIdx++){
@@ -1241,13 +1280,13 @@ PTEIDSDK_API long PTEID_ChangePIN(unsigned char PinId, char *pszOldPin, char *ps
 			if (pin.getPinRef() == PinId)
 				if (pin.changePin(pszOldPin ,pszNewPin, tries, pin.getLabel())){
 					*triesLeft = pin.getTriesLeft();
-					return 0;
+					return PTEID_OK;
 				} else
 					return -1;
 		}
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetPINs(PTEIDPins *Pins){
@@ -1275,7 +1314,7 @@ PTEIDSDK_API long PTEID_GetPINs(PTEIDPins *Pins){
 		Pins->pinsLength = i;
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetTokenInfo(PTEID_TokenInfo *tokenData){
@@ -1289,7 +1328,7 @@ PTEIDSDK_API long PTEID_GetTokenInfo(PTEID_TokenInfo *tokenData){
 		strncpy(tokenData->serial, versionInfo.getSerialNumber(), (PTEID_MAX_ID_NUMBER_LEN > strlen(versionInfo.getSerialNumber()) ? strlen(versionInfo.getSerialNumber()) : PTEID_MAX_ID_NUMBER_LEN -1));
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_ReadSOD(unsigned char *out, unsigned long *outlen) {
@@ -1306,7 +1345,7 @@ PTEIDSDK_API long PTEID_ReadSOD(unsigned char *out, unsigned long *outlen) {
 		memcpy(out,cb.GetBytes(), *outlen);
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_UnblockPIN(unsigned char PinId,	char *pszPuk, char *pszNewPin, long *triesLeft){
@@ -1318,8 +1357,9 @@ PTEIDSDK_API long PTEID_UnblockPIN_Ext(unsigned char PinId,	char *pszPuk, char *
 	unsigned long tleft;
 
 	if (readerContext!=NULL) {
-		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131)
-			return 0;
+		if (PinId != 1 && PinId != 129 && PinId != 130 && PinId != 131){
+			return PTEID_OK;
+		}
 
 		try
 		{
@@ -1333,9 +1373,17 @@ PTEIDSDK_API long PTEID_UnblockPIN_Ext(unsigned char PinId,	char *pszPuk, char *
 				}
 			}
 		}
-		catch(PTEID_Exception &)
+		catch(PTEID_Exception &ex)
 		{
-			return PTEID_E_NOT_INITIALIZED;
+			long errorCode = ex.GetError();
+			if (errorCode == EIDMW_ERR_TIMEOUT) {
+				return SC_ERROR_KEYPAD_TIMEOUT;
+			}
+			else if (errorCode == EIDMW_ERR_PIN_CANCEL) {
+				return SC_ERROR_KEYPAD_CANCELLED;
+			} else {
+				return PTEID_E_NOT_INITIALIZED;
+			}
 		}
 	}
 
@@ -1362,7 +1410,7 @@ PTEIDSDK_API long PTEID_SelectADF(unsigned char *adf, long adflen){
 		}
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_ReadFile(unsigned char *file,int filelen,unsigned char *out,unsigned long *outlen,unsigned char PinId){
@@ -1392,7 +1440,7 @@ PTEIDSDK_API long PTEID_ReadFile(unsigned char *file,int filelen,unsigned char *
 		memcpy(out, cb.GetBytes(),*outlen);
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_WriteFile(unsigned char *file, int filelen,	unsigned char *in, unsigned long inlen,	unsigned char PinId){
@@ -1420,19 +1468,21 @@ PTEIDSDK_API long PTEID_WriteFile_inOffset(unsigned char *file, int filelen, uns
 
 		out.Append(in,inlen);
 		temp.Append(file,filelen);
-		if (card.writeFile(temp.ToString(false).c_str(),out, pin,"", inOffset))
-			return 0;
+		if (card.writeFile(temp.ToString(false).c_str(),out, pin,"", inOffset)){
+			return PTEID_OK;
+		}
 		return -1;
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_IsActivated(unsigned long *pulStatus){
 
-	if (readerContext!=NULL)
+	if (readerContext!=NULL){
 		*pulStatus = (readerContext->getEIDCard().isActive() ? PTEID_ACTIVE_CARD : PTEID_INACTIVE_CARD);
-	return 0;
+	}
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_Activate(char *pszPin, unsigned char *pucDate, unsigned long ulMode){
@@ -1442,8 +1492,9 @@ PTEIDSDK_API long PTEID_Activate(char *pszPin, unsigned char *pucDate, unsigned 
 		{
 
 			PTEID_ByteArray bcd(pucDate, BCD_DATE_LEN);
-			if (readerContext->getEIDCard().Activate(pszPin,bcd, ulMode == MODE_ACTIVATE_BLOCK_PIN))
-				return 0;
+			if (readerContext->getEIDCard().Activate(pszPin,bcd, ulMode == MODE_ACTIVATE_BLOCK_PIN)){
+				return PTEID_OK;
+			}
 			return -1;
 		}
 		catch(PTEID_Exception &)
@@ -1452,14 +1503,14 @@ PTEIDSDK_API long PTEID_Activate(char *pszPin, unsigned char *pucDate, unsigned 
 		}
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_SetSODChecking(int bDoCheck) {
 	if (readerContext != NULL)
 		readerContext->getEIDCard().doSODCheck(bDoCheck!=0);
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_SetSODCAs(PTEID_Certifs *Certifs) {
@@ -1496,7 +1547,7 @@ PTEIDSDK_API long PTEID_GetCardAuthenticationKey(PTEID_RSAPublicKey *pCardAuthPu
 		pCardAuthPubKey->exponentLength = cardKey.getCardAuthKeyExponent().Size();
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_GetCVCRoot(PTEID_RSAPublicKey *pCVCRootKey){
@@ -1509,7 +1560,7 @@ PTEIDSDK_API long PTEID_GetCVCRoot(PTEID_RSAPublicKey *pCVCRootKey){
 		pCVCRootKey->exponentLength = rootCAKey.getCardAuthKeyExponent().Size();
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API long PTEID_SendAPDU(const unsigned char *ucRequest, unsigned long ulRequestLen, unsigned char *ucResponse, unsigned long *ulResponseLen){
@@ -1524,7 +1575,7 @@ PTEIDSDK_API long PTEID_SendAPDU(const unsigned char *ucRequest, unsigned long u
 		memcpy(ucResponse,resp.GetBytes(),*ulResponseLen);
 	}
 
-	return 0;
+	return PTEID_OK;
 }
 
 PTEIDSDK_API int PTEID_IsPinpad() {

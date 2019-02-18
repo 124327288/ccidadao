@@ -1,3 +1,4 @@
+/* Copyright 2013–2017 Kullo GmbH. All rights reserved. */
 #include "filesavedialog.h"
 
 #include <QApplication>
@@ -9,7 +10,11 @@ FileSaveDialog::FileSaveDialog(QQuickItem *parent)
     : QQuickItem(parent)
     , m_dlgHelper(init_helper())
     , m_modality(Qt::WindowModal)
-    , m_options(QSharedPointer<QFileDialogOptions>(QFileDialogOptions::create()))
+    #if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
+    , m_options(QFileDialogOptions::create())
+    #else
+    , m_options(QSharedPointer<QFileDialogOptions>(new QFileDialogOptions()))
+    #endif
 {
     /*
      * Qt Widgets support must be present, i.e. the main app is a QApplication.
@@ -25,6 +30,12 @@ FileSaveDialog::FileSaveDialog(QQuickItem *parent)
                 this, &FileSaveDialog::accept);
         connect(m_dlgHelper, &QPlatformFileDialogHelper::reject,
                 this, &FileSaveDialog::reject);
+    }else{
+        qDebug() << "##########################################################################################";
+        qDebug() << "ERROR: The application needs gtk3 platform plugin";
+        qDebug() << "To automatically set gtk3 to QT_QPA_PLATFORMTHEME run the following at the command line";
+        qDebug() << "echo \"export QT_QPA_PLATFORMTHEME=gtk3\">> ~/.profile && source ~/.profile";
+        qDebug() << "##########################################################################################";
     }
 }
 

@@ -17,6 +17,8 @@ Item {
     property alias propertyListViewEntities: listViewEntities
     property alias propertyCompaniesListViewScroll: companiesListViewScroll
     property alias propertyEntitiesListViewScroll: entitiesListViewScroll
+	property alias propertyMouseAreaTextSignaturePageLinkCompanies : mouseAreaTextSignaturePageLinkCompanies
+    property alias propertyMouseAreaTextSignaturePageLinkEntities : mouseAreaTextSignaturePageLinkEntities
 
     anchors.fill: parent
     Item {
@@ -41,9 +43,9 @@ Item {
         Item {
             id: rowTop
             width: parent.width
-            height: parent.height * Constants.HEIGHT_DIFINITIONS_ATTRIBUTES_ROW_TOP_V_RELATIVE
+            height: parent.height * Constants.HEIGHT_DEFINITIONS_ATTRIBUTES_ROW_TOP_V_RELATIVE
                     + (parent.height + Constants.TITLE_BAR_SIZE - Constants.SCREEN_MINIMUM_HEIGHT)
-                    * Constants.HEIGHT_DIFINITIONS_ATTRIBUTES_ROW_TOP_INC_RELATIVE
+                    * Constants.HEIGHT_DEFINITIONS_ATTRIBUTES_ROW_TOP_INC_RELATIVE
         }
 
         TabBar {
@@ -52,12 +54,12 @@ Item {
             width: parent.width
             currentIndex: 0
             TabButton {
-                text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES")
+                text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES")
                 rightPadding: 2
                 leftPadding: 2
             }
             TabButton {
-                text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY")
+                text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY")
                 rightPadding: 2
                 leftPadding: 2
             }
@@ -79,9 +81,9 @@ Item {
                     height: 5 * Constants.SIZE_TEXT_BODY
 
                     Text {
-                        font.pointSize: Constants.SIZE_TEXT_BODY
+                        font.pixelSize: Constants.SIZE_TEXT_BODY
                         font.family: lato.name
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_MSG")
+                        text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_MSG")
                         wrapMode: Text.Wrap
                         width: parent.width
                         color: Constants.COLOR_MAIN_BLUE
@@ -94,6 +96,8 @@ Item {
                     width: parent.width
                     height: stackLayout.height - rowProfessional.height - rawButtonLoadEntityAttributes.height
                         - Constants. SIZE_ROW_V_SPACE
+						- (propertyPageLoader.propertyBackupFromSignaturePage ? 
+							Constants.SIZE_TEXT_FIELD  + Constants.SIZE_ROW_V_SPACE: 0)
                     anchors.top: rowProfessional.bottom
 
                     ListView {
@@ -116,19 +120,45 @@ Item {
                     }
                 }
 
+				Item {
+					id: rectSignaturePageLinkEntities
+					width: parent.width
+					height: (propertyPageLoader.propertyBackupFromSignaturePage ? 
+							Constants.SIZE_TEXT_FIELD : 0)
+					anchors.top: rectangleEntities.bottom
+					anchors.margins: (propertyPageLoader.propertyBackupFromSignaturePage ? 
+										Constants. SIZE_ROW_V_SPACE : 0)
+					visible: propertyPageLoader.propertyBackupFromSignaturePage
+					MouseArea {
+                        id: mouseAreaTextSignaturePageLinkEntities
+                        anchors.fill: parent
+                        enabled: propertyPageLoader.propertyBackupFromSignaturePage
+                        hoverEnabled: true
+                    }
+					Text {
+						id: textSignaturePageLinkEntities
+						text: qsTranslate("PageDefinitionsSCAP","STR_BACK_TO_SIGNATURE_PAGE")
+						font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.family: lato.name
+						font.capitalization: Font.MixedCase
+						color: Constants.COLOR_MAIN_BLUE
+						visible: propertyPageLoader.propertyBackupFromSignaturePage
+						font.underline: mouseAreaTextSignaturePageLinkEntities.containsMouse
+					}
+				}
                 Item {
                     id: rawButtonLoadEntityAttributes
-                    anchors.top: rectangleEntities.bottom
+                    anchors.top: rectSignaturePageLinkEntities.bottom
                     anchors.margins: Constants. SIZE_ROW_V_SPACE
                     width: parent.width - entitiesListViewScroll.width - listViewEntities.spacing
                     height: Constants.HEIGHT_BOTTOM_COMPONENT
 
                     Button {
                         id: buttonRemoveEntityAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
+                        text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
                         width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.left: parent.left
@@ -136,10 +166,10 @@ Item {
                     }
                     Button {
                         id: buttonLoadEntityAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_BUTTON_LOAD")
+                        text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_ENTITIES_BUTTON_LOAD")
                         width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.right: parent.right
@@ -155,9 +185,9 @@ Item {
                     width: parent.width
                     height: 5 * Constants.SIZE_TEXT_BODY
                     Text {
-                        font.pointSize: Constants.SIZE_TEXT_BODY
+                        font.pixelSize: Constants.SIZE_TEXT_BODY
                         font.family: lato.name
-                        text: qsTranslate("PageDifinitionsSCAP",
+                        text: qsTranslate("PageDefinitionsSCAP",
                                           "STR_SCAP_ATTRIBUTES_COMPANY_MSG")
                         wrapMode: Text.Wrap
                         width: parent.width
@@ -171,6 +201,8 @@ Item {
                     width: parent.width
                     height: stackLayout.height - rowCompanies.height - rawButtonLoadCompanyAttributes.height
                         - Constants. SIZE_ROW_V_SPACE
+						- (propertyPageLoader.propertyBackupFromSignaturePage ? 
+							Constants.SIZE_TEXT_FIELD  + Constants.SIZE_ROW_V_SPACE: 0)
                     anchors.top: rowCompanies.bottom
 
                     ListView {
@@ -193,18 +225,44 @@ Item {
                     }
                 }
 
+				Item {
+					id: rectSignaturePageLinkCompanies
+					width: parent.width
+					height: (propertyPageLoader.propertyBackupFromSignaturePage ? 
+							Constants.SIZE_TEXT_FIELD : 0)
+					anchors.top: rectangleCompanies.bottom
+					anchors.margins: (propertyPageLoader.propertyBackupFromSignaturePage ? 
+										Constants. SIZE_ROW_V_SPACE : 0)
+					visible: propertyPageLoader.propertyBackupFromSignaturePage
+					MouseArea {
+                        id: mouseAreaTextSignaturePageLinkCompanies
+                        anchors.fill: parent
+                        enabled: propertyPageLoader.propertyBackupFromSignaturePage
+                        hoverEnabled: true
+                    }
+					Text {
+						id: textSignaturePageLinkCompanies
+						text: qsTranslate("PageDefinitionsSCAP","STR_BACK_TO_SIGNATURE_PAGE")
+						font.pixelSize: Constants.SIZE_TEXT_FIELD
+                        font.family: lato.name
+						font.capitalization: Font.MixedCase
+                        font.underline: mouseAreaTextSignaturePageLinkCompanies.containsMouse
+						color: Constants.COLOR_MAIN_BLUE
+						visible: propertyPageLoader.propertyBackupFromSignaturePage
+					}
+				}
                 Item {
                     id: rawButtonLoadCompanyAttributes
-                    anchors.top: rectangleCompanies.bottom
+                    anchors.top: rectSignaturePageLinkCompanies.bottom
                     anchors.topMargin: Constants. SIZE_ROW_V_SPACE
                     width: parent.width - companiesListViewScroll.width - listViewCompanies.spacing
                     height: Constants.HEIGHT_BOTTOM_COMPONENT
                     Button {
                         id: buttonRemoveCompanyAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
+                        text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_BUTTON_REMOVE")
                         width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.left: parent.left
@@ -212,10 +270,10 @@ Item {
                     }
                     Button {
                         id: buttonLoadCompanyAttributes
-                        text: qsTranslate("PageDifinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY_BUTTON_LOAD")
+                        text: qsTranslate("PageDefinitionsSCAP","STR_SCAP_ATTRIBUTES_COMPANY_BUTTON_LOAD")
                         width: 1.4 * Constants.WIDTH_BUTTON
                         height: parent.height
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         font.family: lato.name
                         font.capitalization: Font.MixedCase
                         anchors.right: parent.right

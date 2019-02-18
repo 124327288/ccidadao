@@ -3,7 +3,9 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QUrl>
 #include "Settings.h"
+#include "ScapSettings.h"
 
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
@@ -84,17 +86,29 @@ public slots:
     void setProxyPwdValue (QString const& proxy_pwd);
 
     void cancelDownload();
+    void httpError(QNetworkReply::NetworkError networkError);
+    void httpUpdateError(QNetworkReply::NetworkError networkError);
     void httpFinished();
     void httpReadyRead();
     void updateDataReadProgress(qint64 bytesRead, qint64 totalBytes);
     void cancelUpdateDownload();
+    void userCancelledUpdateDownload();
     void httpUpdateFinished();
     void httpUpdateReadyRead();
     void updateUpdateDataReadProgress(qint64 bytesRead, qint64 totalBytes);
-
+    void flushCache();
+    void getPteidCacheSize();
+    void getScapCacheSize();
+    
 private:
     GUISettings&    m_Settings;
     bool LoadTranslationFile(QString NewLanguage );
+    void doFlushCache();
+    bool removePteidCache();
+    void doGetPteidCacheSize();
+    void doGetScapCacheSize();
+    qint64 dirSize(QString dirPath, QString nameFilter);
+    QString formatSize(qint64 size);
 
     QUrl url;
     QNetworkProxy proxy;
@@ -104,11 +118,14 @@ private:
     QString m_pac_url;
     bool httpRequestAborted;
     bool httpUpdateRequestAborted;
+    bool userCanceled;
     std::string filedata;
     std::string urli;
     std::string getdistro;
     QString fileName;
-
+    QString release_notes;
+    QString remote_version;
+    QString installed_version;
 protected:
     QTranslator m_translator;
 
@@ -117,9 +134,15 @@ signals:
     void languageChanged();
     void signalLanguageChangedError();
     void signalAutoUpdateFail(int error_code);
-    void signalAutoUpdateAvailable();
+    void signalAutoUpdateAvailable(QString release_notes, QString installed_version, QString remote_version);
     void signalAutoUpdateProgress(int value);
     void signalStartUpdate(QString filename);
+    void signalRemovePteidCacheSuccess(); 
+    void signalRemovePteidCacheFail();
+    void signalCacheNotReadable();
+    void signalCacheNotWritable();
+    void signalAppCacheSize(QString cacheSize);
+    void signalScapCacheSize(QString cacheSize);
 };
 
 #endif // APPCONTROLLER_H

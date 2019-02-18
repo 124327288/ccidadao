@@ -34,6 +34,18 @@ PageSecurityCertificatesForm {
                 mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
                         qsTranslate("Popup Card","STR_SOD_VALIDATION_ERROR")
             }
+            else if (error_code == GAPI.CardUserPinCancel) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_CANCELED")
+            }
+			else if (error_code == GAPI.CardPinTimeout) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_TIMEOUT")
+            }
             else {
                 mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
                         qsTranslate("Popup Card","STR_POPUP_ERROR")
@@ -153,7 +165,7 @@ PageSecurityCertificatesForm {
                                         'valid': certificatesMap.levelB1.ValidityBegin,
                                         'until':certificatesMap.levelB1.ValidityEnd,
                                         'key': certificatesMap.levelB1.KeyLength,
-                                        'status': certificatesMap.levelB1.Status,
+                                        'status': getCertStatus(certificatesMap.levelB1.Status),
                                         'children': [
                                             {
                                                 'entity': certificatesMap.levelB0.OwnerName,

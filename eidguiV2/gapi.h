@@ -11,6 +11,7 @@
 #include <QPixmap>
 #include <poppler-qt5.h>
 #include <QPrinter>
+#include <QPrinterInfo>
 #include <QPrintDialog>
 #include "Settings.h"
 #include "certificates.h"
@@ -104,11 +105,12 @@ private:
 struct PrintParams {
 public:
     QString outputFile;
-    double isBasicInfo;
-    double isAddicionalInfo;
-    double isAddress;
-    double isNotes;
-    double isSign;
+    bool isBasicInfo;
+    bool isAddicionalInfo;
+    bool isAddress;
+    bool isNotes;
+    bool isPrintDate;
+    bool isSign;
 };
 
 struct SignParams {
@@ -119,8 +121,8 @@ public:
     double coord_y;
     QString reason;
     QString location;
-    double isTimestamp;
-    double isSmallSignature;
+    bool isTimestamp;
+    bool isSmallSignature;
 };
 
 struct CmdSignParams {
@@ -153,15 +155,16 @@ public:
     double coord_y;
     QString reason;
     QString location;
-    double isTimestamp;
-    double isSmallSignature;
+    bool isTimestamp;
+    bool isSmallSignature;
 };
 
 struct SCAPSignParams {
 public:
     QString inputPDF;
     QString outputPDF;
-    int page; int location_x; int location_y;
+    int page; double location_x; double location_y;
+    QString location; QString reason;
     int ltv;
     QList<int> attribute_index;
 };
@@ -210,14 +213,16 @@ public:
     enum AddressInfoKey { District, Municipality, Parish, Streettype, Streetname, Buildingtype, Doorno, Floor, Side, Locality, Place, Zip4, Zip3, PostalLocality,
                           Foreigncountry, Foreignaddress, Foreigncity, Foreignregion, Foreignlocality, Foreignpostalcode};
 
-    enum CardAccessError { NoReaderFound, NoCardFound, PinBlocked, CardReadError, SodCardReadError, CardUserPinCancel, CardUnknownError };
+    enum CardAccessError { NoReaderFound, NoCardFound, PinBlocked, CardReadError, SodCardReadError, CardUserPinCancel, CardUnknownError, CardPinTimeout };
 
-    enum SignMessage { SignMessageOK, SignMessageTimestampFailed };
+    enum SignMessage { SignMessageOK, SignMessageTimestampFailed, SignFilePermissionFailed, PDFFileUnsupported};
+
+    enum PrintMessage {NoPrinterAvailable};
 
     enum eCustomEventType { ET_UNKNOWN, ET_CARD_CHANGED, ET_CARD_REMOVED };
 
-    enum AutoUpdateMessage { GenericError, NoUpdatesAvailable, DownloadFailed, LinuxNotSupported,UpdatesAvailable,
-                           UnableSaveFile};
+    enum AutoUpdateMessage {GenericError, NoUpdatesAvailable, DownloadFailed, DownloadCancelled, LinuxNotSupported, UpdatesAvailable,
+                           UnableSaveFile, InstallFailed, NetworkError};
 
     enum ScapPdfSignResult { ScapTimeOutError, ScapGenericError, ScapAttributesExpiredError, ScapZeroAttributesError,
                              ScapNotValidAttributesError, ScapSucess };
@@ -228,6 +233,7 @@ public:
     Q_ENUMS(AddressInfoKey)
     Q_ENUMS(UI_LANGUAGE)
     Q_ENUMS(SignMessage)
+    Q_ENUMS(PrintMessage)
     Q_ENUMS(AutoUpdateMessage)
 
 
@@ -265,19 +271,19 @@ public slots:
     void startReadingAddress();
     int getShortcutFlag() {return m_shortcutFlag; }
 	QString getShortcutInputPDF() {	return m_shortcutInputPDF.replace(QChar('\\'), QChar('/')); }
-    void startPrintPDF(QString outputFile, double isBasicInfo,double isAdditionalInfo,
-                       double isAddress,double isNotes,double isSign);
-    void startPrint(QString outputFile, double isBasicInfo,double isAdditionalInfo,
-                       double isAddress, double isNotes, double isSign);
+    void startPrintPDF(QString outputFile, bool isBasicInfo,bool isAdditionalInfo,
+                       bool isAddress,bool isNotes,bool isPrintDate,bool isSign);
+    void startPrint(QString outputFile, bool isBasicInfo,bool isAdditionalInfo,
+                       bool isAddress, bool isNotes, bool isPrintDate, bool isSign);
     //This method should be used by basic and advanced signature modes
     void startSigningPDF(QString loadedFilePath, QString outputFile, int page, double coord_x, double coord_y,
-                         QString reason, QString location, double isTimestamp, double isSmall);
+                         QString reason, QString location, bool isTimestamp, bool isSmall);
     void startSigningBatchPDF(QList<QString> loadedFileBatchPath, QString outputFile, int page, double coord_x, double coord_y,
-                         QString reason, QString location, double isTimestamp, double isSmall);
+                         QString reason, QString location, bool isTimestamp, bool isSmall);
     int getPDFpageCount(QString loadedFilePath);
 
-    void startSigningXADES(QString loadedFilePath, QString outputFile, double isTimestamp);
-    void startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, double isTimestamp);
+	void startSigningXADES(QString loadedFilePath, QString outputFile, bool isTimestamp);
+	void startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, bool isTimestamp);
 
     /* SCAP Methods  */
     void startGettingEntities();
@@ -287,8 +293,8 @@ public slots:
     void startGettingEntityAttributes(QList<int> entity_index);
     void startPingSCAP();
 
-    void startSigningSCAP(QString inputPdf, QString outputPDF, int page, int location_x, int location_y, 
-                          int ltv, QList<int> attribute_index);
+    void startSigningSCAP(QString inputPdf, QString outputPDF, int page, double location_x, double location_y,
+                          QString location, QString reason, int ltv, QList<int> attribute_index);
 
     //Returns page size in postscript points
     QSize getPageSize(int page) { return image_provider_pdf->getPageSize(page); };
@@ -313,7 +319,8 @@ public slots:
     void doCloseSignCMD(CMDSignature *cmd_signature, QString sms_token);
     void doCloseSignCMDWithSCAP(CMDSignature *cmd_signature, QString sms_token, QList<int> attribute_list);
     void signOpenScapWithCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
-                   QString outputFile, int page, double coord_x, double coord_y);
+                       QString outputFile, int page, double coord_x, double coord_y,
+                       QString reason, QString location);
 
     static void addressChangeCallback(void *, int);
     void showChangeAddressDialog(long code);
@@ -344,6 +351,10 @@ public slots:
     void cancelDownload();
     void httpFinished();
 
+    void quitApplication();
+    void forgetAllCertificates( void );
+    void forgetCertificates(QString const& reader);
+
 signals:
     // Signal from GAPI to Gui
     // Notify about Card Identify changed
@@ -356,7 +367,7 @@ signals:
     void signalPersoDataLoaded(const QString& persoNotes);
     void signalAddressLoadedChanged();
     void signalPdfSignSucess(int error_code);
-    void signalPdfSignFail();
+    void signalPdfSignFail(int error_code);
     void signalUpdateProgressBar(int value);
     void signalUpdateProgressStatus(const QString statusMessage);
     void addressChangeFinished(long return_code);
@@ -371,7 +382,7 @@ signals:
     //SCAP signals
     void signalSCAPEntitiesLoaded(const QList<QString> entitiesList);
     void signalSCAPServiceFail(int pdfsignresult);
-    void signalSCAPDifinitionsServiceFail(int pdfsignresult, bool isCompany);
+    void signalSCAPDefinitionsServiceFail(int pdfsignresult, bool isCompany);
     void signalSCAPServiceTimeout();
     void signalSCAPPingFail();
     void signalSCAPPingSuccess();
@@ -385,9 +396,13 @@ signals:
     void signalPdfPrintSignSucess();
     void signalPdfPrintFail();
     void signalPrinterPrintFail();
+    void signalPrinterPrintFail(int error_code);
     void signalLanguageChangedError();
     void signalRemoveSCAPAttributesSucess(int isCompanies);
     void signalRemoveSCAPAttributesFail(int isCompanies);
+    void signalCacheNotReadable(int isCompanies);
+	void signalCacheNotWritable();
+	void signalCacheFolderNotCreated();
 
     // Import Certificates
     void signalImportCertificatesFail();
@@ -405,6 +420,7 @@ private:
     void getSCAPAttributesFromCache(int queryType, bool isShortDescription);
     //querytype - 0 = Entities, 1 = Companies
     void removeSCAPAttributesFromCache(int queryType);
+	bool prepareSCAPCache();
     void getSCAPEntityAttributes(QList<int> entityIDs);
     void doSignSCAP(SCAPSignParams params);
     void getPersoDataFile();
@@ -416,7 +432,7 @@ private:
     void doPrint(PrintParams &params);
     bool drawpdf(QPrinter &printer, PrintParams params);
     void doSignBatchPDF(SignBatchParams &params);
-    void doSignXADES(QString loadedFilePath, QString outputFile, double isTimestamp);
+	void doSignXADES(QString loadedFilePath, QString outputFile, bool isTimestamp);
     void doSignBatchXADES(SignBatchParams &params);
     void buildTree(eIDMW::PTEID_Certificate &cert, bool &bEx, QVariantMap &certificatesMap);
     void fillCertificateList (void );
@@ -425,6 +441,7 @@ private:
     bool useCustomSignature(void);
     void stopAllEventCallbacks(void);
     void cleanupCallbackData(void);
+    void initScapAppId(void);
     CMDProxyInfo buildProxyInfo();
 
     // Data Card Identify map

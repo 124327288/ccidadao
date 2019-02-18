@@ -39,6 +39,15 @@
     <DocumentationFile>..\_Binaries35\AnyCPU\VC9\Release\pteidlib_dotnet.xml</DocumentationFile>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>pteidlib_dotnet.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DelaySign>false</DelaySign>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -240,10 +249,16 @@
     <Compile Include="..\eidlibCS_Wrapper\GeneratedFiles\SWIGTYPE_p_void.cs">
       <Link>GeneratedFiles\SWIGTYPE_p_void.cs</Link>
     </Compile>
+    <Compile Include="..\eidlibCS_Wrapper\GeneratedFiles\SWIGTYPE_p_wchar_t.cs">
+      <Link>GeneratedFiles\SWIGTYPE_p_wchar_t.cs</Link>
+    </Compile>
     <Compile Include="..\eidlibCS_Wrapper\GeneratedFiles\XMLUserData.cs">
       <Link>GeneratedFiles\XMLUserData.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pteidlib_dotnet.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -254,8 +269,5 @@
   </Target>
   -->
   <PropertyGroup>
-    <PreBuildEvent>cmd.exe /C "$(ProjectDir)prebuild.bat"</PreBuildEvent>
-    <PostBuildEvent>
-    </PostBuildEvent>
   </PropertyGroup>
 </Project>

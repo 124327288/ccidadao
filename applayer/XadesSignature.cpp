@@ -154,7 +154,11 @@ namespace eIDMW
 	{
 		const int BUFSIZE = 4*1024;
 		EVP_MD_CTX *mdctx;
+#ifdef WIN32
+        struct _stat64 sb;
+#else
 		struct stat sb;
+#endif
 		long long filesize;
 		unsigned char md_value[EVP_MAX_MD_SIZE];
 		unsigned int md_len, i;
@@ -176,8 +180,12 @@ namespace eIDMW
 		mdctx = EVP_MD_CTX_create();
 		EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
 
-		stat(filename, &sb);
-		filesize = (long long) sb.st_size;
+#ifdef WIN32
+        _wstat64(utf16FileName.c_str(), &sb);
+#else
+        stat(filename, &sb);
+#endif
+        filesize = (long long)sb.st_size;
 
 		if (filesize <= BUFSIZE)
 		{
@@ -192,7 +200,9 @@ namespace eIDMW
 			{
 				int read_b = fread(buffer, 1, BUFSIZE, fp);
 				EVP_DigestUpdate(mdctx, buffer, read_b);
-
+                if (ferror(fp)) {
+                    MWLOG(LEV_ERROR, MOD_APL, L"XadesSignature::HashFile: Failed while reading file");
+                }
 				if (read_b < BUFSIZE)
 					break;
 			}
@@ -520,11 +530,11 @@ void XadesSignature::terminateXMLUtils()
 	XMLPlatformUtils::Terminate();
 }
 
+
 XMLCh* XadesSignature::createURI(const char *path)
 {
-
-	string uri = string("./") + Basename((char *)path);
-
+	char * filename = Basename((char *)path);
+	string uri = urlEncode((unsigned char *)filename, strlen(filename));
 	return XMLString::transcode(uri.c_str());
 }
 
@@ -664,20 +674,26 @@ void XadesSignature::addCertificateChain(DSIGKeyInfoX509 *keyInfo)
 
     APL_SmartCard * eid_card = static_cast<APL_SmartCard *> (mp_card);
     APL_Certifs *certs = eid_card->getCertificates();
-    APL_Certif *auth_cert = certs->getCert(APL_CERTIF_TYPE_SIGNATURE);
+    APL_Certif *signature_cert = certs->getCert(APL_CERTIF_TYPE_SIGNATURE);
 
-    APL_Certif *certif = auth_cert;
+    APL_Certif *certif = signature_cert;
     
-    int i = 0;
     while(!certif->isRoot())
     {
-        APL_Certif * issuer = certif->getIssuer();
+		APL_Certif * issuer = NULL;
+        issuer = certif->getIssuer();
 
-        MWLOG(LEV_DEBUG, MOD_APL, "XadesSignature: addCertificateChain: Loading cert: %s", issuer->getOwnerName());
-        addCertificateToKeyInfo(issuer->getData(), keyInfo);
+		if (issuer == NULL) {
+			MWLOG(LEV_ERROR, MOD_APL, "XadesSignature: addCertificateChain() Couldn't find issuer for cert: %s", certif->getOwnerName());
+            break;
+        }
+
+		MWLOG(LEV_DEBUG, MOD_APL, "XadesSignature: addCertificateChain: Loading cert: %s", issuer->getOwnerName());
+		addCertificateToKeyInfo(issuer->getData(), keyInfo);
 		m_cert_bas.push_back(issuer->getData());
-        certif = issuer;
-    }
+		certif = issuer;
+	}
+
 }
 
 
@@ -1200,7 +1216,7 @@ CByteArray &XadesSignature::Sign(const char ** paths, unsigned int n_paths)
 		HashSignedPropertiesNode(sig->getParentDocument(), sha1_hash_signed_props);
 
 		DSIGReference * ref_signed_props = sig->createReference(createSignedPropertiesURI().c_str(), HASH_SHA256);
-		ref_signed_props->setType(XMLString::transcode("http://uri.etsi.org/01903/v1.1.1#SignedProperties"));
+		ref_signed_props->setType(XMLString::transcode("http://uri.etsi.org/01903#SignedProperties"));
 
 		setReferenceHash(sha1_hash_signed_props, SHA256_LEN, references_count, doc);
 		//ref_signed_props->setExternalHash(sha1_hash_signed_props);

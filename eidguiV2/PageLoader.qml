@@ -31,6 +31,7 @@ Loader{
     property string propertyBackupReason: ""
     property string propertyBackupMobileNumber: ""
     property int propertyBackupMobileIndicatorIndex: 0
+	property bool propertyBackupFromSignaturePage: false
 
     ListModel {
         id: backupfilesModel
@@ -55,7 +56,7 @@ Loader{
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
         Item {
@@ -80,7 +81,7 @@ Loader{
                     id: labelText
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -98,7 +99,7 @@ Loader{
                 text: "OK"
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: rectLabelText.bottom
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 onClicked: generalPopUp.close()

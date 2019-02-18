@@ -33,7 +33,7 @@ namespace eIDMW
 		EIDMW_APL_API PDFSignature(const char *path);
 		EIDMW_APL_API ~PDFSignature();
 
-                EIDMW_APL_API void setFile(char *pdf_file_path);
+        EIDMW_APL_API void setFile(char *pdf_file_path);
 		//Batch Operations (with PIN caching)
 		EIDMW_APL_API void batchAddFile(char *file_path, bool last_page);
 		EIDMW_APL_API void enableTimestamp();
@@ -59,6 +59,8 @@ namespace eIDMW
 		EIDMW_APL_API std::string getDocName();
 
         bool isExternalCertificate();
+        bool isCC();
+		EIDMW_APL_API void setIsCC( bool in_IsCC );
         void setIsExtCertificate( bool in_IsExternalCertificate );
 
         /* Certificate */
@@ -81,6 +83,9 @@ namespace eIDMW
 
         
 		EIDMW_APL_API int signClose(CByteArray signature);
+
+		EIDMW_APL_API void setSCAPAttributes(const char * citizenName, const char * citizenId,
+	                      const char * attributeSupplier, const char * attributeName);
 
 	private:
 		void parseCitizenDataFromCert(CByteArray &certData);
@@ -114,6 +119,7 @@ namespace eIDMW
 		bool m_timestamp;
 		bool m_small_signature;
 		std::vector< std::pair<char *, bool> > m_files_to_sign;
+		std::vector< std::pair<std::string, int> > unique_filenames;
 		Pixmap my_custom_image;
 
         PKCS7 *m_pkcs7;
@@ -125,6 +131,12 @@ namespace eIDMW
         GooString *m_outputName;
         bool m_signStarted;
         bool m_isExternalCertificate;
+        bool m_isCC;
+        bool m_incrementalMode;
+
+        /* Fields for SCAP signature */
+        const char * m_attributeSupplier;
+        const char * m_attributeName;
 	};
 
 }

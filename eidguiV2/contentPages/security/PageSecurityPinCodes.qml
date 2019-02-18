@@ -15,40 +15,52 @@ PageSecurityPinCodesForm {
 
         onSignalCardAccessError: {
             console.log("Security Pin Codes onSignalCardAccessError")
-            if(error_code != GAPI.CardUserPinCancel){
-                if (error_code == GAPI.NoReaderFound) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_NO_CARD_READER")
-                }
-                else if (error_code == GAPI.NoCardFound) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_NO_CARD")
-                }
-                else if (error_code == GAPI.SodCardReadError) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_SOD_VALIDATION_ERROR")
-                }
-                else {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
-                }
-                mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
-                mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
-                propertyButtonModifyAuth.enabled = false
-                propertyButtonTestAuth.enabled = false
-                propertyButtonModifySign.enabled = false
-                propertyButtonTestSign.enabled = false
-                propertyButtonModifyAddress.enabled = false
-                propertyButtonTestAddress.enabled = false
+     
+            if (error_code == GAPI.NoReaderFound) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_NO_CARD_READER")
             }
+            else if (error_code == GAPI.NoCardFound) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_NO_CARD")
+            }
+            else if (error_code == GAPI.SodCardReadError) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_SOD_VALIDATION_ERROR")
+            }
+            else if (error_code == GAPI.CardUserPinCancel) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_CANCELED")
+            }
+			else if (error_code == GAPI.CardPinTimeout) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_TIMEOUT")
+            }
+            else {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
+            }
+            mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
+            propertyButtonModifyAuth.enabled = false
+            propertyButtonTestAuth.enabled = false
+            propertyButtonModifySign.enabled = false
+            propertyButtonTestSign.enabled = false
+            propertyButtonModifyAddress.enabled = false
+            propertyButtonTestAddress.enabled = false
+            
             propertyBusyIndicator.running = false
         }
         onSignalCardDataChanged: {
@@ -104,7 +116,7 @@ PageSecurityPinCodesForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -122,7 +134,7 @@ PageSecurityPinCodesForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_SUCESS")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -135,7 +147,7 @@ PageSecurityPinCodesForm {
                 text: "OK"
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: rectOkPin.bottom
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 onClicked: dialogPinOK.close()
@@ -161,7 +173,7 @@ PageSecurityPinCodesForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -179,7 +191,7 @@ PageSecurityPinCodesForm {
                     id: textBadPin
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -193,7 +205,7 @@ PageSecurityPinCodesForm {
                 text: "OK"
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: rectBadPin.bottom
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 onClicked: dialogBadPin.close()
@@ -222,7 +234,7 @@ PageSecurityPinCodesForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -240,7 +252,7 @@ PageSecurityPinCodesForm {
                     id: textTypePin
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -257,7 +269,7 @@ PageSecurityPinCodesForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textTypePin.right
                     anchors.bottom: parent.bottom
@@ -376,7 +388,7 @@ PageSecurityPinCodesForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -394,7 +406,7 @@ PageSecurityPinCodesForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_CURRENT")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -411,7 +423,7 @@ PageSecurityPinCodesForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinCurrent.right
                     anchors.bottom: parent.bottom
@@ -428,7 +440,7 @@ PageSecurityPinCodesForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_NEW")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -445,7 +457,7 @@ PageSecurityPinCodesForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinNew.right
                     anchors.bottom: parent.bottom
@@ -462,7 +474,7 @@ PageSecurityPinCodesForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_CONFIRM")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -479,7 +491,7 @@ PageSecurityPinCodesForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinConfirm.right
                     anchors.bottom: parent.bottom
@@ -495,7 +507,7 @@ PageSecurityPinCodesForm {
                     id: textPinMsgConfirm
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                     height: parent.height

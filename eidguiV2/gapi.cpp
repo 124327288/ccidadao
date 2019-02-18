@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <QQuickImageProvider>
 #include <QPrinter>
+#include <QPrinterInfo>
 #include "qpainter.h"
 
 #include "CMDSignature.h"
@@ -13,7 +14,7 @@
 
 //SCAP
 #include "scapsignature.h"
-#include "SCAP-Services2/SCAPH.h"
+#include "SCAP-services-v3/SCAPH.h"
 //#include "ASService/ASServiceH.h"   
 //#include "PDFSignature/envStub.h"
 
@@ -40,6 +41,9 @@ GAPI::GAPI(QObject *parent) :
     cmd_pdfSignature = new eIDMW::PTEID_PDFSignature();
     m_addressLoaded = false;
     m_shortcutFlag = 0;
+
+    // Create callbacks for all readers at the startup
+    setEventCallbacks();
 
     //----------------------------------
     // set a timer to check if the number of card readers is changed
@@ -178,6 +182,12 @@ QString GAPI::getAddressField(AddressInfoKey key) {
     } else if (errorCode == EIDMW_TIMESTAMP_ERROR) \
 { \
     emit signalPdfSignSucess(SignMessageTimestampFailed); \
+    } else if (errorCode == EIDMW_PERMISSION_DENIED) \
+{ \
+    emit signalPdfSignFail(SignFilePermissionFailed); \
+    } else if (errorCode == EIDMW_PDF_UNSUPPORTED_ERROR) \
+{ \
+	emit signalPdfSignFail(PDFFileUnsupported); \
     } else if (errorCode == EIDMW_ERR_PIN_CANCEL) \
 { \
     emit signalCardAccessError(CardUserPinCancel); \
@@ -186,10 +196,16 @@ QString GAPI::getAddressField(AddressInfoKey key) {
 { \
     emit signalCardAccessError(PinBlocked); \
     } \
+    else if (errorCode == EIDMW_ERR_TIMEOUT) \
+{ \
+    emit signalCardAccessError(CardPinTimeout); \
+    } \
     else \
 { \
     PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", "Generic eidlib exception! Error code (see strings in eidErrors.h): %08lx\n", e.GetError()); \
-    QString msgError = QString("0x%1\n").arg(e.GetError(), 8, 16); \
+    /* Discard the 0xe1d0 prefix */                       \
+    unsigned long user_error = e.GetError() & 0x0000FFFF; \
+    QString msgError = QString("%1\n").arg(user_error); \
     emit signalGenericError(msgError); \
     } \
     }
@@ -273,17 +289,12 @@ void GAPI::setPersoDataFile(QString text) {
         PTEID_ReaderContext &ReaderContext  = ReaderSet.getReader();
         PTEID_EIDCard	 &Card	= ReaderContext.getEIDCard();
 
-        if ( TxtPersoDataString.toStdString().size() > 0 ){
+	if ( TxtPersoDataString.toStdString().size() > 0 ){
             const PTEID_ByteArray oData(reinterpret_cast<const unsigned char*> (TxtPersoDataString.toStdString().c_str()), (TxtPersoDataString.toStdString().size() + 1) );
             Card.writePersonalNotes(oData);
         }
         else {
-            unsigned long ulSize = 1000;
-            unsigned char *pucData = (unsigned char *)calloc(ulSize, sizeof(unsigned char));
-
-            const PTEID_ByteArray oData( (const unsigned char *)pucData, ulSize);
-            Card.writePersonalNotes(oData);
-            free(pucData);
+            Card.clearPersonalNotes();
         }
         qDebug() << "Personal notes successfully written!" ;
         emit signalSetPersoDataFile(tr("STR_POPUP_SUCESS"),tr("STR_PERSONAL_NOTES_SUCESS"));
@@ -475,8 +486,9 @@ void GAPI::showChangeAddressDialog(long code)
     QString error_msg;
     long sam_error_code = 0;
     QString support_string = tr("STR_CHANGE_ADDRESS_ERROR_MSG");
+    QString support_string_wait_5min = tr("STR_CHANGE_ADDRESS_WAIT_5MIN_ERROR_MSG");
 
-    PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui", "AddressChange op finished with error code 0x%08x", code);
+    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "AddressChange op finished with error code 0x%08x", code);
 
     switch(code)
     {
@@ -485,45 +497,53 @@ void GAPI::showChangeAddressDialog(long code)
         break;
         //The error code for connection error is common between SAM and OTP
     case EIDMW_OTP_CONNECTION_ERROR:
-        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CONNECTION_ERROR") + "<br><br>" +
                 tr("STR_VERIFY_INTERNET");
         break;
 
+    case EIDMW_OTP_CERTIFICATE_ERROR:
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CONNECTION_ERROR") + "<br><br>" +
+                tr("STR_VERIFY_APP_UPDATE");
+        break;
+
     case EIDMW_SAM_PROXY_AUTH_FAILED:
-        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CONNECTION_ERROR") + "<br><br>" +
                     tr("STR_PROXY_AUTH_FAILED");
         break;
     case EIDMW_SAM_PROXY_UNSUPPORTED:
-        error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CONNECTION_ERROR") + "<br><br>" +
                     tr("STR_PROXY_UNSUPPORTED");
         break;
 
     case 1121:
     case 1122:
-        error_msg = tr("STR_CHANGE_ADDRESS_ERROR") + "\n\n" + tr("STR_CHANGE_ADDRESS_CHECK_PROCESS_NUMBER");
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CHANGE_ADDRESS_CHECK_PROCESS_NUMBER");
         sam_error_code = code;
         break;
     case EIDMW_SAM_UNCONFIRMED_CHANGE:
-        error_msg = tr("STR_CHANGE_ADDRESS_ERROR_INCOMPLETE") + "\n\n" + tr("STR_CHANGE_ADDRESS_NOT_CONFIRMED");
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CHANGE_ADDRESS_ERROR_INCOMPLETE") + "<br><br>" + tr("STR_CHANGE_ADDRESS_NOT_CONFIRMED");
         break;
     case EIDMW_SSL_PROTOCOL_ERROR:
-        error_msg = tr("STR_CHANGE_ADDRESS_ERROR") + "\n\n" + tr("STR_CHANGE_ADDRESS_CHECK_AUTHENTICATION_CERTIFICATE");
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + tr("STR_CHANGE_ADDRESS_CHECK_AUTHENTICATION_CERTIFICATE");
         break;
     default:
         //Make sure we only show the user error codes from the SAM service and not some weird pteid exception error code
         if (code > 1100 && code < 3500)
             sam_error_code = code;
-        error_msg = tr("STR_CHANGE_ADDRESS_ERROR");
+        error_msg = "<b>" + tr("STR_CHANGE_ADDRESS_ERROR") + "</b><br><br>" + "\n\n";
         break;
     }
 
     if (sam_error_code != 0)
     {
-        error_msg += "\n\n" + tr("STR_ERROR_CODE") + QString::number(sam_error_code);
+        error_msg += "<br><br>" + tr("STR_ERROR_CODE") + QString::number(sam_error_code);
     }
 
-    if (code != 0)
-        error_msg += "\n\n" + support_string;
+    if(code == EIDMW_SAM_UNCONFIRMED_CHANGE){
+        error_msg += "<br><br>" + support_string_wait_5min;
+    } else if (code != 0){
+        error_msg += "<br><br>" + support_string;
+    }
 
     qDebug() << error_msg;
     signalUpdateProgressStatus(error_msg);
@@ -549,9 +569,27 @@ void GAPI::showSignCMDDialog(long code)
         case -1:
             error_msg = tr("STR_CMD_TIMEOUT_ERROR");
             break;
+        case ERR_GET_CERTIFICATE:
+            error_msg = tr("STR_CMD_GET_CERTIFICATE_ERROR");
+            break;
         case SOAP_TCP_ERROR:
-            error_msg = tr("STR_CONNECTION_ERROR") + "\n\n" +
+            error_msg = tr("STR_CONNECTION_ERROR") + "<br><br>" +
                     tr("STR_VERIFY_INTERNET");
+            break;
+        case SOAP_ERR_SERVICE_FAIL:
+            error_msg = tr("STR_CMD_SERVICE_FAIL");
+            break;
+        case SOAP_ERR_INVALID_PIN:
+            error_msg = tr("STR_CMD_INVALID_PIN");
+            break;  
+        case SOAP_ERR_INVALID_OTP:
+            error_msg = tr("STR_CMD_INVALID_OTP");
+            break;        
+        case SOAP_ERR_OTP_VALIDATION_ERROR:
+            error_msg = tr("STR_CMD_OTP_VALIDATION_ERROR");
+            break;
+        case SOAP_ERR_INACTIVE_SERVICE:
+            error_msg = tr("STR_CMD_INACTIVE_SERVICE");
             break;
         default:
             error_msg = tr("STR_CMD_LOGIN_ERROR");
@@ -559,7 +597,7 @@ void GAPI::showSignCMDDialog(long code)
     }
 
     if (code != 0)
-        error_msg += "\n\n" + support_string;
+        error_msg += "<br><br>" + support_string;
 
     qDebug() << error_msg;
     signalUpdateProgressStatus(error_msg);
@@ -665,7 +703,7 @@ void GAPI::doOpenSignCMD(CMDSignature *cmd_signature, CmdSignParams &params)
                                       params.page,
                                       params.coord_x, params.coord_y,
                                       params.location.toUtf8().data(), params.reason.toUtf8().data(),
-									  getPlatformNativeString(params.outputFile));
+                                      getPlatformNativeString(params.outputFile));
 
         if ( ret != 0 ) {
             qDebug() << "signOpen failed! - ret: " << ret << endl;
@@ -748,20 +786,14 @@ void GAPI::doCloseSignCMDWithSCAP(CMDSignature *cmd_signature, QString sms_token
     cmd_details.signedCMDFile = m_scap_params.inputPDF;
 
     cmd_details.citizenName = cmd_signature->getCertificateCitizenName();
-    //The method returns something like "BI124559972";
+    //The method returns something like "BI123456789";
     cmd_details.citizenId = QString(cmd_signature->getCertificateCitizenID()+2);
 
     scapServices.executeSCAPWithCMDSignature(this, m_scap_params.outputPDF, m_scap_params.page,
-                m_scap_params.location_x, m_scap_params.location_y, 0, attrs, cmd_details);
+                m_scap_params.location_x, m_scap_params.location_y,
+                m_scap_params.location, m_scap_params.reason, 0, attrs, cmd_details);
 
     //TODO: reset the m_scap_params struct
-
-    //scapServices.executeSCAPSignature(this, params.inputPDF, params.outputPDF, params.page,
-    //            params.location_x, params.location_y, params.ltv, attrs);
-
-    //signCMDFinished(ret);
-    //signalUpdateProgressBar(100);
-    //emit signalCloseCMDSucess();
 }
 
 
@@ -776,11 +808,12 @@ QString generateTempFile() {
     return tempFile.fileName();
 }
 
-//TODO: call this instead of signOpenCMD when there attributes
 void GAPI::signOpenScapWithCMD(QString mobileNumber, QString secret_code, QString loadedFilePath,
-                   QString outputFile, int page, double coord_x, double coord_y) {
+                   QString outputFile, int page, double coord_x, double coord_y,
+                   QString reason, QString location) {
 
     qDebug() << "signOpenScapWithCMD! MobileNumber = " + mobileNumber + " secret_code = " + secret_code +
+                " reason = " + reason + " location = " + location +
                 " loadedFilePath = " + loadedFilePath + " outputFile = " + outputFile +
                 "page = " + page + "coord_x" + coord_x + "coord_y" + coord_y;
 
@@ -795,6 +828,9 @@ void GAPI::signOpenScapWithCMD(QString mobileNumber, QString secret_code, QStrin
     m_scap_params.page = page;
     m_scap_params.location_x = coord_x;
     m_scap_params.location_y = coord_y;
+    m_scap_params.location = location;
+    m_scap_params.reason = reason;
+
 
     CmdSignParams params;
 
@@ -806,8 +842,8 @@ void GAPI::signOpenScapWithCMD(QString mobileNumber, QString secret_code, QStrin
     params.page = 0;
     params.coord_x = -1;
     params.coord_y = -1;
-    params.location = "";
-    params.reason = "";
+    params.location = location;
+    params.reason = reason;
     params.isTimestamp = 0;
     params.isSmallSignature = 0;
 
@@ -816,7 +852,7 @@ void GAPI::signOpenScapWithCMD(QString mobileNumber, QString secret_code, QStrin
     cmd_pdfSignature->setFileSigning((char *)getPlatformNativeString(fullInputPath));
 
     cmd_signature->set_pdf_handler(cmd_pdfSignature);
-    QtConcurrent::run(this, &GAPI::doOpenSignCMD, cmd_signature, params);            
+    QtConcurrent::run(this, &GAPI::doOpenSignCMD, cmd_signature, params);
 
 }
 
@@ -840,15 +876,17 @@ void GAPI::signOpenCMD(QString mobileNumber, QString secret_code, QString loaded
 
     QString fullInputPath = params.loadedFilePath;
 
-	cmd_pdfSignature->setFileSigning((char *)getPlatformNativeString(fullInputPath));
+    cmd_pdfSignature->setFileSigning((char *)getPlatformNativeString(fullInputPath));
 
     if (params.isTimestamp > 0)
         cmd_pdfSignature->enableTimestamp();
     if (params.isSmallSignature > 0)
         cmd_pdfSignature->enableSmallSignatureFormat();
 
-    if(useCustomSignature())
-        cmd_pdfSignature->setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
+    if(useCustomSignature()) {
+        const PTEID_ByteArray imageData(reinterpret_cast<const unsigned char *>(m_jpeg_scaled_data.data()), static_cast<unsigned long>(m_jpeg_scaled_data.size()));
+        cmd_pdfSignature->setCustomImage(imageData);
+    }
 
     cmd_signature->set_pdf_handler(cmd_pdfSignature);
     QtConcurrent::run(this, &GAPI::doOpenSignCMD, cmd_signature, params);
@@ -936,17 +974,23 @@ QPixmap PhotoImageProvider::requestPixmap(const QString &id, QSize *size, const 
     return p;
 }
 
-void GAPI::startPrintPDF(QString outputFile, double isBasicInfo,double isAddicionalInfo,
-                         double isAddress,double isNotes,double isSign) {
+void GAPI::startPrintPDF(QString outputFile, bool isBasicInfo, bool isAddicionalInfo,
+                         bool isAddress, bool isNotes, bool isPrintDate, bool isSign) {
 
-    PrintParams params = {outputFile, isBasicInfo, isAddicionalInfo, isAddress, isNotes, isSign};
+    PrintParams params = {outputFile, isBasicInfo, isAddicionalInfo, isAddress, isNotes, isPrintDate, isSign};
     QtConcurrent::run(this, &GAPI::doPrintPDF, params);
 }
 
-void GAPI::startPrint(QString outputFile, double isBasicInfo,double isAddicionalInfo,
-                         double isAddress,double isNotes,double isSign) {
+void GAPI::startPrint(QString outputFile, bool isBasicInfo, bool isAddicionalInfo,
+                         bool isAddress, bool isNotes, bool isPrintDate, bool isSign) {
 
-    PrintParams params = {outputFile, isBasicInfo, isAddicionalInfo, isAddress, isNotes, isSign};
+    if (QPrinterInfo::availablePrinters().size() == 0) {
+        qDebug() << "No Printers Available";
+        emit signalPrinterPrintFail(NoPrinterAvailable);
+        return;
+    }
+
+    PrintParams params = {outputFile, isBasicInfo, isAddicionalInfo, isAddress, isNotes, isPrintDate, isSign};
 
     QPrinter printer;
     bool res = false;
@@ -987,9 +1031,9 @@ bool GAPI::doSignPrintPDF(QString &file_to_sign, QString &outputsign) {
     getCardInstance(card);
     if (card == NULL) return false;
 
-	PTEID_PDFSignature sig_handler(getPlatformNativeString(file_to_sign));
+    PTEID_PDFSignature sig_handler(getPlatformNativeString(file_to_sign));
 
-	card->SignPDF(sig_handler, 0, 0, false, "", "", getPlatformNativeString(outputsign));
+    card->SignPDF(sig_handler, 0, 0, false, "", "", getPlatformNativeString(outputsign));
 
     return true;
 
@@ -1002,7 +1046,7 @@ void GAPI::doPrintPDF(PrintParams &params) {
 
     qDebug() << "doPrintPDF! outputFile = " << params.outputFile <<
                 "isBasicInfo = " << params.isBasicInfo << "isAddicionalInfo" << params.isAddicionalInfo << "isAddress"
-             << params.isAddress << "isNotes = " << params.isNotes << "isSign = " << params.isSign;
+             << params.isAddress << "isNotes = " << params.isNotes << "isPrintDate = " << params.isPrintDate << "isSign = " << params.isSign;
 
     QString pdffiletmp;
     QPrinter pdf_printer;
@@ -1048,18 +1092,34 @@ void GAPI::doPrintPDF(PrintParams &params) {
 static QPen black_pen;
 static QPen blue_pen;
 
-void drawSingleField(QPainter &painter, double pos_x, double pos_y, QString name, QString value, bool single_column=false)
+double drawSingleField(QPainter &painter, double pos_x, double pos_y, QString name, QString value, double line_length, int field_margin=15, bool is_bounded_rect=false, double bound_width=360)
 {
-    int line_length = single_column ? 300 : 180;
-
     painter.setPen(blue_pen);
-    painter.drawText(QPointF(pos_x, pos_y), name);
+
+    if (field_margin == 0){
+        line_length -= 15;
+    }
+
+    painter.drawText(QPointF(pos_x + field_margin, pos_y), name);
     pos_y += 7;
 
-    painter.drawLine(QPointF(pos_x, pos_y), QPointF(pos_x+line_length, pos_y));
-    pos_y += 15;
+    painter.drawLine(QPointF(pos_x + field_margin, pos_y), QPointF(pos_x + (line_length - field_margin) , pos_y));
     painter.setPen(black_pen);
-    painter.drawText(QPointF(pos_x, pos_y), value);
+
+    if (is_bounded_rect){
+        int flags = Qt::TextWordWrap | Qt::TextWrapAnywhere;
+        int textFlags = Qt::TextWordWrap;
+        QFontMetricsF fm = painter.fontMetrics();
+        QRectF bounding_rect = fm.boundingRect(QRectF(pos_x + field_margin, pos_y, bound_width -  2 * field_margin ,  500), flags, value);
+
+        painter.drawText(bounding_rect.adjusted(0, 0, 0, 0), textFlags, value);
+        pos_y += bounding_rect.height() + 15;
+    } else {
+        pos_y += 15;
+        painter.drawText(QPointF(pos_x + field_margin, pos_y), value);
+    }
+
+    return pos_y;
 }
 
 void drawSectionHeader(QPainter &painter, double pos_x, double pos_y, QString section_name)
@@ -1083,20 +1143,64 @@ void drawSectionHeader(QPainter &painter, double pos_x, double pos_y, QString se
     painter.setFont(regular_font);
 }
 
+void drawPrintingDate(QPainter &painter, QString printing_date){
+    QFont date_font("DIN Medium");
+    date_font.setPointSize(8);
+    date_font.setBold(false);
+    QFont regular_font("DIN Medium");
+    regular_font.setPointSize(12);
+
+    printing_date += " " +  QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm");
+    painter.setFont(date_font);
+    painter.drawText(QRectF(painter.device()->width() - 225, painter.device()->height() - 25, 200, 100), Qt::TextWordWrap, printing_date);
+
+    painter.setFont(regular_font);
+}
+
 QPixmap loadHeader()
 {
     return QPixmap(":/images/pdf_document_header.png");
+}
+
+QString getTextFromLines(QStringList lines, int start, int stop){
+    QStringList text_lines;
+
+    //make sure doesn't access a invalid index
+    if (stop > lines.length())
+    {
+        stop = lines.length();
+    }
+
+    for (int i = start; i < stop; i++)
+    {
+         text_lines.append(lines.at(i));
+    }
+
+    return text_lines.join("\n");
+}
+
+double checkNewPageAndPrint(QPrinter &printer, QPainter &painter, double current_y, double remaining_height, double max_height, bool print_date=false, QString date_label=""){
+    if (current_y + remaining_height > max_height){
+        printer.newPage();
+        current_y = 50;
+        if (print_date)
+        {
+            drawPrintingDate(painter,  date_label);
+        }
+    }
+    return current_y;
 }
 
 bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
 {
     qDebug() << "drawpdf! outputFile = " << params.outputFile <<
                 "isBasicInfo = " << params.isBasicInfo << "isAddicionalInfo" << params.isAddicionalInfo << "isAddress"
-             << params.isAddress << "isNotes = " << params.isNotes << "isSign = " << params.isSign;
-
-    double pos_x = 0, pos_y = 0;
+             << params.isAddress << "isNotes = " << params.isNotes << "isPrintDate = " << params.isPrintDate << "isSign = " << params.isSign;
+    //gives a bit of left margin
+    double page_margin = 33.5;
+    double pos_x = page_margin, pos_y = 0;
     bool res = false;
-    int sections_to_print = 0;
+    int field_margin = 15;
 
     BEGIN_TRY_CATCH;
 
@@ -1129,6 +1233,10 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
         qDebug() << "Start drawing return error: " <<  res;
         return false;
     }
+    double page_height = painter.device()->height();
+    double page_width = painter.device()->width();
+    double half_page = (page_width - 2 * page_margin) / 2;
+    double third_of_page = (page_width - 2 * page_margin) / 3;
 
     //Font setup
     QFont din_font("DIN Medium");
@@ -1146,7 +1254,7 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
     //renderer.render(&painter, QRect(pos_x, pos_y, 504, 132));
     //renderer.render(&painter, QRect(pos_x, pos_y, 250, 120));
 
-    pos_y += header.height() + 15;
+    pos_y += header.height() + field_margin;
     black_pen = painter.pen();
 
     blue_pen.setColor(QColor(78, 138, 190));
@@ -1160,15 +1268,14 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
     //Change text color
     blue_pen = painter.pen();
 
-    const int COLUMN_WIDTH = 220;
-    const int LINE_HEIGHT = 45;
+    const double LINE_HEIGHT = 45.0;
 
     //    din_font.setBold(true);
     painter.setFont(din_font);
 
     painter.drawText(QPointF(pos_x, pos_y), tr("STR_PERSONAL_DATA"));
 
-    pos_y += 15;
+    pos_y += field_margin;
     int circle_radius = 6;
 
     //Draw 4 blue circles
@@ -1186,11 +1293,15 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
 
     pos_y += 30;
 
+    if (params.isPrintDate)
+    {
+        drawPrintingDate(painter,  tr("STR_PRINTED_ON"));
+    }
+
     if (params.isBasicInfo)
     {
 
         drawSectionHeader(painter, pos_x, pos_y, tr("STR_BASIC_INFORMATION"));
-        sections_to_print++;
 
         //Load photo into a QPixmap
         PTEID_ByteArray& photo = eid_file.getPhotoObj().getphoto();
@@ -1208,144 +1319,151 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
 
         pos_y += 50;
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_GIVEN_NAME"), QString::fromUtf8(eid_file.getGivenName()), true);
+        double new_pos_y = drawSingleField(painter, pos_x, pos_y, tr("STR_GIVEN_NAME"),
+                                           QString::fromUtf8(eid_file.getGivenName()), half_page, 0, true, half_page);
+        pos_y = (std::max)(new_pos_y, pos_y + LINE_HEIGHT);
 
+        new_pos_y = drawSingleField(painter, pos_x, pos_y, tr("STR_SURNAME"),
+                                    QString::fromUtf8(eid_file.getSurname()), half_page, 0, true, half_page);
+        pos_y = (std::max)(new_pos_y, pos_y + LINE_HEIGHT);
+
+        double f_col = half_page / 2;
+        drawSingleField(painter, pos_x, pos_y, tr("STR_GENDER"), QString::fromUtf8(eid_file.getGender()), f_col, 0);
+        drawSingleField(painter, pos_x + f_col, pos_y, tr("STR_HEIGHT"), QString::fromUtf8(eid_file.getHeight()), f_col);
+        drawSingleField(painter, pos_x + 2 * f_col, pos_y, tr("STR_NATIONALITY"),
+                        QString::fromUtf8(eid_file.getNationality()), f_col);
+        drawSingleField(painter, pos_x + 3 * f_col, pos_y, tr("STR_DATE_OF_BIRTH"),
+                        QString::fromUtf8(eid_file.getDateOfBirth()), f_col);
         pos_y += LINE_HEIGHT;
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_SURNAME"), QString::fromUtf8(eid_file.getSurname()), true);
-
+        drawSingleField(painter, pos_x, pos_y, tr("STR_DOCUMENT_NUMBER"), QString::fromUtf8(eid_file.getDocumentNumber()), half_page, 0);
+        drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_VALIDITY_DATE"),
+                        QString::fromUtf8(eid_file.getValidityEndDate()), half_page);
         pos_y += LINE_HEIGHT;
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_GENDER"), QString::fromUtf8(eid_file.getGender()));
-        drawSingleField(painter, pos_x + COLUMN_WIDTH, pos_y, tr("STR_HEIGHT"), QString::fromUtf8(eid_file.getHeight()));
-        drawSingleField(painter, pos_x + COLUMN_WIDTH*2, pos_y, tr("STR_DATE_OF_BIRTH"),
-                        QString::fromUtf8(eid_file.getDateOfBirth()));
+        double new_height_left = drawSingleField(painter, pos_x, pos_y, tr("STR_FATHER"),
+                                                 QString::fromUtf8(eid_file.getGivenNameFather()) + " " +
+                                                 QString::fromUtf8(eid_file.getSurnameFather()), half_page, 0, true, half_page);
+        double new_height_right = drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_MOTHER"),
+                                                  QString::fromUtf8(eid_file.getGivenNameMother()) + " " +
+                                                  QString::fromUtf8(eid_file.getSurnameMother()),  half_page, field_margin, true, half_page);
+        pos_y = (std::max)((std::max)(new_height_left, new_height_right), pos_y + LINE_HEIGHT);
 
-        pos_y += LINE_HEIGHT;
+        new_pos_y = drawSingleField(painter, pos_x, pos_y, tr("STR_NOTES"),
+                                    QString::fromUtf8(eid_file.getAccidentalIndications()), half_page, 0, true, page_width);
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_DOCUMENT_NUMBER"), QString::fromUtf8(eid_file.getDocumentNumber()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_VALIDITY_DATE"),
-                        QString::fromUtf8(eid_file.getValidityEndDate()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_COUNTRY"), QString::fromUtf8(eid_file.getCountry()));
-
-        pos_y += LINE_HEIGHT;
-        drawSingleField(painter, pos_x, pos_y, tr("STR_FATHER"), QString::fromUtf8(eid_file.getGivenNameFather()) + " " +
-                        QString::fromUtf8(eid_file.getSurnameFather()), true);
-        pos_y += LINE_HEIGHT;
-
-        drawSingleField(painter, pos_x, pos_y, tr("STR_MOTHER"), QString::fromUtf8(eid_file.getGivenNameMother()) + " " +
-                        QString::fromUtf8(eid_file.getSurnameMother()), true);
-        pos_y += LINE_HEIGHT;
-
-        drawSingleField(painter, pos_x, pos_y, tr("STR_NOTES"),
-                        QString::fromUtf8(eid_file.getAccidentalIndications()), true);
-
-        pos_y += 50;
+        pos_y = (std::max)(new_pos_y, pos_y + LINE_HEIGHT);
     }
 
     if (params.isAddicionalInfo)
     {
+        //height of this section, if spacing between fields change update this value
+        double min_section_height = 235;
+        pos_y = checkNewPageAndPrint(printer, painter, pos_y, min_section_height, page_height, params.isPrintDate, tr("STR_PRINTED_ON"));
+
         drawSectionHeader(painter, pos_x, pos_y, tr("STR_ADDITIONAL_INFORMATION"));
-        sections_to_print++;
         pos_y += 50;
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_VAT_NUM"), QString::fromUtf8(eid_file.getTaxNo()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_SOCIAL_SECURITY_NUM"),
-                        QString::fromUtf8(eid_file.getSocialSecurityNumber()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_NATIONAL_HEALTH_NUM"),
-                        QString::fromUtf8(eid_file.getHealthNumber()));
+        drawSingleField(painter, pos_x, pos_y, tr("STR_VAT_NUM"),
+                        QString::fromUtf8(eid_file.getTaxNo()), third_of_page, 0);
+        drawSingleField(painter, pos_x + third_of_page, pos_y, tr("STR_SOCIAL_SECURITY_NUM"),
+                        QString::fromUtf8(eid_file.getSocialSecurityNumber()), third_of_page);
+        drawSingleField(painter, pos_x + 2 * third_of_page, pos_y, tr("STR_NATIONAL_HEALTH_NUM"),
+                        QString::fromUtf8(eid_file.getHealthNumber()), third_of_page);
         pos_y += LINE_HEIGHT;
 
-        drawSingleField(painter, pos_x, pos_y, tr("STR_CARD_VERSION"), QString::fromUtf8(eid_file.getDocumentVersion()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_DELIVERY_DATE"),
-                        QString::fromUtf8(eid_file.getValidityBeginDate()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_DELIVERY_ENTITY"),
-                        QString::fromUtf8(eid_file.getIssuingEntity()));
+        drawSingleField(painter, pos_x, pos_y, tr("STR_DELIVERY_ENTITY"),
+                        QString::fromUtf8(eid_file.getIssuingEntity()), half_page, 0, true, half_page);
+        drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_DELIVERY_DATE"),
+                        QString::fromUtf8(eid_file.getValidityBeginDate()), half_page);
         pos_y += LINE_HEIGHT;
+
         drawSingleField(painter, pos_x, pos_y, tr("STR_DOCUMENT_TYPE"),
-                        QString::fromUtf8(eid_file.getDocumentType()));
-        drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_DELIVERY_LOCATION"),
-                        QString::fromUtf8(eid_file.getLocalofRequest()));
+                        QString::fromUtf8(eid_file.getDocumentType()), half_page, 0, true, half_page);
+        drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_DELIVERY_LOCATION"),
+                        QString::fromUtf8(eid_file.getLocalofRequest()), half_page, field_margin, true, half_page);
         pos_y += LINE_HEIGHT;
-        drawSingleField(painter, pos_x, pos_y, tr("STR_CARD_STATE"), getCardActivation());
 
+        drawSingleField(painter, pos_x, pos_y, tr("STR_CARD_VERSION"),
+                        QString::fromUtf8(eid_file.getDocumentVersion()), half_page, 0);
+        drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_CARD_STATE"),
+                        getCardActivation(), half_page, field_margin, true, half_page);
         pos_y += 50;
     }
 
     if (params.isAddress)
     {
+        //height of this section, if spacing between fields change update this value
+        double min_section_height = 350;
+        pos_y = checkNewPageAndPrint(printer, painter, pos_y, min_section_height, page_height, params.isPrintDate, tr("STR_PRINTED_ON"));
+
         drawSectionHeader(painter, pos_x, pos_y, tr("STR_ADDRESS"));
-        sections_to_print++;
         pos_y += 50;
 
         PTEID_Address &addressFile = card->getAddr();
 
         if (addressFile.isNationalAddress()){
-            drawSingleField(painter, pos_x, pos_y, tr("STR_DISTRICT"),
-                            QString::fromUtf8(addressFile.getDistrict()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_MUNICIPALY"),
-                            QString::fromUtf8(addressFile.getMunicipality()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_CICIL_PARISH"),
-                            QString::fromUtf8(addressFile.getCivilParish()));
+            double new_height_left = drawSingleField(painter, pos_x, pos_y, tr("STR_DISTRICT"),
+                                                     QString::fromUtf8(addressFile.getDistrict()), half_page, 0, true, half_page);
+            double new_height_right = drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_MUNICIPALITY"),
+                                                      QString::fromUtf8(addressFile.getMunicipality()), half_page,
+                                                      field_margin, true, half_page);
+            pos_y = (std::max)((std::max)(new_height_left, new_height_right), pos_y + LINE_HEIGHT);
 
-            pos_y += LINE_HEIGHT;
+            new_height_left = drawSingleField(painter, pos_x, pos_y, tr("STR_CIVIL_PARISH"),
+                                              QString::fromUtf8(addressFile.getCivilParish()), half_page, 0, true, page_width);
+            pos_y = (std::max)(new_height_left, pos_y + LINE_HEIGHT);
 
-            drawSingleField(painter, pos_x, pos_y, tr("STR_AB_STREET_TYPE"),
-                            QString::fromUtf8(addressFile.getAbbrStreetType()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_STREET_TYPE"),
-                            QString::fromUtf8(addressFile.getStreetType()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_STREET_NAME"),
-                            QString::fromUtf8(addressFile.getStreetName()));
+            drawSingleField(painter, pos_x, pos_y, tr("STR_STREET_TYPE"),
+                            QString::fromUtf8(addressFile.getStreetType()), (half_page / 2), 0, true, (half_page / 2));
 
-            pos_y += LINE_HEIGHT;
+            new_height_left = drawSingleField(painter, pos_x + (half_page / 2), pos_y, tr("STR_STREET_NAME"),
+                                              QString::fromUtf8(addressFile.getStreetName()), 3 * (half_page / 2),
+                                              field_margin, true, 3 * (half_page / 2));
+            pos_y = (std::max)(new_height_left, pos_y + LINE_HEIGHT);
 
-            drawSingleField(painter, pos_x, pos_y, tr("STR_AB_BUILDING_TYPE"),
-                            QString::fromUtf8(addressFile.getAbbrBuildingType()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_BUILDING_TYPE"),
-                            QString::fromUtf8(addressFile.getBuildingType()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_HOUSE_BUILDING_NUM"),
-                            QString::fromUtf8(addressFile.getDoorNo()));
-            pos_y += LINE_HEIGHT;
+            new_height_left = drawSingleField(painter, pos_x, pos_y, tr("STR_HOUSE_BUILDING_NUM"),
+                            QString::fromUtf8(addressFile.getDoorNo()), third_of_page, 0);
+            new_height_right = drawSingleField(painter, pos_x + third_of_page, pos_y, tr("STR_FLOOR"),
+                            QString::fromUtf8(addressFile.getFloor()), third_of_page);
+            double new_height = drawSingleField(painter, pos_x + 2 * third_of_page, pos_y, tr("STR_SIDE"),
+                            QString::fromUtf8(addressFile.getSide()), third_of_page);
+            pos_y = (std::max)(new_height, (std::max)(new_height_left, (std::max)(new_height_left, pos_y + LINE_HEIGHT)));
 
-            drawSingleField(painter, pos_x, pos_y, tr("STR_FLOOR"),
-                            QString::fromUtf8(addressFile.getFloor()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_SIDE"),
-                            QString::fromUtf8(addressFile.getSide()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_PLACE"),
-                            QString::fromUtf8(addressFile.getPlace()));
-            pos_y += LINE_HEIGHT;
+            drawSingleField(painter, pos_x, pos_y, tr("STR_PLACE"),
+                            QString::fromUtf8(addressFile.getPlace()), half_page, 0, true, half_page);
+            new_height_left = drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_LOCALITY"),
+                            QString::fromUtf8(addressFile.getLocality()), half_page, field_margin, true, half_page);
 
-            drawSingleField(painter, pos_x, pos_y, tr("STR_ZIP_CODE_4"),
-                            QString::fromUtf8(addressFile.getZip4()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_ZIP_CODE_3"),
-                            QString::fromUtf8(addressFile.getZip3()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_POSTAL_LOCALITY"),
-                            QString::fromUtf8(addressFile.getPostalLocality()));
+            pos_y = (std::max)(new_height_left, pos_y + LINE_HEIGHT);
 
-            pos_y += LINE_HEIGHT;
+            drawSingleField(painter, pos_x, pos_y, tr("STR_ZIP_CODE"),
+                            QString::fromUtf8(addressFile.getZip4()) + "-" + QString::fromUtf8(addressFile.getZip3()), half_page/2, 0);
+            new_height_left = drawSingleField(painter, pos_x + (half_page / 2), pos_y, tr("STR_POSTAL_LOCALITY"),
+                                              QString::fromUtf8(addressFile.getPostalLocality()),
+                                              (3 * half_page) / 2, field_margin, true, (3 * half_page) / 2);
+            pos_y = (std::max)(new_height_left, pos_y + LINE_HEIGHT);
 
-            drawSingleField(painter, pos_x, pos_y, tr("STR_LOCALITY"),
-                            QString::fromUtf8(addressFile.getLocality()));
         }else{
             /* Foreign Address*/
             drawSingleField(painter, pos_x, pos_y, tr("STR_FOREIGN_COUNTRY"),
-                            QString::fromUtf8(addressFile.getForeignCountry()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_FOREIGN_REGION"),
-                            QString::fromUtf8(addressFile.getForeignRegion()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH*2, pos_y, tr("STR_FOREIGN_CITY"),
-                            QString::fromUtf8(addressFile.getForeignCity()));
+                            QString::fromUtf8(addressFile.getForeignCountry()), third_of_page, 0);
+            drawSingleField(painter, pos_x + third_of_page, pos_y, tr("STR_FOREIGN_REGION"),
+                            QString::fromUtf8(addressFile.getForeignRegion()), third_of_page);
+            drawSingleField(painter, pos_x + 2 * third_of_page, pos_y, tr("STR_FOREIGN_CITY"),
+                            QString::fromUtf8(addressFile.getForeignCity()), third_of_page);
 
             pos_y += LINE_HEIGHT;
 
             drawSingleField(painter, pos_x, pos_y, tr("STR_FOREIGN_LOCALITY"),
-                            QString::fromUtf8(addressFile.getForeignLocality()));
-            drawSingleField(painter, pos_x+COLUMN_WIDTH, pos_y, tr("STR_FOREIGN_POSTAL_CODE"),
-                            QString::fromUtf8(addressFile.getForeignPostalCode()));
+                            QString::fromUtf8(addressFile.getForeignLocality()), half_page, 0, true, half_page);
+            drawSingleField(painter, pos_x + half_page, pos_y, tr("STR_FOREIGN_POSTAL_CODE"),
+                            QString::fromUtf8(addressFile.getForeignPostalCode()), half_page, field_margin, true, half_page);
 
             pos_y += LINE_HEIGHT;
 
             drawSingleField(painter, pos_x, pos_y, tr("STR_FOREIGN_ADDRESS"),
-                            QString::fromUtf8(addressFile.getForeignAddress()));
+                            QString::fromUtf8(addressFile.getForeignAddress()), half_page, 0, true, page_width);
         }
         pos_y += 80;
     }
@@ -1353,26 +1471,78 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
     if (params.isNotes)
     {
         QString perso_data;
+
         perso_data = QString(card->readPersonalNotes());
 
         if (perso_data.size() > 0)
         {
-            //Force a page-break before PersoData only if we're drawing all the sections
-            if (sections_to_print == 3)
-            {
-                printer.newPage();
-                pos_y = 0;
-            }
-            pos_x = 0;
+            pos_x = 30; //gives a bit of left margin
+            pos_y += 50;
 
+            pos_y = checkNewPageAndPrint(printer, painter, pos_y, 0, page_height, params.isPrintDate, tr("STR_PRINTED_ON"));
 
             drawSectionHeader(painter, pos_x, pos_y, tr("STR_PERSONAL_NOTES"));
 
-            pos_y += 75;
-            painter.drawText(QRectF(pos_x, pos_y, 700, 700), Qt::TextWordWrap, perso_data);
+            pos_y += 50;
+
+            QStringList lines = perso_data.split("\n", QString::KeepEmptyParts);
+            for (int j = 0; j < lines.count(); j++) {
+                QString line = lines.at(j);
+                if (!line.contains(" ")) {
+                    int num_of_chars = line.count();
+                    int chars_in_page = 75; //only 75 characters fit in the width of a A4 page
+                    if(num_of_chars > chars_in_page) { //a really big word without spaces
+                        for(int i = 1; i <= num_of_chars / chars_in_page; i++) {
+                            int n = (i * chars_in_page) - 1;
+                            line.insert(n, " "); //add whitespaces in such word to enforce WordWrap
+                        }
+                    }
+                    lines.replace(j, line);
+                }
+             }
+
+            const int TEXT_LINE_HEIGHT = 20;
+
+            int line_count = lines.length();
+            int height_to_print = TEXT_LINE_HEIGHT * line_count;
+            int line_index_start = 0;
+            int line_index_stop = 0;
+            int completed_lines = 0;
+
+            while (completed_lines < line_count){
+                int page_remaining_space = static_cast<int>(page_height - pos_y);
+
+                line_index_stop = line_index_start + (page_remaining_space / TEXT_LINE_HEIGHT);
+
+                if (page_remaining_space < 50 && height_to_print > 0)
+                {
+                    printer.newPage();
+                    pos_y = 50;
+                    drawSectionHeader(painter, pos_x, pos_y, tr("STR_PERSONAL_NOTES"));
+                    pos_y += 50;
+                    if (params.isPrintDate)
+                    {
+                        drawPrintingDate(painter,  tr("STR_PRINTED_ON"));
+                    }
+                    // not enough area recalculate lines needed
+                    page_remaining_space = static_cast<int>(page_height - pos_y);
+                    line_index_stop = line_index_start + (page_remaining_space / TEXT_LINE_HEIGHT);
+                }
+
+                QString text = getTextFromLines(lines, line_index_start, line_index_stop);
+
+                int diff = line_index_stop - line_index_start;
+
+                painter.drawText(static_cast<int>(pos_x), static_cast<int>(pos_y), painter.device()->width() - 60,
+                                 diff * TEXT_LINE_HEIGHT, Qt::TextWordWrap, text);
+
+                height_to_print -= diff * TEXT_LINE_HEIGHT;
+                pos_y += diff * TEXT_LINE_HEIGHT;
+                completed_lines += diff;
+                line_index_start = line_index_stop;
+            }
         }
     }
-
     //Finish drawing/printing
     painter.end();
     END_TRY_CATCH
@@ -1380,7 +1550,7 @@ bool GAPI::drawpdf(QPrinter &printer, PrintParams params)
 }
 
 void GAPI::startSigningPDF(QString loadedFilePath, QString outputFile, int page, double coord_x, double coord_y,
-                           QString reason, QString location, double isTimestamp, double isSmall) {
+                           QString reason, QString location, bool isTimestamp, bool isSmall) {
 
     SignParams params = {loadedFilePath, outputFile, page, coord_x, coord_y, reason, location, isTimestamp, isSmall};
     QFuture<void> future =
@@ -1389,7 +1559,7 @@ void GAPI::startSigningPDF(QString loadedFilePath, QString outputFile, int page,
 }
 
 void GAPI::startSigningBatchPDF(QList<QString> loadedFileBatchPath, QString outputFile, int page, double coord_x, double coord_y,
-                                QString reason, QString location, double isTimestamp, double isSmall) {
+                                QString reason, QString location, bool isTimestamp, bool isSmall) {
 
     SignBatchParams params = {loadedFileBatchPath, outputFile, page, coord_x, coord_y, reason, location, isTimestamp, isSmall};
 
@@ -1399,20 +1569,20 @@ void GAPI::startSigningBatchPDF(QList<QString> loadedFileBatchPath, QString outp
 
 int GAPI::getPDFpageCount(QString loadedFilePath) {
 
-	PTEID_PDFSignature sig_handler(getPlatformNativeString(loadedFilePath));
+    PTEID_PDFSignature sig_handler(getPlatformNativeString(loadedFilePath));
 
     int pageCount = sig_handler.getPageCount();
 
     return pageCount;
 }
 
-void GAPI::startSigningXADES(QString loadedFilePath, QString outputFile, double isTimestamp) {
+void GAPI::startSigningXADES(QString loadedFilePath, QString outputFile, bool isTimestamp) {
     QFuture<void> future =
             QtConcurrent::run(this, &GAPI::doSignXADES, loadedFilePath, outputFile, isTimestamp);
 
 }
 
-void GAPI::startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, double isTimestamp) {
+void GAPI::startSigningBatchXADES(QList<QString> loadedFileBatchPath, QString outputFile, bool isTimestamp) {
 
     SignBatchParams params = {loadedFileBatchPath, outputFile, 0, 0, 0, "", "", isTimestamp, 0};
 
@@ -1439,7 +1609,7 @@ void GAPI::doSignBatchXADES(SignBatchParams &params) {
 
         QByteArray tempOutputFile = getPlatformNativeString(params.outputFile);
 
-        if (params.isTimestamp > 0)
+        if (params.isTimestamp)
             card->SignXadesT(tempOutputFile.constData(), files_to_sign.data(), params.loadedFileBatchPath.count());
         else
             card->SignXades(tempOutputFile.constData(), files_to_sign.data(), params.loadedFileBatchPath.count());
@@ -1449,7 +1619,7 @@ void GAPI::doSignBatchXADES(SignBatchParams &params) {
     END_TRY_CATCH
 }
 
-void GAPI::doSignXADES(QString loadedFilePath, QString outputFile, double isTimestamp) {
+void GAPI::doSignXADES(QString loadedFilePath, QString outputFile, bool isTimestamp) {
     BEGIN_TRY_CATCH
 
     PTEID_EIDCard * card = NULL;
@@ -1457,12 +1627,12 @@ void GAPI::doSignXADES(QString loadedFilePath, QString outputFile, double isTime
     if (card == NULL) return;
 
     const char *files_to_sign[1];
-	QByteArray tempLoadedFilePath = getPlatformNativeString(loadedFilePath);
+    QByteArray tempLoadedFilePath = getPlatformNativeString(loadedFilePath);
     files_to_sign[0] = tempLoadedFilePath.constData();
 
-	QByteArray tempOutputFile = getPlatformNativeString(outputFile);
+    QByteArray tempOutputFile = getPlatformNativeString(outputFile);
 
-    if (isTimestamp > 0)
+    if (isTimestamp)
         card->SignXadesT(tempOutputFile.constData(), files_to_sign, 1);
     else
         card->SignXades(tempOutputFile.constData(), files_to_sign, 1);
@@ -1481,19 +1651,20 @@ void GAPI::doSignPDF(SignParams &params) {
     if (card == NULL) return;
 
     QString fullInputPath = params.loadedFilePath;
-	PTEID_PDFSignature sig_handler(getPlatformNativeString(fullInputPath));
+    PTEID_PDFSignature sig_handler(getPlatformNativeString(fullInputPath));
 
-    if (params.isTimestamp > 0)
+    if (params.isTimestamp)
         sig_handler.enableTimestamp();
-    if (params.isSmallSignature > 0)
+    if (params.isSmallSignature)
         sig_handler.enableSmallSignatureFormat();
 
-    if(useCustomSignature())
-        sig_handler.setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
-
+	if(useCustomSignature()) {
+        const PTEID_ByteArray imageData(reinterpret_cast<const unsigned char *>(m_jpeg_scaled_data.data()), static_cast<unsigned long>(m_jpeg_scaled_data.size()));
+        sig_handler.setCustomImage(imageData);
+	}
     card->SignPDF(sig_handler, params.page, params.coord_x, params.coord_y,
-					params.location.toUtf8().data(), params.reason.toUtf8().data(),
-					getPlatformNativeString(params.outputFile));
+                    params.location.toUtf8().data(), params.reason.toUtf8().data(),
+                    getPlatformNativeString(params.outputFile));
 
     emit signalPdfSignSucess(SignMessageOK);
 
@@ -1521,17 +1692,19 @@ void GAPI::doSignBatchPDF(SignBatchParams &params) {
                                        params.page == 0 ? true : false);
     }
 
-    if (params.isTimestamp > 0)
+    if (params.isTimestamp)
         sig_handler->enableTimestamp();
-    if (params.isSmallSignature > 0)
+    if (params.isSmallSignature)
         sig_handler->enableSmallSignatureFormat();
 
-    if(useCustomSignature())
-        sig_handler->setCustomImage((unsigned char *)m_jpeg_scaled_data.data(), m_jpeg_scaled_data.size());
+    if(useCustomSignature()) {
+        const PTEID_ByteArray imageData(reinterpret_cast<const unsigned char *>(m_jpeg_scaled_data.data()), static_cast<unsigned long>(m_jpeg_scaled_data.size()));
+        sig_handler->setCustomImage(imageData);
+    }
 
     card->SignPDF(*sig_handler, params.page, params.coord_x, params.coord_y,
-		params.location.toUtf8().data(), params.reason.toUtf8().data(),
-				 getPlatformNativeString(params.outputFile));
+        params.location.toUtf8().data(), params.reason.toUtf8().data(),
+                 getPlatformNativeString(params.outputFile));
 
     emit signalPdfSignSucess(SignMessageOK);
 
@@ -1540,12 +1713,12 @@ void GAPI::doSignBatchPDF(SignBatchParams &params) {
 
 QPixmap PDFPreviewImageProvider::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize)
 {
-	qDebug() << "PDFPreviewImageProvider received request for: " << id;
+    qDebug() << "PDFPreviewImageProvider received request for: " << id;
     qDebug() << "PDFPreviewImageProvider received request for: "
              << requestedSize.width() << " - " << requestedSize.height();
     QStringList strList = id.split("?");
 
-	QString pdf_path = QUrl::fromPercentEncoding(strList.at(0).toUtf8());
+    QString pdf_path = QUrl::fromPercentEncoding(strList.at(0).toUtf8());
 
     //URL param ?page=xx
     unsigned int page = (unsigned int) strList.at(1).split("=").at(1).toInt();
@@ -1781,10 +1954,12 @@ void GAPI::startRemovingAttributesFromCache(int isCompanies) {
     QtConcurrent::run(this, &GAPI::removeSCAPAttributesFromCache, isCompanies);
 }
 
-void GAPI::startSigningSCAP(QString inputPDF, QString outputPDF, int page, int location_x, int location_y,
-                            int ltv, QList<int> attribute_index) {
+void GAPI::startSigningSCAP(QString inputPDF, QString outputPDF, int page, double location_x,
+                            double location_y, QString location, QString reason, int ltv,
+                            QList<int> attribute_index) {
+
     SCAPSignParams signParams = {inputPDF, outputPDF, page, location_x, location_y,
-                            ltv, attribute_index};
+                                 location, reason,ltv, attribute_index};
 
     QtConcurrent::run(this, &GAPI::doSignSCAP, signParams);
 }
@@ -1797,7 +1972,8 @@ void GAPI::doSignSCAP(SCAPSignParams params) {
     }
 
     scapServices.executeSCAPSignature(this, params.inputPDF, params.outputPDF, params.page,
-                params.location_x, params.location_y, params.ltv, attrs);
+                params.location_x, params.location_y, params.location, params.reason,
+                                      params.ltv, attrs);
 }
 
 void GAPI::getSCAPEntities() {
@@ -1806,7 +1982,7 @@ void GAPI::getSCAPEntities() {
     std::vector<ns3__AttributeSupplierType *> entities = scapServices.getAttributeSuppliers();
 
     if(entities.size() == 0){
-        emit signalSCAPDifinitionsServiceFail(ScapGenericError, false);
+        emit signalSCAPDefinitionsServiceFail(ScapGenericError, false);
         return;
     }
 
@@ -1858,6 +2034,17 @@ std::vector<std::string> getChildAttributes(ns2__AttributesType *attributes, boo
     return childrensList;
 }
 
+void GAPI::initScapAppId(){
+    ScapSettings settings;
+    if(settings.getAppID()==""){
+        QString appIDstring;
+        QString request_uuid = QUuid::createUuid().toString();
+        appIDstring = request_uuid.midRef(1, request_uuid.size() - 2).toString();
+        settings.setAppID(appIDstring);
+        removeSCAPAttributesFromCache(0);
+    }
+}
+
 void GAPI::getSCAPEntityAttributes(QList<int> entityIDs) {
 
     QList<QString> attribute_list;
@@ -1868,13 +2055,17 @@ void GAPI::getSCAPEntityAttributes(QList<int> entityIDs) {
         return;
     }
 
+    initScapAppId();
+
     std::vector<int> supplier_ids;
     
     int supplier_id;
     foreach (supplier_id, entityIDs) {
         supplier_ids.push_back(supplier_id);
     }
-
+    if (!prepareSCAPCache()){
+        return;
+    }
     std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(this, *card, supplier_ids);
 
     if (attributes.size() == 0) {
@@ -1913,8 +2104,12 @@ void GAPI::getSCAPCompanyAttributes() {
         return;
     }
 
-    std::vector<int> supplierIDs;
+    initScapAppId();
 
+    std::vector<int> supplierIDs;
+    if (!prepareSCAPCache()) {
+        return;
+    }
     std::vector<ns2__AttributesType *> attributes = scapServices.getAttributes(this, *card, supplierIDs);
 
     if (attributes.size() == 0)
@@ -1924,6 +2119,10 @@ void GAPI::getSCAPCompanyAttributes() {
 
     for(uint i = 0; i < attributes.size() ; i++)
     {
+       //Skip malformed AttributeResponseValues element
+       if (attributes.at(i)->ATTRSupplier == NULL) {
+            continue;
+       }
        std::string attrSupplier = attributes.at(i)->ATTRSupplier->Name;
        std::vector<std::string> childAttributes = getChildAttributes(attributes.at(i), false);
 
@@ -1969,6 +2168,10 @@ void GAPI::getSCAPAttributesFromCache(int queryType, bool isShortDescription) {
     }
 
     for(uint i = 0; i < attributes.size() ; i++) {
+        //Skip malformed AttributeResponseValues element
+       if (attributes.at(i)->ATTRSupplier == NULL) {
+            continue;
+       }
        std::string attrSupplier = attributes.at(i)->ATTRSupplier->Name;
        std::vector<std::string> childAttributes = getChildAttributes(attributes.at(i), isShortDescription);
 
@@ -1991,14 +2194,40 @@ void GAPI::removeSCAPAttributesFromCache(int isCompanies) {
 
     qDebug() << "removeSCAPAttributesFromCache : " << isCompanies;
 
+    ScapSettings settings;
+    QString scapCacheDir = settings.getCacheDir() + "/scap_attributes/";
+    QDir dir(scapCacheDir);
+    bool has_read_permissions = true;
+
+    // Delete SCAP secretkey to get a new one
     PTEID_EIDCard * card = NULL;
-    bool error_code = false;
-
     getCardInstance(card);
-    if (card == NULL)
-        return;
+    if (card != NULL) {
+        QString citizenNIC(card->getID().getCivilianIdNumber());
+        settings.setSecretKey("",citizenNIC);
+    }
 
-    error_code = scapServices.removeAttributesFromCache(*card);
+#ifdef WIN32
+    extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
+    qt_ntfs_permission_lookup++; // turn ntfs checking (allows isReadable and isWritable)
+#endif
+    if(!dir.isReadable())
+    {
+        PTEID_LOG(PTEID_LOG_LEVEL_ERROR, "eidgui",
+                "No read permissions: SCAP cache directory!");
+        qDebug() << "C++: Cache folder does not have read permissions! ";
+        has_read_permissions = false;
+        emit signalCacheNotReadable(isCompanies);
+    }
+#ifdef WIN32
+    qt_ntfs_permission_lookup--; // turn ntfs permissions lookup off for performance
+#endif
+
+    bool error_code = false;
+    error_code = scapServices.removeAttributesFromCache();
+
+    if (!has_read_permissions)
+        return;
 
     if (error_code == true)
         emit signalRemoveSCAPAttributesSucess(isCompanies);
@@ -2006,11 +2235,44 @@ void GAPI::removeSCAPAttributesFromCache(int isCompanies) {
         emit signalRemoveSCAPAttributesFail(isCompanies);
 }
 
+bool GAPI::prepareSCAPCache() {
+    ScapSettings settings;
+    QString s_scapCacheDir = settings.getCacheDir() + "/scap_attributes/";
+    QFileInfo scapCacheDir(s_scapCacheDir);
+    QDir scapCache(s_scapCacheDir);
+    bool hasPermissions = true;
+    // Tries to create if does not exist
+    if (!scapCache.mkpath(s_scapCacheDir)) {	
+        qDebug() << "couldn't create SCAP cache folder";
+        emit signalCacheFolderNotCreated();
+        hasPermissions = false;
+    }
+#ifdef WIN32
+    extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
+    qt_ntfs_permission_lookup++; // turn ntfs checking (allows isReadable and isWritable)
+#endif
+    if (!scapCacheDir.isWritable()) {
+        qDebug() << "SCAP cache not writable";
+        emit signalCacheNotWritable();
+        hasPermissions = false;
+    }
+    if (!scapCacheDir.isReadable()) {
+        qDebug() << "SCAP cache not readable";
+        emit signalCacheNotReadable(0); // isCompanies parameter not used
+        hasPermissions = false;
+    }
+#ifdef WIN32
+    qt_ntfs_permission_lookup--; // turn ntfs permissions lookup off for performance
+#endif
+    return hasPermissions;
+}
+
 void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
 
     try
     { 
         unsigned long ReaderEndIdx = ReaderSet.readerCount();
+        PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "Card Reader count =  %ld", ReaderEndIdx);
         long ReaderIdx = 0;
         long CardIdx = 0;
         long tempReaderIndex = 0;
@@ -2025,24 +2287,34 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
             for (ReaderIdx = 0; ReaderIdx < ReaderEndIdx; ReaderIdx++)
             {
                 PTEID_ReaderContext& readerContext = ReaderSet.getReaderByNum(ReaderIdx);
-
-                if (readerContext.isCardPresent())
+                try
                 {
-                    bCardPresent = true;
-                    CardIdx++;
-                    tempReaderIndex = ReaderIdx;
+                    if (readerContext.isCardPresent())
+                    {
+                        bCardPresent = true;
+                        CardIdx++;
+                        tempReaderIndex = ReaderIdx;
+                    }
+                }
+                catch(PTEID_Exception &e){
+                    unsigned long err = e.GetError();
+                    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui",
+                              "Failed to check is Card Present 0x%08x\n", err);
                 }
             }
             // Test if Card Reader was previously selected
-            if(selectedReaderIndex != -1){ // Card Reader was previously selected
+            if(selectedReaderIndex != -1)
+            {
                 PTEID_ReaderContext& readerContext = ReaderSet.getReaderByNum(selectedReaderIndex);
                 PTEID_CardType CardType = readerContext.getCardType();
                 lastFoundCardType = CardType;
+                qDebug()<< "Card Reader was previously selected CardType:" << CardType;
+                PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui",
+                          "Card Reader was previously selected CardType: %d", CardType);
                 switch (CardType)
                 {
                 case PTEID_CARDTYPE_IAS07:
                 {
-
                     PTEID_EIDCard& Card = readerContext.getEIDCard();
                     new_card = &Card;
                     break;
@@ -2052,16 +2324,21 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
                 default:
                     break;
                 }
-            }else{ //Card Reader was not previously selected
-                if(CardIdx == 1){
+            }
+            else
+            { //Card Reader was not previously selected
+                if(CardIdx == 1)
+                {
                     PTEID_ReaderContext& readerContext = ReaderSet.getReaderByNum(tempReaderIndex);
                     PTEID_CardType CardType = readerContext.getCardType();
                     lastFoundCardType = CardType;
+                    qDebug()<< "Card Reader was not previously selected CardType:" << CardType;
+                    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui",
+                              "Card Reader was not previously selected CardType: %d", CardType);
                     switch (CardType)
                     {
                         case PTEID_CARDTYPE_IAS07:
                         {
-
                             PTEID_EIDCard& Card = readerContext.getEIDCard();
                             new_card = &Card;
                             break;
@@ -2072,11 +2349,15 @@ void GAPI::getCardInstance(PTEID_EIDCard * &new_card) {
                             break;
                     }
                 }
-                if(CardIdx > 1 && selectedReaderIndex == -1){
-                    emit signalReaderContext();
-                    selectedReaderIndex = -1;
+                else if(CardIdx > 1) //Card Reader was not previously selected
+                {
+                    qDebug()<< "Card Reader was not previously selected. Ask user to select card";
+                    PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eidgui", "Card Reader was not previously selected. "
+                                                               "Ask user to select card");
+                    emit signalReaderContext(); // Ask user to select card
                 }
-                else{
+                else
+                {
                     if (!bCardPresent)
                     {
                         emit signalCardAccessError(NoCardFound);
@@ -2200,6 +2481,7 @@ void GAPI::connectToCard() {
             QString::fromUtf8(eid_file.getSurnameFather());
     cardData[Mother] = QString::fromUtf8(eid_file.getGivenNameMother()) + " " +
             QString::fromUtf8(eid_file.getSurnameMother());
+    cardData[AccidentalIndications]  = QString::fromUtf8(eid_file.getAccidentalIndications());
     cardData[Documenttype] = QString::fromUtf8(eid_file.getDocumentType());
     cardData[Documentnum] = QString::fromUtf8(eid_file.getDocumentNumber());
     cardData[Documentversion] = QString::fromUtf8(eid_file.getDocumentVersion());
@@ -2253,8 +2535,8 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
         //------------------------------------
         // is card removed from the reader?
         //------------------------------------
-		if (!readerContext.isCardPresent())
-		{
+        if (!readerContext.isCardPresent())
+        {
 
             if (pCallBackData->getMainWnd()->m_Settings.getRemoveCert())
             {
@@ -2265,7 +2547,7 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
                     qDebug() << "RemoveCertificates fail";
 
                     PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "RemoveCertificates failed!");
-					emit pCallBackData->getMainWnd()->signalRemoveCertificatesFail();
+                    emit pCallBackData->getMainWnd()->signalRemoveCertificatesFail();
                 }
             }
 
@@ -2286,7 +2568,7 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
         //------------------------------------
         // is card inserted ?
         //------------------------------------
-		else if (readerContext.isCardChanged(pCallBackData->m_cardID))
+        else if (readerContext.isCardChanged(pCallBackData->m_cardID))
         {
             //------------------------------------
             // send an event to the main app to show the popup message
@@ -2298,21 +2580,21 @@ void cardEventCallback(long lRet, unsigned long ulState, CallBackData* pCallBack
             //------------------------------------
             // register certificates when needed
             //------------------------------------
-			if (pCallBackData->getMainWnd()->m_Settings.getRegCert())
+            if (pCallBackData->getMainWnd()->m_Settings.getRegCert())
             {
                 PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Will try to ImportCertificates...");
                 bool bImported = pCallBackData->getMainWnd()->m_Certificates.ImportCertificates(pCallBackData->getReaderName());
 
                 if(!bImported) {
                     PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "ImportCertificates failed!");
-					emit pCallBackData->getMainWnd()->signalImportCertificatesFail();
+                    emit pCallBackData->getMainWnd()->signalImportCertificatesFail();
                 }
             }
         }
-		else
-		{
-			PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Event ignored");
-		}
+        else
+        {
+            PTEID_LOG(PTEID_LOG_LEVEL_DEBUG, "eventCallback", "Event ignored");
+        }
     }
     catch (...)
     {
@@ -2436,6 +2718,7 @@ void GAPI::buildTree(PTEID_Certificate &cert, bool &bEx, QVariantMap &certificat
 {
     QVariantMap certificatesMapChildren;
     static int level = 0;
+    static int status = PTEID_CERTIF_STATUS_UNKNOWN;
 
     if (cert.isRoot())
     {
@@ -2444,11 +2727,16 @@ void GAPI::buildTree(PTEID_Certificate &cert, bool &bEx, QVariantMap &certificat
         certificatesMapChildren.insert("ValidityBegin", cert.getValidityBegin());
         certificatesMapChildren.insert("ValidityEnd", cert.getValidityEnd());
         certificatesMapChildren.insert("KeyLength", QString::number(cert.getKeyLength()));
-        certificatesMapChildren.insert("Status", cert.getStatus());
+        if(status != PTEID_CERTIF_STATUS_CONNECT
+                && status != PTEID_CERTIF_STATUS_ERROR){
+            status = cert.getStatus();
+        }
+        certificatesMapChildren.insert("Status", status);
 
         certificatesMap.insert("level" + QString::number(level),certificatesMapChildren);
         certificatesMap.insert("levelCount",level+1);
         level = 0;
+        status = PTEID_CERTIF_STATUS_UNKNOWN;
     }
     else
     {
@@ -2457,7 +2745,12 @@ void GAPI::buildTree(PTEID_Certificate &cert, bool &bEx, QVariantMap &certificat
         certificatesMapChildren.insert("ValidityBegin", cert.getValidityBegin());
         certificatesMapChildren.insert("ValidityEnd", cert.getValidityEnd());
         certificatesMapChildren.insert("KeyLength", QString::number(cert.getKeyLength()));
-        certificatesMapChildren.insert("Status", cert.getStatus());
+
+        if(status != PTEID_CERTIF_STATUS_CONNECT
+                && status != PTEID_CERTIF_STATUS_ERROR){
+            status = cert.getStatus();
+        }
+        certificatesMapChildren.insert("Status", status);
 
         if(certificatesMap.contains("level" + QString::number(level))) {
             certificatesMap.insert("levelB" + QString::number(level),certificatesMapChildren);
@@ -2487,27 +2780,11 @@ void GAPI::startGetCardActivation( void ) {
 
 void GAPI::getCertificateAuthStatus ( void )
 {
-    int certificateStatus = PTEID_CERTIF_STATUS_UNKNOWN;
-
     qDebug() << "getCertificateAuthStatus";
 
-    QString returnString;
-
-    BEGIN_TRY_CATCH
-
-    PTEID_EIDCard * card = NULL;
-    getCardInstance(card);
-    if (card == NULL) return;
-
-    PTEID_Certificates&	 certificates	= card->getCertificates();
-
-    certificateStatus = certificates.getCert(PTEID_Certificate::CITIZEN_AUTH).getStatus();
-
-    returnString = getCardActivation();
+    QString returnString = getCardActivation();
 
     emit signalShowCardActivation(returnString);
-
-    END_TRY_CATCH
 }
 
 void GAPI::fillCertificateList ( void )
@@ -2603,4 +2880,66 @@ bool GAPI::getRegCertValue (void){
 bool GAPI::getRemoveCertValue (void){
 
     return m_Settings.getRemoveCert();
+}
+
+void GAPI::quitApplication(void) {
+    try
+    {
+        if (m_Settings.getRemoveCert())
+        {
+            for (unsigned long readerCount=0;readerCount<ReaderSet.readerCount();readerCount++)
+            {
+                QString readerName = ReaderSet.getReaderName(readerCount);
+                m_Certificates.RemoveCertificates(readerName);
+            }
+        }
+
+        //-------------------------------------------------------------------
+        // we must release all the certificate contexts before releasing the SDK.
+        // After Release, no more calls should be done to the SDK and as such
+        // noting should be done in the dtor
+        //-------------------------------------------------------------------
+        forgetAllCertificates();
+        stopAllEventCallbacks();
+
+    }
+    catch (...) {}
+    qApp->quit();
+}
+
+//*****************************************************
+// forget all the certificates we kept for all readers
+//*****************************************************
+void GAPI::forgetAllCertificates( void )
+{
+#ifdef WIN32
+    bool bRefresh = true;;
+    for (unsigned long readerIdx=0; readerIdx<ReaderSet.readerCount(bRefresh); readerIdx++)
+    {
+        const char* readerName = ReaderSet.getReaderByNum(readerIdx).getName();
+        forgetCertificates(readerName);
+    }
+#endif
+}
+
+//*****************************************************
+// forget all the certificates we kept for a specific reader
+//*****************************************************
+void GAPI::forgetCertificates(QString const& reader)
+{
+    char readerName[256];
+    readerName[0] = 0;
+    if (reader.length()>0)
+    {
+        strcpy(readerName, reader.toUtf8().data());
+    }
+#ifdef WIN32
+    QVector<PCCERT_CONTEXT> readerCertContext = m_Certificates.m_certContexts[readerName];
+    while (0 < readerCertContext.size())
+    {
+        PCCERT_CONTEXT pContext = readerCertContext[readerCertContext.size() - 1];
+        CertFreeCertificateContext(pContext);
+        readerCertContext.erase(readerCertContext.end() - 1);
+    }
+#endif
 }

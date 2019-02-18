@@ -94,7 +94,7 @@ Item {
             Text {
                 id: titlePre
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -119,7 +119,7 @@ Item {
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    font.pointSize: Constants.SIZE_TEXT_BODY
+                    font.pixelSize: Constants.SIZE_TEXT_BODY
                     color: Constants.COLOR_TEXT_LABEL
                     visible: !fileLoaded
                     font.family: lato.name
@@ -166,7 +166,7 @@ Item {
                 y: 8
                 text: qsTranslate("PageServicesSign","STR_SIGN_PAGE") + ":"
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 color: Constants.COLOR_MAIN_PRETO
                 font.capitalization: Font.MixedCase
                 opacity: fileLoaded && !checkLastPage.checked
@@ -178,6 +178,7 @@ Item {
                 y: 0
                 from: 1
                 to: 10000
+                stepSize: 1
                 value: 1
                 anchors.left: pageText.right
                 width: 100
@@ -185,12 +186,12 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 enabled: fileLoaded && !checkLastPage.checked
                 editable:  fileLoaded ? true : false
-
+                validator: RegExpValidator { regExp: /[1-9][0-9]*/ }
                 contentItem: TextInput {
                     id: textSpinBox
                     z: 2
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     color: Constants.COLOR_MAIN_PRETO
                     opacity: fileLoaded && !checkLastPage.checked
                              ? 1.0 : Constants.OPACITY_SERVICES_SIGN_ADVANCE_TEXT_DISABLED
@@ -200,8 +201,8 @@ Item {
                     readOnly: !spinBoxControl.editable
                     validator: spinBoxControl.validator
                     inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    maximumLength: 5 //pages go from 1 to 99999
                 }
-
 
                 up.indicator: Rectangle {
                     x: spinBoxControl.mirrored ? 0 : parent.width - width
@@ -213,7 +214,7 @@ Item {
                     Text {
                         text: ">"
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_ARROW_INDICATOR
+                        font.pixelSize: Constants.SIZE_ARROW_INDICATOR
                         color: Constants.COLOR_MAIN_BLUE
                         font.bold : true
                         opacity: fileLoaded && !checkLastPage.checked
@@ -235,7 +236,7 @@ Item {
                     Text {
                         text: "<"
                         font.family: lato.name
-                        font.pointSize:  Constants.SIZE_ARROW_INDICATOR
+                        font.pixelSize:  Constants.SIZE_ARROW_INDICATOR
                         color: Constants.COLOR_MAIN_BLUE
                         font.bold : true
                         opacity: fileLoaded && !checkLastPage.checked
@@ -258,7 +259,7 @@ Item {
                 text: qsTranslate("PageServicesSign","STR_SIGN_LAST")
                 height: Constants.HEIGHT_SWITCH_COMPONENT
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.capitalization: Font.MixedCase
                 enabled: fileLoaded
             }
@@ -285,7 +286,7 @@ Item {
                 width: Constants.WIDTH_BUTTON
                 height: parent.height
                 enabled: fileLoaded
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.left: parent.left
@@ -305,7 +306,7 @@ Item {
                 width: Constants.WIDTH_BUTTON
                 height: parent.height
                 enabled: fileLoaded && cardLoaded
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
             }
@@ -316,7 +317,7 @@ Item {
                 width: Constants.WIDTH_BUTTON
                 height: parent.height
                 enabled: fileLoaded
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.right: parent.right

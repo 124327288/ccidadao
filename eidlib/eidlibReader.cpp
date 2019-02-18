@@ -759,6 +759,10 @@ PTEID_Config::PTEID_Config(PTEID_Param Param):PTEID_Object(NULL,NULL)
 		m_impl = new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GENERAL_SCAP_HOST);      break;
 	case PTEID_PARAM_GENERAL_SCAP_PORT:
 		m_impl = new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GENERAL_SCAP_PORT);      break;
+	case PTEID_PARAM_GENERAL_SCAP_APIKEY:
+		m_impl = new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GENERAL_SCAP_APIKEY);      break;
+	case PTEID_PARAM_GENERAL_SCAP_APPID:
+	        m_impl = new APL_Config(CConfig::EIDMW_CONFIG_PARAM_GENERAL_SCAP_APPID);      break;
 
 	//LOGGING
 	case PTEID_PARAM_LOGGING_DIRNAME:
@@ -851,6 +855,11 @@ PTEID_Config::PTEID_Config(PTEID_Param Param):PTEID_Object(NULL,NULL)
 }
 
 PTEID_Config::PTEID_Config(const char *csName, const char *czSection, const char *csDefaultValue):PTEID_Object(NULL,new APL_Config(csName,czSection,csDefaultValue))
+{
+        m_delimpl=true;
+}
+
+PTEID_Config::PTEID_Config(const char *csName, const wchar_t *czSection, const wchar_t *csDefaultValue):PTEID_Object(NULL,new APL_Config(csName,czSection,csDefaultValue))
 {
 	m_delimpl=true;
 }

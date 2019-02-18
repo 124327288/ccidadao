@@ -2,8 +2,8 @@
 #include <sstream>
 #include "eidlib.h"
 
-#include "SCAP-Services2/SCAPH.h"
-#include "SCAP-Services2/SCAP.nsmap"
+#include "SCAP-services-v3/SCAPH.h"
+#include "SCAP-services-v3/SCAP.nsmap"
 #include "scapsignature.h"
 #include "ScapSettings.h"
 #include <QDir>
@@ -26,7 +26,7 @@ std::vector<ns2__AttributesType *> loadCacheFile(QString &filePath) {
     std::istream * istream = &replyStream;
 
     soap * soap2 = soap_new2(SOAP_C_UTFSTRING, SOAP_C_UTFSTRING);
-    soap_set_namespaces(soap2, SCAPnamespaces);
+    soap_set_namespaces(soap2, namespaces);
 
     soap2->is = istream;
 
@@ -42,6 +42,11 @@ std::vector<ns2__AttributesType *> loadCacheFile(QString &filePath) {
     }
     attributesType = attr_response.AttributeResponseValues;
 
+    //Remove malformed elements contained in the cache file (returned by service response)
+    attributesType.erase(
+        std::remove_if(attributesType.begin(), attributesType.end(), [] (ns2__AttributesType *attr) { return attr->ATTRSupplier == NULL; } ),
+        attributesType.end());
+    
     return attributesType;
 }
 
@@ -143,7 +148,7 @@ std::vector<ns2__AttributesType *>
     return m_attributesList;
 }
 
-bool ScapServices::removeAttributesFromCache(eIDMW::PTEID_EIDCard &card) {
+bool ScapServices::removeAttributesFromCache() {
 
     try
     {
@@ -174,11 +179,19 @@ bool ScapServices::removeAttributesFromCache(eIDMW::PTEID_EIDCard &card) {
 std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eIDMW::PTEID_EIDCard &card, std::vector<int> supplier_ids) {
 
     std::vector<ns2__AttributesType *> result;
+    ScapSettings settings;
     bool allEnterprises = true;
     const char * soapAction = "http://www.cartaodecidadao.pt/services/ccc/ACS/Operations/Attributes";
-	const char * ac_endpoint = "/DSS/ACService";
-    qDebug() << "C++: getAttributes called";
+    const char * ac_endpoint = "/DSS/ACService";
 
+
+
+    std::string appID = settings.getAppID().toStdString();
+    qDebug() << "SCAP AppID = " << appID.c_str();
+
+    std::string appName("Autenticacao.gov");
+
+    qDebug() << "C++: getAttributes called";
 
     try {
 
@@ -213,14 +226,19 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         QString fullname = card.getID().getGivenName();
         fullname.append(" ");
         fullname.append(card.getID().getSurname());
+        QString request_uuid = QUuid::createUuid().toString();
+        QString cleanUuid = request_uuid.midRef(1, request_uuid.size() - 2).toString();
 
         const char* idNumber = card.getID().getCivilianIdNumber();
 
+        std::string secretKey = settings.getSecretKey(idNumber);
+
         ns3__PersonalDataType * citizen = soap_new_req_ns3__PersonalDataType(sp, fullname.toStdString(), idNumber);
 
-        // Get Attribute request
-        //ns2__AttributeRequestType * attr_request = soap_new_req_ns2__AttributeRequestType(sp, "10001", citizen, suppliers);
-        ns2__AttributeRequestType * attr_request = soap_new_set_ns2__AttributeRequestType(sp, "10001", citizen, suppliers, &allEnterprises);
+        //Last param secretKey can be NULL, because we may not have a secretKey stored in configuration (??)
+        ns2__AttributeRequestType * attr_request = soap_new_set_ns2__AttributeRequestType(
+            sp, cleanUuid.toStdString(), citizen, suppliers, &allEnterprises, &appID, &appName, secretKey.size() > 0 ? &secretKey : NULL);
+
         std::stringstream ss;
         sp->os = &ss;
         if (soap_write_ns2__AttributeRequestType(sp, attr_request))
@@ -231,9 +249,8 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         std::string s_soapBody = ss.str();
         s_soapBody.erase(0, s_soapBody.find("\n") + 1);
 
-
         // Get host from configuration
-        ScapSettings settings;
+        
         std::string serverHost = settings.getScapServerHost().toStdString();
         const char * c_serverHost = serverHost.c_str();
 
@@ -267,8 +284,11 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         // Save to cache
         QString s_scapCacheDir = settings.getCacheDir() + "/scap_attributes/";
         QDir scapCacheDir;
-        scapCacheDir.mkpath(s_scapCacheDir);
-
+		// Tries to create if does not exist
+		if (!scapCacheDir.mkpath(s_scapCacheDir)) {
+			qDebug() << "couldn't create SCAP cache folder";
+			parent->signalCacheFolderNotCreated();
+		}
         QString fileLocation = s_scapCacheDir + idNumber + (allEnterprises ? COMPANIES_SUFFIX : ENTITIES_SUFFIX);
 
         // Convert string to istream
@@ -278,7 +298,7 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         // Create soap request with generated body content.
         soap * soap2 = soap_new2(SOAP_C_UTFSTRING, SOAP_C_UTFSTRING);
 
-        soap_set_namespaces(soap2, SCAPnamespaces);
+        soap_set_namespaces(soap2, namespaces);
 
         soap2->is = istream;
 
@@ -289,7 +309,7 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         if (ret != 0) {
             qDebug() << "Error reading AttributeResponseType! Malformed XML response";
             std::cerr << "Error reading AttributeResponseType! Malformed XML response" << std::endl;
-            parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
+            parent->signalSCAPDefinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
             return result;
         }
 
@@ -297,8 +317,13 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
 
         //std::cerr << "Got response from converting XML to object. Size: " << resp_size  << std::endl;
         
-
         if (resp_size > 0) {
+
+            if (attr_response.SecretKey != NULL) {
+                qDebug() << "We received a SCAP secretKey so let's save it!";
+                settings.setSecretKey(*attr_response.SecretKey, idNumber);
+            }
+
             ns2__AttributesType * parentAttribute = attr_response.AttributeResponseValues.at(0);
             std::string resultCode = parentAttribute->ResponseResult->ResultCode;
 
@@ -311,13 +336,13 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
                 qDebug() << "Error in getAttributes(): Result Code: " << resultCodeValue ;
 
                 if(resultCodeValue == SCAP_ATTRIBUTES_EXPIRED){
-                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapAttributesExpiredError, allEnterprises);
+                    parent->signalSCAPDefinitionsServiceFail(GAPI::ScapAttributesExpiredError, allEnterprises);
                 }else if(resultCodeValue == SCAP_ZERO_ATTRIBUTES){
-                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapZeroAttributesError, allEnterprises);
+                    parent->signalSCAPDefinitionsServiceFail(GAPI::ScapZeroAttributesError, allEnterprises);
                 }else if(resultCodeValue == SCAP_ATTRIBUTES_NOT_VALID){
-                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapNotValidAttributesError, allEnterprises);
+                    parent->signalSCAPDefinitionsServiceFail(GAPI::ScapNotValidAttributesError, allEnterprises);
                 }else{
-                    parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
+                    parent->signalSCAPDefinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
                 }
 
                 return result;
@@ -339,6 +364,7 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
             else
             {
                 std::cerr << "Couldn't save attribute result to cache. Error: " << cacheFile.errorString().toStdString() << std::endl;
+				parent->signalCacheNotWritable();
             }
         } else {
 
@@ -352,7 +378,7 @@ std::vector<ns2__AttributesType *> ScapServices::getAttributes(GAPI *parent, eID
         result = attr_response.AttributeResponseValues;
     }
     catch(...) {
-        parent->signalSCAPDifinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
+        parent->signalSCAPDefinitionsServiceFail(GAPI::ScapGenericError, allEnterprises);
         qDebug() << "reqAttributeSupplierListType ERROR << - TODO: improve error handling";
     }
 

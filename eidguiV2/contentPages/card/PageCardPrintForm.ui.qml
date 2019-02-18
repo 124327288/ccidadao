@@ -18,6 +18,7 @@ Item {
     property alias propertySwitchAdditional: switchAdditional
     property alias propertySwitchAddress: switchAddress
     property alias propertySwitchNotes: switchNotes
+    property alias propertySwitchPrintDate: switchPrintDate
     property alias propertySwitchPdfSign: switchPdfSign
 
     Item {
@@ -46,7 +47,7 @@ Item {
     Item {
         id: rowSelectData
         width: parent.width
-        height: 4 * Constants.HEIGHT_SWITCH_COMPONENT
+        height: 5 * Constants.HEIGHT_SWITCH_COMPONENT
         anchors.top: rowTop.bottom
         anchors.topMargin: Constants.SIZE_ROW_V_SPACE
 
@@ -73,7 +74,7 @@ Item {
         Text {
             id: titleSelectData
             x: Constants.SIZE_TEXT_FIELD_H_SPACE
-            font.pointSize: Constants.SIZE_TEXT_LABEL
+            font.pixelSize: Constants.SIZE_TEXT_LABEL
             font.family: lato.name
             color: Constants.COLOR_TEXT_LABEL
             height: Constants.SIZE_TEXT_LABEL
@@ -93,7 +94,7 @@ Item {
                 text: qsTranslate("GAPI","STR_BASIC_INFORMATION_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchAdditional
@@ -102,7 +103,7 @@ Item {
                 text: qsTranslate("GAPI","STR_ADDITIONAL_INFORMATION_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchAddress
@@ -111,7 +112,7 @@ Item {
                 text: qsTranslate("GAPI","STR_ADDRESS_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
             }
             Switch {
                 id: switchNotes
@@ -120,7 +121,16 @@ Item {
                 text: qsTranslate("GAPI","STR_PERSONAL_NOTES_UPPERCASE")
                 enabled: true
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
+            }
+            Switch {
+                id: switchPrintDate
+                height: Constants.HEIGHT_SWITCH_COMPONENT
+                anchors.top: switchNotes.bottom
+                text: qsTranslate("GAPI","STR_PRINT_DATE")
+                enabled: true
+                font.family: lato.name
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
             }
         }
     }
@@ -155,11 +165,11 @@ Item {
         Text {
             id: titleOptions
             x: Constants.SIZE_TEXT_FIELD_H_SPACE
-            font.pointSize: Constants.SIZE_TEXT_LABEL
+            font.pixelSize: Constants.SIZE_TEXT_LABEL
             font.family: lato.name
             color: Constants.COLOR_TEXT_LABEL
             height: Constants.SIZE_TEXT_LABEL
-            text: qsTranslate("PageCardPrint","STR_PRINT_SETTINGS")
+            text: qsTranslate("PageCardPrint","STR_PRINT_SIGN_SETTINGS")
         }
 
         Rectangle {
@@ -175,7 +185,7 @@ Item {
                 text: qsTranslate("PageCardPrint","STR_PRINT_SIGN_PDF")
                 enabled: true
                 font.family: lato.name
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.capitalization: Font.MixedCase
             }
         }
@@ -194,10 +204,13 @@ Item {
             Button {
                 id: buttonPrint
                 text: qsTranslate("PageCardPrint","STR_PRINT_BUTTON")
-                enabled: false
+                enabled: {
+                    (switchBasic.checked || switchAdditional.checked || switchAddress.checked 
+                              || switchNotes.checked) && !switchPdfSign.checked
+                }
                 width: Constants.WIDTH_BUTTON
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -212,10 +225,13 @@ Item {
             Button {
                 id: buttonPdf
                 text: qsTranslate("PageCardPrint","STR_PRINT_PDF_BUTTON")
-                enabled: false
+                enabled: {
+                    switchBasic.checked || switchAdditional.checked 
+                         || switchAddress.checked || switchNotes.checked
+                }
                 width: Constants.WIDTH_BUTTON
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 anchors.horizontalCenter: parent.horizontalCenter

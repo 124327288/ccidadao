@@ -61,7 +61,7 @@ Item {
                     horizontalCenter: parent.horizontalCenter
                 }
                 text: mainWindow.title
-                font.pointSize: Constants.SIZE_TEXT_BODY
+                font.pixelSize: Constants.SIZE_TEXT_BODY
                 font.family: lato.name
                 color: "white"
             }
@@ -127,8 +127,7 @@ Item {
                 id: mouseAreaQuitButton
                 anchors.fill: parent
                 hoverEnabled: true
-                //TODO: implement some similar with MainWnd::quit_application
-                onClicked: Qt.quit()
+                onClicked: quitApplication()
             }
         }
         MouseArea {
@@ -163,5 +162,9 @@ Item {
             console.log("Screen is not Maximized" + mainWindow.visibility)
             mainWindow.showMaximized()
         }
+    }
+    function quitApplication() {
+        //mainWindow.hide()
+        gapi.quitApplication()
     }
 }

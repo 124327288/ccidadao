@@ -62,35 +62,47 @@ PageCardAdressForm {
         }
         onSignalCardAccessError: {
             console.log("Card Adress onSignalCardAccessError"+ error_code)
-            if (error_code != GAPI.CardUserPinCancel){
-                if (error_code == GAPI.NoReaderFound) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_NO_CARD_READER")
-                }
-                else if (error_code == GAPI.NoCardFound) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_NO_CARD")
-                }
-                else if (error_code == GAPI.SodCardReadError) {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_SOD_VALIDATION_ERROR")
-                }
-                else {
-                    mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
-                            qsTranslate("Popup Card","STR_POPUP_ERROR")
-                    mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
-                            qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
-                }
-                propertyButtonConfirmOfAddress.enabled = false
-                mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
-                mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
+            
+            if (error_code == GAPI.NoReaderFound) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_NO_CARD_READER")
             }
+            else if (error_code == GAPI.NoCardFound) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_NO_CARD")
+            }
+            else if (error_code == GAPI.SodCardReadError) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_SOD_VALIDATION_ERROR")
+            }
+            else if (error_code == GAPI.CardUserPinCancel) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_CANCELED")
+            }
+			else if (error_code == GAPI.CardPinTimeout) {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_PIN_TIMEOUT")
+            }
+            else {
+                mainFormID.propertyPageLoader.propertyGeneralTitleText.text =
+                        qsTranslate("Popup Card","STR_POPUP_ERROR")
+                mainFormID.propertyPageLoader.propertyGeneralPopUpLabelText.text =
+                        qsTranslate("Popup Card","STR_POPUP_CARD_ACCESS_ERROR")
+            }
+            propertyButtonConfirmOfAddress.enabled = false
+            mainFormID.propertyPageLoader.propertyGeneralPopUp.visible = true;
+            mainFormID.propertyPageLoader.propertyRectPopUp.forceActiveFocus();
+            
             propertyDistrict.propertyDateField.text = ""
             propertyMunicipality.propertyDateField.text = ""
             propertyParish.propertyDateField.text = ""
@@ -169,7 +181,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -187,7 +199,7 @@ PageCardAdressForm {
                     id: textBadPin
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -221,7 +233,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -240,7 +252,7 @@ PageCardAdressForm {
                     text: qsTranslate("Popup PIN","STR_POPUP_CARD_PIN_ADDRESS")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -257,7 +269,7 @@ PageCardAdressForm {
                     validator: RegExpValidator { regExp: /[0-9]+/ }
                     maximumLength: 8
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPin.right
                     anchors.bottom: parent.bottom
@@ -319,7 +331,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -334,12 +346,12 @@ PageCardAdressForm {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Text {
                     id: textPinMsgConfirm
-                    text: qsTr("STR_ADDRESS_CHANGE_TEXT")
-                          + "<a href=\"https://www.portaldocidadao.pt/web/instituto-dos-registos-e-do-notariado/cartao-de-cidadao-alteracao-de-morada\">"
-                          + " "+ qsTr("STR_ADDRESS_CHANGE_TEXT_LINK")
+                    text: qsTr("STR_ADDRESS_CHANGE_TEXT") + " "
+                          + "<a href=\"https://www.portaldocidadao.pt/web/instituto-dos-registos-e-do-notariado/alterar-a-morada-do-cartao-de-cidadao\">"
+                          + qsTr("STR_ADDRESS_CHANGE_TEXT_LINK")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                     height: parent.height
@@ -363,7 +375,7 @@ PageCardAdressForm {
                     text:  qsTr("STR_ADDRESS_CHANGE_NUMBER")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -377,7 +389,7 @@ PageCardAdressForm {
                     font.italic: textFieldNumProcess.text === "" ? true: false
                     placeholderText: qsTr("STR_ADDRESS_CHANGE_NUMBER_OP")
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinCurrent.right
                     anchors.bottom: parent.bottom
@@ -394,7 +406,7 @@ PageCardAdressForm {
                     text: qsTr("STR_ADDRESS_CHANGE_CODE")
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_LABEL
                     height: parent.height
@@ -408,7 +420,7 @@ PageCardAdressForm {
                     font.italic: textFieldConfirmAddress.text === "" ? true: false
                     placeholderText: qsTr("STR_ADDRESS_CHANGE_CODE_OP")
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     clip: false
                     anchors.left: textPinNew.right
                     anchors.bottom: parent.bottom
@@ -426,7 +438,7 @@ PageCardAdressForm {
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
                 text: qsTr("STR_ADDRESS_CHANGE_CANCEL")
                 anchors.left: parent.left
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 onClicked: {
@@ -439,7 +451,7 @@ PageCardAdressForm {
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
                 text: qsTr("STR_ADDRESS_CHANGE_CONFIRM")
                 anchors.right: parent.right
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 enabled: textFieldNumProcess.length !== 0 && textFieldConfirmAddress.length !== 0 ? true : false
@@ -454,7 +466,8 @@ PageCardAdressForm {
             }
         }
         onRejected:{
-            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
+            // Reject address change Popup's only with ESC key
+            dialogConfirmOfAddress.open()
         }
     }
 
@@ -476,7 +489,7 @@ PageCardAdressForm {
             padding: 24
             bottomPadding: 0
             font.bold: true
-            font.pointSize: 16
+            font.pixelSize: Constants.SIZE_TEXT_MAIN_MENU
             color: Constants.COLOR_MAIN_BLUE
         }
 
@@ -491,10 +504,11 @@ PageCardAdressForm {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Text {
                     id: textMessageTop
+                    textFormat: Text.RichText
                     text: ""
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pointSize: Constants.SIZE_TEXT_LABEL
+                    font.pixelSize: Constants.SIZE_TEXT_LABEL
                     font.family: lato.name
                     color: Constants.COLOR_TEXT_BODY
                     height: parent.height
@@ -542,7 +556,7 @@ PageCardAdressForm {
                 height: Constants.HEIGHT_BOTTOM_COMPONENT
                 text: qsTr("STR_ADDRESS_CHANGE_OK")
                 anchors.right: parent.right
-                font.pointSize: Constants.SIZE_TEXT_FIELD
+                font.pixelSize: Constants.SIZE_TEXT_FIELD
                 font.family: lato.name
                 font.capitalization: Font.MixedCase
                 visible: progressBarIndeterminate.visible ? false : true
@@ -553,7 +567,8 @@ PageCardAdressForm {
             }
         }
         onRejected:{
-            mainFormID.opacity = Constants.OPACITY_MAIN_FOCUS
+            // Reject address change Popup's only with ESC key
+            dialogConfirmOfAddressProgress.open()
         }
     }
 

@@ -37,9 +37,9 @@ Item {
     Item {
         id: rowTop
         width: parent.width
-        height: parent.height * Constants.HEIGHT_DIFINITIONS_APP_ROW_TOP_V_RELATIVE
+        height: parent.height * Constants.HEIGHT_DEFINITIONS_APP_ROW_TOP_V_RELATIVE
                 + (parent.height + Constants.TITLE_BAR_SIZE - Constants.SCREEN_MINIMUM_HEIGHT)
-                * Constants.HEIGHT_DIFINITIONS_APP_ROW_TOP_INC_RELATIVE
+                * Constants.HEIGHT_DEFINITIONS_APP_ROW_TOP_INC_RELATIVE
     }
 
     Item {
@@ -58,7 +58,7 @@ Item {
             Text {
                 id: textReader
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -98,7 +98,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     visible: true
                 }
@@ -110,12 +110,12 @@ Item {
             height: dateAppStart.height + rectAppStartCheckBox.height + Constants.SIZE_TEXT_V_SPACE
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectReader.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppStart
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -153,7 +153,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_AUTO_START_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                 }
@@ -165,12 +165,12 @@ Item {
             height: dateAppLanguage.height + rectAppLanguageCheckBox.height + Constants.SIZE_TEXT_V_SPACE
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectAppStart.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppLanguage
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -208,7 +208,7 @@ Item {
                     height: Constants.HEIGHT_RADIO_BOTTOM_COMPONENT
                     text: qsTranslate("PageDefinitionsApp","STR_PT_NAME_OP") + controler.autoTr
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                 }
                 RadioButton {
@@ -217,7 +217,7 @@ Item {
                     x: rectAppLanguageCheckBox.width * 0.5
                     text: qsTranslate("PageDefinitionsApp","STR_UK_NAME_OP") + controler.autoTr
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                 }
             }
@@ -228,12 +228,12 @@ Item {
             height: dateAppLook.height + rectAppLookCheckBox.height + Constants.SIZE_TEXT_V_SPACE
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectAppLanguage.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppLook
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -271,7 +271,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_SHOW_ANIME_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                 }
@@ -283,12 +283,12 @@ Item {
             height: dateAppCertificates.height + rectAppCertificatesCheckBox.height + Constants.SIZE_TEXT_V_SPACE
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectAppLook.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppCertificates
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -328,7 +328,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_CERTIFICATES_REGISTER_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                 }
@@ -337,7 +337,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_CERTIFICATES_REMOVE_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.top: checkboxRegister.bottom
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
@@ -350,12 +350,12 @@ Item {
             height: dateAppTimeStamp.height + rectAppTimeStampCheckBox.height + Constants.SIZE_TEXT_V_SPACE
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectAppCertificates.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppTimeStamp
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -394,7 +394,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_TIMESTAMP_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                     checked: false
@@ -412,12 +412,17 @@ Item {
                         font.italic: textFieldTimeStamp.text === "" ? true: false
                         placeholderText: qsTranslate("PageDefinitionsApp","STR_TIMESTAMP_URL_OP") + controler.autoTr
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         clip: false
                         enabled: checkboxTimeStamp.checked
                         opacity: checkboxTimeStamp.checked ?
                                      1.0 :
-                                     Constants.OPACITY_DIFINITIONS_APP_OPTION_DISABLED
+                                     Constants.OPACITY_DEFINITIONS_APP_OPTION_DISABLED
+                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                        validator: RegExpValidator{
+                            //http/https url validator
+                            regExp: /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/
+                        }
                     }
                 }
             }
@@ -428,12 +433,12 @@ Item {
             height: dateAppNetwork.height + rectAppNetworkCheckBox.height
             anchors.leftMargin: Constants.SIZE_ROW_H_SPACE
             anchors.top: rectAppTimeStamp.bottom
-            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DIFINITIONS_APP
+            anchors.topMargin: Constants.SIZE_ROW_V_SPACE_DEFINITIONS_APP
 
             Text {
                 id: dateAppNetwork
                 x: Constants.SIZE_TEXT_FIELD_H_SPACE
-                font.pointSize: Constants.SIZE_TEXT_LABEL
+                font.pixelSize: Constants.SIZE_TEXT_LABEL
                 font.family: lato.name
                 color: Constants.COLOR_TEXT_LABEL
                 height: Constants.SIZE_TEXT_LABEL
@@ -474,7 +479,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_NETWORK_SYSTEM_PROXY_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
                     checked: false
@@ -485,7 +490,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_NETWORK_PROXY_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.top: checkboxSystemProxy.bottom
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
@@ -504,11 +509,15 @@ Item {
                         font.italic: textFieldAdress.text === "" ? true: false
                         placeholderText: qsTranslate("PageDefinitionsApp","STR_NETWORK_PROXY_ADDRESS_OP") + controler.autoTr
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         enabled: checkboxProxy.checked
                         opacity: checkboxProxy.checked ?
                                      1.0 :
-                                     Constants.OPACITY_DIFINITIONS_APP_OPTION_DISABLED
+                                     Constants.OPACITY_DEFINITIONS_APP_OPTION_DISABLED
+                        validator: RegExpValidator{
+                            //validates IPV4/IPV6 host
+                            regExp: /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$|^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$|^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*/
+                        }
                     }
                 }
                 Item {
@@ -525,13 +534,13 @@ Item {
                         placeholderText: qsTranslate("PageDefinitionsApp","STR_NETWORK_PROXY_PORT_OP") + controler.autoTr
                         validator: RegExpValidator { regExp: /[0-9]+/ }
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         clip: true
                         maximumLength: 5
                         enabled: checkboxProxy.checked
                         opacity: checkboxProxy.checked ?
                                      1.0 :
-                                     Constants.OPACITY_DIFINITIONS_APP_OPTION_DISABLED
+                                     Constants.OPACITY_DEFINITIONS_APP_OPTION_DISABLED
                     }
                 }
                 CheckBox {
@@ -540,7 +549,7 @@ Item {
                     text: qsTranslate("PageDefinitionsApp","STR_NETWORK_AUTH_OP") + controler.autoTr
                     height: 25
                     font.family: lato.name
-                    font.pointSize: Constants.SIZE_TEXT_FIELD
+                    font.pixelSize: Constants.SIZE_TEXT_FIELD
                     font.capitalization: Font.MixedCase
                     anchors.top: checkboxSystemProxy.bottom
                     anchors.topMargin: Constants.SIZE_TEXT_V_SPACE
@@ -559,12 +568,12 @@ Item {
                         font.italic: textFieldAutUser.text === "" ? true: false
                         placeholderText: qsTranslate("PageDefinitionsApp","STR_NETWORK_AUTH_USERNAME_OP") + controler.autoTr
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         clip: false
                         enabled: checkboxAutProxy.checked
                         opacity: checkboxAutProxy.checked ?
                                      1.0 :
-                                     Constants.OPACITY_DIFINITIONS_APP_OPTION_DISABLED
+                                     Constants.OPACITY_DEFINITIONS_APP_OPTION_DISABLED
                     }
                 }
                 Item {
@@ -581,12 +590,12 @@ Item {
                         placeholderText: qsTranslate("PageDefinitionsApp","STR_NETWORK_AUTH_PASSWORD_OP") + controler.autoTr
                         echoMode : TextInput.Password
                         font.family: lato.name
-                        font.pointSize: Constants.SIZE_TEXT_FIELD
+                        font.pixelSize: Constants.SIZE_TEXT_FIELD
                         clip: false
                         enabled: checkboxAutProxy.checked
                         opacity: checkboxAutProxy.checked ?
                                      1.0 :
-                                     Constants.OPACITY_DIFINITIONS_APP_OPTION_DISABLED
+                                     Constants.OPACITY_DEFINITIONS_APP_OPTION_DISABLED
                     }
                 }
             }
