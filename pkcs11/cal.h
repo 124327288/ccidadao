@@ -35,11 +35,11 @@ extern "C" {
    {  CKM_SHA384,             384, 384  , CKF_DIGEST         }, \
    {  CKM_SHA512,             512, 512  , CKF_DIGEST         }, \
    {  CKM_RIPEMD160,          160, 160  , CKF_DIGEST         }, \
-   {  CKM_RSA_PKCS,           1024, 2048, CKF_HW | CKF_SIGN  }, \
-   {  CKM_MD5_RSA_PKCS,       1024, 2048, CKF_HW | CKF_SIGN  }, \
-   {  CKM_SHA1_RSA_PKCS,      1024, 2048, CKF_HW | CKF_SIGN  }, \
-   {  CKM_SHA256_RSA_PKCS,    1024, 2048, CKF_HW | CKF_SIGN  }, \
-   {  CKM_RIPEMD160_RSA_PKCS, 1024, 2048, CKF_HW | CKF_SIGN  }  \
+   {  CKM_RSA_PKCS,           1024, 3072, CKF_HW | CKF_SIGN  }, \
+   {  CKM_MD5_RSA_PKCS,       1024, 3072, CKF_HW | CKF_SIGN  }, \
+   {  CKM_SHA1_RSA_PKCS,      1024, 3072, CKF_HW | CKF_SIGN  }, \
+   {  CKM_SHA256_RSA_PKCS,    1024, 3072, CKF_HW | CKF_SIGN  }, \
+   {  CKM_RIPEMD160_RSA_PKCS, 1024, 3072, CKF_HW | CKF_SIGN  }  \
 }
 
 
@@ -57,7 +57,8 @@ extern "C" {
 	{ CKA_UNWRAP,           ( CK_VOID_PTR ) NULL, 0 },   \
 	{ CKA_MODULUS,          ( CK_VOID_PTR ) NULL, 0 },   \
    { CKA_MODULUS_BITS,     ( CK_VOID_PTR ) NULL, 0 },   \
-   { CKA_EXTRACTABLE,     ( CK_VOID_PTR ) NULL, 0 },   \
+   { CKA_EXTRACTABLE,      ( CK_VOID_PTR ) NULL, 0 },   \
+   { CKA_ALWAYS_AUTHENTICATE,( CK_VOID_PTR ) NULL, 0 }, \
 	{ CKA_PUBLIC_EXPONENT,  ( CK_VOID_PTR ) NULL, 0 },   \
 	{ CKA_PRIVATE,          ( CK_VOID_PTR ) NULL, 0 },   \
 	{ CKA_PRIVATE_EXPONENT, ( CK_VOID_PTR ) NULL, 0 },   \
